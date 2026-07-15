@@ -293,3 +293,17 @@ describe('createInventory', () => {
     })
   })
 })
+
+describe('persist shorthand', () => {
+  it('accepts persist: true without throwing (defaults, storage may be unavailable in Node)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const inv = createInventory({
+      items: [{ id: 'x', name: 'X' }],
+      effects: createEffectRegistry(),
+      persist: true,
+    })
+    expect(inv.add('x', 1).success).toBe(true)
+    expect(inv.count('x')).toBe(1)
+    warn.mockRestore()
+  })
+})

@@ -30,7 +30,7 @@ export interface AchievementsConfig<Ctx = unknown> {
    */
   events?: EventBus<OverworldEventMap>
   /** Enable persistence by providing (possibly empty) persist settings. */
-  persist?: AchievementsPersistConfig
+  persist?: boolean | AchievementsPersistConfig
 }
 
 /** The headless achievement engine returned by {@link createAchievements}. */
@@ -101,14 +101,15 @@ export function createAchievements<Ctx = unknown>(
   const subscriptions = new Map<string, () => void>()
 
   const initializer = (): AchievementsState => ({ progress: {}, unlocked: {} })
-  const store: StoreApi<AchievementsState> = config.persist
+  const persistCfg = config.persist === true ? {} : config.persist
+  const store: StoreApi<AchievementsState> = persistCfg
     ? createStore<AchievementsState>()(
         persist(initializer, {
           ...persistOptions<AchievementsState>({
-            name: config.persist.name ?? 'achievements',
-            ...(config.persist.version !== undefined && { version: config.persist.version }),
-            ...(config.persist.prefix !== undefined && { prefix: config.persist.prefix }),
-            ...(config.persist.storage !== undefined && { storage: config.persist.storage }),
+            name: persistCfg.name ?? 'achievements',
+            ...(persistCfg.version !== undefined && { version: persistCfg.version }),
+            ...(persistCfg.prefix !== undefined && { prefix: persistCfg.prefix }),
+            ...(persistCfg.storage !== undefined && { storage: persistCfg.storage }),
           }),
         })
       )

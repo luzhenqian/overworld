@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Float } from '@react-three/drei'
 import {
@@ -8,9 +8,11 @@ import {
   playerPositionRef,
   type NPCIndicator,
 } from '@overworld/scene'
+import { DayNightLighting, EnvironmentTick } from '@overworld/environment'
+import { useMinimapStore } from '@overworld/minimap'
 import { useStore } from 'zustand'
 import { CRYSTAL_SPOTS, NPCS } from './game/content'
-import { inventory, isGameInputBlocked, quests } from './game/engines'
+import { environment, inventory, isGameInputBlocked, movementInput, quests } from './game/engines'
 
 const PICKUP_DISTANCE = 1.8
 const WORLD_BOUNDS = { minX: -18, maxX: 18, minZ: -18, maxZ: 18 }
@@ -21,6 +23,15 @@ function Crystals() {
   // useFrame 每帧执行多次于 React 重渲染之间;用 ref 立即记账,state 只驱动渲染
   const collectedRef = useRef<Set<string>>(new Set())
 
+  // 水晶标到小地图上,拾取后移除
+  useEffect(() => {
+    const { registerMarker, unregisterMarker } = useMinimapStore.getState()
+    for (const spot of CRYSTAL_SPOTS) {
+      registerMarker({ id: spot.id, kind: 'item', position: spot.position, color: '#38bdf8' })
+    }
+    return () => CRYSTAL_SPOTS.forEach((s) => unregisterMarker(s.id))
+  }, [])
+
   useFrame(() => {
     for (const spot of CRYSTAL_SPOTS) {
       if (collectedRef.current.has(spot.id)) continue
@@ -29,6 +40,7 @@ function Crystals() {
       if (dx * dx + dz * dz < PICKUP_DISTANCE * PICKUP_DISTANCE) {
         collectedRef.current.add(spot.id)
         setCollected([...collectedRef.current])
+        useMinimapStore.getState().unregisterMarker(spot.id)
         inventory.add('crystal', 1)
       }
     }
@@ -52,6 +64,15 @@ function Crystals() {
 export function World() {
   useInteractKey('e', { isInputBlocked: isGameInputBlocked })
 
+  // NPC 标到小地图上
+  useEffect(() => {
+    const { registerMarker, unregisterMarker } = useMinimapStore.getState()
+    for (const npc of NPCS) {
+      registerMarker({ id: `npc:${npc.id}`, kind: 'npc', position: npc.position, color: '#facc15' })
+    }
+    return () => NPCS.forEach((n) => unregisterMarker(`npc:${n.id}`))
+  }, [])
+
   // 任务引擎状态 → NPC 头顶指示器(游戏侧推导,场景包不认识任务系统)
   const active = useStore(quests, (s) => s.active)
   const completed = useStore(quests, (s) => s.completed)
@@ -73,17 +94,13 @@ export function World() {
           bounds={WORLD_BOUNDS}
           cameraOffset={[0, 9, 14]}
           isInputBlocked={isGameInputBlocked}
+          externalInput={movementInput}
         />
       }
     >
-      {/* 灯光与地面 —— 场景专属内容作为 children 传入 */}
-      <ambientLight intensity={0.5} />
-      <directionalLight
-        position={[12, 20, 8]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-      />
+      {/* 昼夜循环驱动的灯光 —— 场景专属内容作为 children 传入 */}
+      <EnvironmentTick engine={environment} />
+      <DayNightLighting engine={environment} castShadow sunPosition={[12, 20, 8]} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[40, 40]} />
         <meshStandardMaterial color="#1e293b" />

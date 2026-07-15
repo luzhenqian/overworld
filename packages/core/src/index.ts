@@ -18,3 +18,11 @@ export type {
 } from './registry'
 export { persistOptions, createMemoryStorage } from './persist'
 export type { OverworldPersistConfig } from './persist'
+export { createSaveSlots, fromWebStorage } from './saveSlots'
+export type {
+  EnumerableStorage,
+  SaveSnapshot,
+  SaveSlotInfo,
+  SaveSlots,
+  SaveSlotsConfig,
+} from './saveSlots'

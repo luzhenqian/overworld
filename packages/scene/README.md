@@ -28,6 +28,11 @@ import 本包即可响应玩家移动、场景切换与交互。
 - **`<Player>`** — WASD / 方向键移动,Shift 奔跑;圆形碰撞解算、可选世界边界钳制、
   动画 crossfade(idle/walk/run)。`modelUrl` 省略时渲染胶囊体占位。
   `isInputBlocked?: () => boolean` 用于接入你的输入优先级系统(如 @overworld/input)。
+  `externalInput?: MovementInputRef` 接受外部移动源(虚拟摇杆/手柄等,形如
+  `{ current: { x, z, running } }`,模长 ≤ 1),每帧与键盘输入合并:方向相加后归一化,
+  `running = Shift 或 externalInput.current.running`;模拟量模长 < 1 时速度按比例缩放
+  (纯键盘保持全速),同样受 `isInputBlocked` 约束。与 `@overworld/input` 的
+  `createMovementInput()` / `<VirtualJoystick>` 结构兼容——两个包互不 import。
 - **`<FollowCamera targetRef offset lerp>`** — 平滑跟随相机,可独立使用。
 - **`<BaseNPC>` / `<BaseBuilding>`** — 模型加载 + 名牌 + 发光 + 交互气泡,
   颜色全部来自 `theme`;"是否在附近"读取本包的 `useSceneStore`。

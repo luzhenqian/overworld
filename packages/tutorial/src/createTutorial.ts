@@ -24,7 +24,7 @@ export interface TutorialConfig {
    */
   events?: EventBus<OverworldEventMap>
   /** Enable persistence by providing (possibly empty) persist settings. */
-  persist?: TutorialPersistConfig
+  persist?: boolean | TutorialPersistConfig
 }
 
 /** The headless tutorial engine returned by {@link createTutorial}. */
@@ -94,15 +94,16 @@ export function createTutorial(config: TutorialConfig = {}): Tutorial {
     statuses: {},
   })
   type PersistedTutorialState = Pick<TutorialState, 'statuses'>
-  const store: StoreApi<TutorialState> = config.persist
+  const persistCfg = config.persist === true ? {} : config.persist
+  const store: StoreApi<TutorialState> = persistCfg
     ? createStore<TutorialState>()(
         persist(initializer, {
           ...persistOptions<TutorialState, PersistedTutorialState>({
-            name: config.persist.name ?? 'tutorial',
+            name: persistCfg.name ?? 'tutorial',
             partialize: (state) => ({ statuses: state.statuses }),
-            ...(config.persist.version !== undefined && { version: config.persist.version }),
-            ...(config.persist.prefix !== undefined && { prefix: config.persist.prefix }),
-            ...(config.persist.storage !== undefined && { storage: config.persist.storage }),
+            ...(persistCfg.version !== undefined && { version: persistCfg.version }),
+            ...(persistCfg.prefix !== undefined && { prefix: persistCfg.prefix }),
+            ...(persistCfg.storage !== undefined && { storage: persistCfg.storage }),
           }),
         })
       )

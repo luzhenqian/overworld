@@ -32,7 +32,7 @@ export interface InventoryConfig<Ctx = unknown> {
   /** Event bus to emit `item:*` events on. Defaults to the global `gameEvents`. */
   events?: EventBus<OverworldEventMap>
   /** Enable persistence by providing (possibly empty) persist settings. */
-  persist?: InventoryPersistConfig
+  persist?: boolean | InventoryPersistConfig
 }
 
 /** The headless inventory engine returned by {@link createInventory}. */
@@ -97,14 +97,15 @@ export function createInventory<Ctx = unknown>(config: InventoryConfig<Ctx> = {}
   const context = config.context as Ctx
 
   const initializer = (): InventoryState => ({ slots: [] })
-  const store: StoreApi<InventoryState> = config.persist
+  const persistCfg = config.persist === true ? {} : config.persist
+  const store: StoreApi<InventoryState> = persistCfg
     ? createStore<InventoryState>()(
         persist(initializer, {
           ...persistOptions<InventoryState>({
-            name: config.persist.name ?? 'inventory',
-            ...(config.persist.version !== undefined && { version: config.persist.version }),
-            ...(config.persist.prefix !== undefined && { prefix: config.persist.prefix }),
-            ...(config.persist.storage !== undefined && { storage: config.persist.storage }),
+            name: persistCfg.name ?? 'inventory',
+            ...(persistCfg.version !== undefined && { version: persistCfg.version }),
+            ...(persistCfg.prefix !== undefined && { prefix: persistCfg.prefix }),
+            ...(persistCfg.storage !== undefined && { storage: persistCfg.storage }),
           }),
         })
       )

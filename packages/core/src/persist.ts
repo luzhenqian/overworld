@@ -1,4 +1,5 @@
 import { createJSONStorage, type PersistOptions, type StateStorage } from 'zustand/middleware'
+import type { EnumerableStorage } from './saveSlots'
 
 /**
  * Save-game persistence helpers. Engines persist through zustand's `persist`
@@ -41,8 +42,12 @@ export function persistOptions<S, P = S>(config: OverworldPersistConfig<S, P>): 
   return options
 }
 
-/** In-memory StateStorage — for tests and non-browser environments. */
-export function createMemoryStorage(): StateStorage {
+/**
+ * In-memory storage — for tests and non-browser environments. Satisfies both
+ * zustand's `StateStorage` (for `persistOptions`) and `EnumerableStorage`
+ * (for `createSaveSlots`), so one instance can back both.
+ */
+export function createMemoryStorage(): EnumerableStorage {
   const store = new Map<string, string>()
   return {
     getItem: (key) => store.get(key) ?? null,
@@ -52,5 +57,6 @@ export function createMemoryStorage(): StateStorage {
     removeItem: (key) => {
       store.delete(key)
     },
+    keys: () => [...store.keys()],
   }
 }

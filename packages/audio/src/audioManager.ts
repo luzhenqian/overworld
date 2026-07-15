@@ -100,7 +100,7 @@ function createAudioStore(
   persistConfig: AudioManagerConfig['persist'],
   initial: AudioState
 ): UseBoundStore<StoreApi<AudioState>> {
-  if (persistConfig === false) {
+  if (!persistConfig) {
     return create<AudioState>()(() => initial)
   }
   const cfg = typeof persistConfig === 'object' ? persistConfig : {}

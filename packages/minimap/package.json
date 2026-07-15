@@ -1,0 +1,37 @@
+{
+  "name": "@overworld/minimap",
+  "version": "0.1.0",
+  "description": "Generic top-down minimap: marker registry + DOM canvas component",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@overworld/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "zustand": "^5.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NoahLu/overworld.git",
+    "directory": "packages/minimap"
+  }
+}

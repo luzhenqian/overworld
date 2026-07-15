@@ -8,7 +8,8 @@ import { createQuestEngine } from '@overworld/quest'
 import { createInventory } from '@overworld/inventory'
 import { createAchievements } from '@overworld/achievements'
 import { useToastStore } from '@overworld/notifications'
-import { KEYBOARD_PRIORITY, useKeyboardStore } from '@overworld/input'
+import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld/input'
+import { createEnvironment } from '@overworld/environment'
 import { ACHIEVEMENTS, DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
 
@@ -44,6 +45,13 @@ export const achievements = createAchievements({
   definitions: ACHIEVEMENTS,
   effects,
 })
+
+/** 昼夜循环:10 分钟一天,从上午开始 */
+export const environment = createEnvironment({ dayLengthMs: 600_000 })
+environment.setTimeOfDay(0.4)
+
+/** 虚拟摇杆与键盘共用的外部移动输入源 */
+export const movementInput = createMovementInput()
 
 // ---- Effects & conditions the content refers to -------------------------
 
@@ -107,6 +115,8 @@ if (import.meta.env.DEV) {
         playerPositionRef: scene.playerPositionRef,
         keyboard: useKeyboardStore,
         isGameInputBlocked,
+        environment,
+        movementInput,
         // 后台标签页 RAF 被暂停时可手动驱动渲染帧(自动化验证用)
         advance: fiber.advance,
       }

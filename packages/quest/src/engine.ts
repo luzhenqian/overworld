@@ -40,8 +40,12 @@ export interface QuestEngineConfig<Ctx = unknown> {
    * objective triggers. Defaults to the global `gameEvents`.
    */
   events?: EventBus<OverworldEventMap>
-  /** Persistence for active progress and the completed list. `false` disables it. */
-  persist?: false | QuestPersistConfig
+  /**
+   * Persistence for active progress and the completed list. Framework
+   * convention: omitted or `false` = disabled; `true` = enabled with
+   * defaults; object = custom.
+   */
+  persist?: boolean | QuestPersistConfig
 }
 
 /** Zustand state and actions of a quest engine. */
@@ -368,10 +372,10 @@ export function createQuestEngine<Ctx = unknown>(config: QuestEngineConfig<Ctx>)
   }
 
   let engine: QuestEngine
-  if (config.persist === false) {
+  if (!config.persist) {
     engine = create<QuestEngineState>()(initializer)
   } else {
-    const persistConfig = config.persist ?? {}
+    const persistConfig = config.persist === true ? {} : config.persist
     engine = create<QuestEngineState>()(
       persist(
         initializer,

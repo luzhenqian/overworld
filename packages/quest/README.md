@@ -72,7 +72,7 @@ const useQuests = createQuestEngine({
   effects,
   context: () => gameContext,   // 传给条件/效果处理器,支持惰性求值
   events: gameEvents,           // 默认即全局总线,可换成自建 EventBus
-  // persist: false 或 { name?, version?, storage? }
+  // persist: 省略/false=不持久化;true=默认配置;或 { name?, version?, storage? }
 })
 
 useQuests.getState().startQuest('walk-the-city')
@@ -103,6 +103,7 @@ useQuests.getState().startQuest('walk-the-city')
 
 ## 持久化
 
-默认开启,经 `persistOptions` 写入 `overworld:quest`(可自定义 `name`/`version`/`storage`)。
+显式开启(`persist: true` 或配置对象),经 `persistOptions` 写入 `overworld:quest`
+(可自定义 `name`/`version`/`storage`);省略或 `false` 则不持久化。
 只持久化 `active`(含每目标进度)与 `completed`;任务定义属于内容,永不落盘。
 重新水合后引擎会自动为恢复的活跃任务重挂触发器订阅(同步与异步 storage 均已处理)。

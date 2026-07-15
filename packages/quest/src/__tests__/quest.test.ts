@@ -357,3 +357,32 @@ describe('createQuestEngine', () => {
     expect(engine.getState().active['walk-b']?.objectives['d']?.current).toBe(10)
   })
 })
+
+describe('persist config convention', () => {
+  it('is disabled when omitted and enabled via persist: true', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const bus = new EventBus<OverworldEventMap>()
+    // omitted -> no persist wrapper -> no `persist` API on the store
+    const off = createQuestEngine({
+      quests: [],
+      conditions: createConditionRegistry(),
+      effects: createEffectRegistry(),
+      events: bus,
+    })
+    expect((off as unknown as { persist?: unknown }).persist).toBeUndefined()
+    const on = createQuestEngine({
+      quests: [],
+      conditions: createConditionRegistry(),
+      effects: createEffectRegistry(),
+      events: bus,
+      persist: true,
+    })
+    // In Node the default storage is unavailable — the engine must still be
+    // fully functional with the `true` shorthand (normalized to defaults).
+    on.getState().registerQuests({ id: 'q', objectives: [{ id: 'o', target: 1 }] })
+    expect(on.getState().startQuest('q')).toBe(true)
+    on.getState().dispose()
+    off.getState().dispose()
+    warn.mockRestore()
+  })
+})

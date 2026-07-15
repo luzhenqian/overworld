@@ -41,6 +41,22 @@ export interface PlayerAnimationMap {
   run?: string
 }
 
+/**
+ * A mutable ref-like movement source written by an external control (virtual
+ * joystick, gamepad adapter, autopilot, ...). `x`/`z` form a movement vector
+ * in world axes matching WASD semantics (x: −1 left … +1 right, z: −1
+ * forward/up-screen … +1 backward/down-screen) with magnitude ≤ 1; `running`
+ * requests run speed.
+ *
+ * Structurally compatible with `MovementInputRef` from `@overworld/input`
+ * (e.g. the value returned by its `createMovementInput()` and driven by
+ * `<VirtualJoystick>`) — the two packages deliberately do not import each
+ * other, so either side's declaration satisfies the other.
+ */
+export interface MovementInputRef {
+  current: { x: number; z: number; running: boolean }
+}
+
 /** Axis-aligned rectangular world bounds on the X/Z plane. */
 export interface PlayerBounds {
   minX: number
@@ -81,6 +97,15 @@ export interface PlayerProps {
    * not depend on one.
    */
   isInputBlocked?: () => boolean
+  /**
+   * Optional external movement source (virtual joystick, gamepad, ...) read
+   * every frame and merged with the keyboard: directions are added, then the
+   * combined vector is normalized. `running` is Shift OR
+   * `externalInput.current.running`. An analog magnitude < 1 scales speed
+   * proportionally (keyboard-only input keeps full speed). Gated by
+   * `isInputBlocked`, like the keyboard.
+   */
+  externalInput?: MovementInputRef
   /** Distance (world units) accumulated between `player:moved` emissions. Default: 0.5. */
   moveEventThreshold?: number
   /** Extra nodes attached to the player group (lights, trails, ...). */
@@ -163,7 +188,9 @@ function PlayerFallback({ isMoving }: { isMoving: boolean }) {
 }
 
 /**
- * The player. WASD/arrow keys to move, Shift to run. Movement is resolved
+ * The player. WASD/arrow keys to move, Shift to run; an optional
+ * `externalInput` source (e.g. a virtual joystick) is merged with the
+ * keyboard every frame. Movement is resolved
  * against the collision store, clamped to `bounds`, mirrored into
  * `playerPositionRef`/`playerRotationRef` every frame and emitted as
  * `player:moved` events roughly every `moveEventThreshold` world units.
@@ -181,6 +208,7 @@ export function Player({
   cameraOffset,
   cameraLerp,
   isInputBlocked,
+  externalInput,
   moveEventThreshold = DEFAULT_MOVE_EVENT_THRESHOLD,
   children,
 }: PlayerProps) {
@@ -250,11 +278,24 @@ export function Player({
     if (keys.current['a'] || keys.current['arrowleft']) velocity.current.x -= 1
     if (keys.current['d'] || keys.current['arrowright']) velocity.current.x += 1
 
-    if (velocity.current.length() > 0) {
-      const isRunning = Boolean(keys.current['shift'])
+    // Merge the external movement source (virtual joystick, gamepad, ...),
+    // gated by isInputBlocked just like the keyboard path.
+    const external =
+      externalInput && !isInputBlockedRef.current?.() ? externalInput.current : undefined
+    if (external) {
+      velocity.current.x += external.x
+      velocity.current.z += external.z
+    }
 
-      // Normalize diagonal movement
-      velocity.current.normalize().multiplyScalar(isRunning ? runSpeed : speed)
+    if (velocity.current.length() > 0) {
+      const isRunning = Boolean(keys.current['shift']) || Boolean(external?.running)
+
+      // Normalize the combined direction (also evens out diagonal keyboard
+      // movement). Keyboard vectors always have magnitude >= 1, so
+      // keyboard-only input keeps full speed; a partially deflected analog
+      // stick (magnitude < 1) scales speed proportionally.
+      const intensity = Math.min(1, velocity.current.length())
+      velocity.current.normalize().multiplyScalar((isRunning ? runSpeed : speed) * intensity)
 
       const currentPos = new Vector3(character.position.x, 0, character.position.z)
       const targetPos = new Vector3(

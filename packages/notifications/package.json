@@ -11,7 +11,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsup",
@@ -19,5 +21,13 @@
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
-  "peerDependencies": { "zustand": "^5.0.0" }
+  "peerDependencies": {
+    "zustand": "^5.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NoahLu/overworld.git",
+    "directory": "packages/notifications"
+  }
 }

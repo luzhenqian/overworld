@@ -58,7 +58,7 @@ const useDialogue = createDialogueEngine({
   effects,
   context: () => gameContext,      // 传给每个条件/效果处理器,支持惰性求值
   // events: 自定义 EventBus(默认全局 gameEvents)
-  // persist: false 或 { name?, version?, storage? }
+  // persist: 省略/false=不持久化;true=默认配置;或 { name?, version?, storage? }
 })
 
 // 内置的关系值效果:注册后内容里即可写
@@ -96,6 +96,6 @@ const responses = useDialogue((s) => s.availableResponses)
 
 ## 持久化
 
-默认开启,经 `@overworld/core` 的 `persistOptions` 写入 `overworld:dialogue`
+显式开启(`persist: true` 或配置对象),经 `@overworld/core` 的 `persistOptions` 写入 `overworld:dialogue`
 (可自定义 `name`/`version`/`storage`)。只持久化 `relationships`、`seenDialogues`、
-`completedDialogues`;进行中的会话状态永不落盘。传 `persist: false` 可完全关闭。
+`completedDialogues`;进行中的会话状态永不落盘。省略或传 `false` 则不持久化。

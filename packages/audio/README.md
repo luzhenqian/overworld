@@ -36,7 +36,7 @@ audio.playSfx('pickup') // 一次性音效
 | `volume` / `sfxVolume` | `0.7` | 初始 BGM / 音效音量(0–1) |
 | `fadeDuration` | `1000` | 切曲淡入淡出时长(ms),`0` 表示立即切换 |
 | `loop` | `true` | BGM 是否循环 |
-| `persist` | `true` | 持久化音量/静音(键 `overworld:audio`);可传对象自定义或 `false` 关闭 |
+| `persist` | 关闭 | 省略/`false` 不持久化;`true` 用默认配置持久化音量/静音(键 `overworld:audio`);可传对象自定义 |
 
 ## Manager API
 

@@ -1,7 +1,9 @@
 import { useStore } from 'zustand'
 import { useToastStore } from '@overworld/notifications'
-import { useSceneStore } from '@overworld/scene'
-import { achievements, inventory, quests } from '../game/engines'
+import { playerPositionRef, playerRotationRef, useSceneStore } from '@overworld/scene'
+import { MiniMap } from '@overworld/minimap'
+import { VirtualJoystick } from '@overworld/input'
+import { achievements, inventory, movementInput, quests } from '../game/engines'
 import { useGoldStore } from '../game/gold'
 import { ACHIEVEMENTS } from '../game/content'
 
@@ -142,8 +144,32 @@ export function HUD() {
       <div style={{ position: 'absolute', top: 16, left: 16 }}>
         <QuestTracker />
       </div>
-      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: 10,
+        }}
+      >
         <StatusBar />
+        <MiniMap
+          worldBounds={{ minX: -20, maxX: 20, minZ: -20, maxZ: 20 }}
+          size={150}
+          playerPosition={playerPositionRef}
+          playerRotation={playerRotationRef}
+          style={{ pointerEvents: 'none', border: '1px solid #2b3652' }}
+        />
+      </div>
+      <div id="joystick" style={{ pointerEvents: 'auto' }}>
+        <VirtualJoystick
+          target={movementInput}
+          size={110}
+          style={{ position: 'absolute', left: 24, bottom: 96 }}
+        />
       </div>
       <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
         <InventoryBar />

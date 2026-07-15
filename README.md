@@ -11,9 +11,11 @@ Overworld 从实际上线的 3D RPG 项目(degener-city)中提取通用能力沉
 
 | 包 | 职责 |
 |---|---|
-| `@overworld/core` | 类型化事件总线、条件/效果注册表、存档(持久化)辅助、公共类型 |
+| `@overworld/core` | 类型化事件总线、条件/效果注册表、存档(持久化)辅助、存档槽位管理、公共类型 |
 | `@overworld/scene` | 3D 世界层:SceneShell 数据驱动场景、玩家控制器、跟随相机、碰撞、邻近检测、GLTF 加载、主题 |
-| `@overworld/input` | 键盘输入优先级层级(模态框 > 对话 > 面板 > 游戏控制) |
+| `@overworld/input` | 键盘输入优先级层级(模态框 > 对话 > 面板 > 游戏控制)、移动端虚拟摇杆 |
+| `@overworld/environment` | 昼夜循环 + 天气状态机,配套 R3F 灯光/雨雪粒子组件 |
+| `@overworld/minimap` | 通用小地图(标记注册表 + canvas 顶视图组件) |
 | `@overworld/dialogue` | 无头对话树引擎(条件门控选项、效果、好感度) |
 | `@overworld/quest` | 无头任务状态机(声明式目标触发器、前置条件、奖励、任务链) |
 | `@overworld/inventory` | 无头背包/物品引擎(堆叠、容量、使用效果) |

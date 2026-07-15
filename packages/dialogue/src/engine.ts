@@ -38,10 +38,11 @@ export interface DialogueEngineConfig<Ctx = unknown> {
   /** Event bus to emit `dialogue:*` events on. Defaults to the global `gameEvents`. */
   events?: EventBus<OverworldEventMap>
   /**
-   * Persistence for relationships and seen/completed flags. `false` disables
-   * it; the active conversation is never persisted either way.
+   * Persistence for relationships and seen/completed flags (the active
+   * conversation is never persisted). Framework convention: omitted or
+   * `false` = disabled; `true` = enabled with defaults; object = custom.
    */
-  persist?: false | DialoguePersistConfig
+  persist?: boolean | DialoguePersistConfig
 }
 
 /** Zustand state and actions of a dialogue engine. */
@@ -286,11 +287,11 @@ export function createDialogueEngine<Ctx = unknown>(
     }
   }
 
-  if (config.persist === false) {
+  if (!config.persist) {
     return create<DialogueEngineState>()(initializer)
   }
 
-  const persistConfig = config.persist ?? {}
+  const persistConfig = config.persist === true ? {} : config.persist
   return create<DialogueEngineState>()(
     persist(
       initializer,
