@@ -1,0 +1,67 @@
+# @overworld/notifications
+
+无头(headless)通知队列:Toast 队列 + Promise 风格的 Alert / Confirm 对话框队列。
+本包只管理排队、上限与自动过期,**不包含任何 UI** —— 渲染完全交给游戏自己实现。
+所有内容字段(`message`、`title`)对框架都是不透明的,可以传字符串、ReactNode
+或任意结构化数据。
+
+## Toast
+
+```ts
+import { useToastStore, configureToasts } from '@overworld/notifications'
+
+configureToasts({ max: 5, defaultDuration: 3000 }) // 可选,全局配置
+
+const id = useToastStore.getState().show({
+  message: '任务完成!',
+  variant: 'success',   // 'info' | 'success' | 'warning' | 'error',默认 'info'
+  duration: 4000,       // ms;<= 0 表示不自动消失;缺省用 defaultDuration
+  icon: '✅',
+})
+useToastStore.getState().dismiss(id)
+```
+
+行为:
+
+- `show(options)` 返回 toast id;到时后经 `setTimeout` 自动出队。
+- 队列超过 `max`(默认 5)时丢弃最旧的一条(并清理其定时器)。
+- `dismiss(id)` / `dismissAll()` 手动移除;`resetToastConfig()` 恢复默认配置。
+
+游戏侧渲染示例:
+
+```tsx
+const toasts = useToastStore((s) => s.toasts)
+return <>{toasts.map((t) => <MyToast key={t.id} toast={t} />)}</>
+```
+
+## Alert / Confirm
+
+Promise 风格 API,由 zustand 队列驱动,游戏 UI 渲染当前对话框并回传用户操作:
+
+```ts
+import { alert, confirm, useAlertStore } from '@overworld/notifications'
+
+await alert({ message: '存档已损坏' })                 // 用户关闭后 resolve
+const ok = await confirm({ message: '出售全部物品?' }) // true / false
+```
+
+游戏侧渲染:
+
+```tsx
+const current = useAlertStore((s) => s.current)         // 当前对话框或 null
+const resolveCurrent = useAlertStore((s) => s.resolveCurrent)
+if (!current) return null
+return (
+  <MyDialog
+    data={current}                                     // { kind, title?, message, ... }
+    onConfirm={() => resolveCurrent(true)}
+    onCancel={() => resolveCurrent(false)}             // 缺省参数视为 false(取消)
+  />
+)
+```
+
+多个对话框按调用顺序排队,`resolveCurrent` 结算当前一条并自动推进到下一条。
+
+## 依赖
+
+仅 peerDependency `zustand`,无内部依赖、无 React 依赖(纯无头逻辑)。

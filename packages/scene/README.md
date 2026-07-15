@@ -1,0 +1,109 @@
+# @overworld/scene
+
+Overworld 框架的 3D 世界层:场景外壳、玩家控制器、跟随相机、圆形碰撞、邻近检测、
+GLTF 模型加载、场景主题与传送门。基于 React + three.js + @react-three/fiber + drei + zustand。
+
+## 定位
+
+本包只负责"可探索的 3D 世界"这一层,**零游戏内容**:没有内置模型路径、NPC 名字、
+配色预设或世界边界,全部通过 props / 配置传入。跨系统通信一律走
+`@overworld/core` 的事件总线(`gameEvents`),因此对话、任务、音频等系统无需
+import 本包即可响应玩家移动、场景切换与交互。
+
+发出的事件:
+
+| 事件 | 时机 |
+| --- | --- |
+| `player:moved` | 玩家累计移动约 0.5 米(可配)时,携带位置与移动距离 |
+| `scene:changed` | `useSceneStore.setScene(id)` 切换场景时 |
+| `proximity:enter` / `proximity:leave` | 玩家进入 / 离开 NPC 或建筑的交互半径时 |
+| `interact` | 附近有实体且按下交互键(`useInteractKey` / `interact()`)时 |
+
+## 核心组件 / API
+
+- **`<SceneShell>`** — 场景样板组合:碰撞注册 + 邻近检测 + NPC / 建筑循环 +
+  选中光环 + 玩家。场景专属内容(灯光、地面、传送门、装饰)作为 `children` 传入。
+  通过 `npcIndicators`(任务角标)与 `interactHint`(自定义交互提示)替代原游戏的
+  store 读取;`player` prop 默认渲染 `<Player />`,传 `null` 可关闭。
+- **`<Player>`** — WASD / 方向键移动,Shift 奔跑;圆形碰撞解算、可选世界边界钳制、
+  动画 crossfade(idle/walk/run)。`modelUrl` 省略时渲染胶囊体占位。
+  `isInputBlocked?: () => boolean` 用于接入你的输入优先级系统(如 @overworld/input)。
+- **`<FollowCamera targetRef offset lerp>`** — 平滑跟随相机,可独立使用。
+- **`<BaseNPC>` / `<BaseBuilding>`** — 模型加载 + 名牌 + 发光 + 交互气泡,
+  颜色全部来自 `theme`;"是否在附近"读取本包的 `useSceneStore`。
+- **`<SelectionRing>` / `<CollisionRegistration>` / `<Portal>`** — 地面选中环、
+  声明式碰撞注册、场景传送门(默认走 `setScene`,可用 `onEnter` 覆盖)。
+- **`useSceneStore`** — `currentScene` / `nearbyNpcId` / `nearbyBuildingId`;
+  `setScene(id)` 会发出 `scene:changed`。
+- **`useCollisionStore`** — 圆形碰撞注册表:`registerCollider` / `checkCollision` /
+  `resolveCollision`(推出式解算)。
+- **`playerPositionRef` / `playerRotationRef` / `teleportPlayer(pos)`** —
+  模块级可变引用,每帧由 Player 写入,供逐帧系统(小地图、邻近检测)读取而不触发
+  React 重渲染;`teleportPlayer` 用于场景切换后落点。
+- **`useProximityDetection({ npcs, buildings, npcRadius, buildingRadius })`** —
+  每帧找出最近的在半径内实体,写入 sceneStore 并发出 proximity 事件
+  (SceneShell 已内置调用)。
+- **`useModelLoader` / `preloadSceneModels`** — GLTF 加载(克隆 + 阴影配置)与预加载。
+- **`interact()` / `useInteractKey(key = 'e', { isInputBlocked })`** —
+  把"按 E 交互"翻译成总线上的 `interact` 事件。
+- **`defaultSceneTheme` / `createSceneTheme(partial)`** — 中性默认主题与深合并辅助。
+
+## 最小使用示例
+
+```tsx
+import { Canvas } from '@react-three/fiber'
+import { gameEvents } from '@overworld/core'
+import {
+  SceneShell,
+  Player,
+  Portal,
+  useInteractKey,
+  useSceneStore,
+  createSceneTheme,
+  type NPCConfig,
+} from '@overworld/scene'
+
+const theme = createSceneTheme({ npc: { primaryColor: '#ff9f43' } })
+
+const npcs: NPCConfig[] = [
+  { id: 'guide', name: '向导', modelPath: '/models/guide.glb',
+    position: [4, 0, 2], rotation: [0, Math.PI, 0] },
+]
+
+// 任意系统都可以订阅交互事件,无需 import 场景组件
+gameEvents.on('interact', ({ kind, id }) => {
+  if (kind === 'npc') console.log('开始对话:', id)
+})
+
+function World() {
+  return (
+    <SceneShell
+      theme={theme}
+      npcs={npcs}
+      npcIndicators={{ guide: 'quest-available' }}
+      player={<Player bounds={{ minX: -24, maxX: 24, minZ: -24, maxZ: 24 }} />}
+    >
+      {/* 场景专属内容 */}
+      <ambientLight intensity={0.6} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[50, 50]} />
+        <meshStandardMaterial color="#2d3436" />
+      </mesh>
+      <Portal position={[0, 0, -20]} targetScene="downtown" label="市中心" />
+    </SceneShell>
+  )
+}
+
+export function Game() {
+  useInteractKey('e')
+  const scene = useSceneStore((s) => s.currentScene)
+  return (
+    <Canvas shadows camera={{ position: [0, 10, 30], fov: 50 }}>
+      {scene !== 'downtown' ? <World /> : null /* 其他场景 */}
+    </Canvas>
+  )
+}
+```
+
+无美术资产也能跑:省略 `modelUrl` / 模型加载失败时,玩家与 NPC 会分别回退为胶囊体、
+建筑回退为盒体、传送门回退为发光圆环。

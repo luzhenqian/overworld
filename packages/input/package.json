@@ -1,0 +1,24 @@
+{
+  "name": "@overworld/input",
+  "version": "0.1.0",
+  "description": "Keyboard input priority layers for Overworld games",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  
+  "peerDependencies": { "react": "^18.0.0", "zustand": "^5.0.0" }
+}

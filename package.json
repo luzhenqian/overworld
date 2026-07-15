@@ -1,0 +1,28 @@
+{
+  "name": "overworld",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Overworld — a modular web 3D RPG game development framework (React + three.js + zustand)",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "devDependencies": {
+    "@react-three/drei": "^9.117.0",
+    "@react-three/fiber": "^8.17.10",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.170.0",
+    "jsdom": "^27.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.170.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.18",
+    "zustand": "^5.0.2"
+  }
+}

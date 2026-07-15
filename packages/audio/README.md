@@ -1,0 +1,59 @@
+# @overworld/audio
+
+BGM / 音效管理器:单例 HTMLAudio 池、切曲淡入淡出、浏览器自动播放策略处理
+(首次用户交互后自动重试)、音量与静音设置持久化,并可订阅事件总线上的
+`scene:changed` 事件自动切换场景 BGM。
+
+包内**零游戏内容**:曲目表、场景映射全部由配置注入。所有浏览器 API 均有守卫,
+在 Node / SSR / 测试环境中导入和创建不会崩溃(仅记录状态、不实际播放)。
+
+## 快速开始
+
+```ts
+import { createAudioManager } from '@overworld/audio'
+
+const audio = createAudioManager({
+  tracks: {
+    town: '/bgm/town.mp3',
+    dungeon: '/bgm/dungeon.mp3',
+    pickup: '/sfx/pickup.mp3',
+  },
+  sceneTracks: { plaza: 'town', crypt: 'dungeon' }, // 场景 id → 曲目 id
+})
+
+// 之后每次 gameEvents.emit('scene:changed', ...) 都会自动切换 BGM
+audio.playSfx('pickup') // 一次性音效
+```
+
+## 配置(`AudioManagerConfig`)
+
+| 选项 | 默认 | 说明 |
+| --- | --- | --- |
+| `tracks` | 必填 | 曲目 id → 音频 URL(BGM 与音效共用) |
+| `sceneTracks` | — | 场景 id → 曲目 id;未映射的场景会停止当前 BGM |
+| `autoSubscribeSceneChanges` | `true` | 订阅总线 `scene:changed` 自动换曲 |
+| `bus` | 全局 `gameEvents` | 自定义事件总线(测试时传入新实例) |
+| `volume` / `sfxVolume` | `0.7` | 初始 BGM / 音效音量(0–1) |
+| `fadeDuration` | `1000` | 切曲淡入淡出时长(ms),`0` 表示立即切换 |
+| `loop` | `true` | BGM 是否循环 |
+| `persist` | `true` | 持久化音量/静音(键 `overworld:audio`);可传对象自定义或 `false` 关闭 |
+
+## Manager API
+
+- `useStore` — zustand hook,响应式读取 `{ volume, sfxVolume, muted, currentTrackId, unlocked }`
+- `playTrack(trackId)` / `stopTrack()` — 播放 / 停止 BGM(带淡入淡出)
+- `playSceneTrack(sceneId)` — 按场景映射播放;`resolveSceneTrack(sceneId)` 仅做解析
+- `playSfx(trackId)` — 一次性音效
+- `setVolume(v)` / `setSfxVolume(v)` — 音量(自动钳制到 0–1)
+- `setMuted(muted)` / `toggleMute()` — 静音;静音期间仍记录目标曲目,取消静音后恢复播放
+- `dispose()` — 退订总线、移除解锁监听并停止播放
+
+## 自动播放策略
+
+浏览器通常禁止无交互时自动播放。当 `audio.play()` 被拒绝时,管理器会在
+`window` 上注册一次性的 `pointerdown` / `keydown` 监听,首次用户交互后自动
+重试当前曲目;成功后 `unlocked` 置为 `true`。
+
+## 依赖
+
+依赖 `@overworld/core`(事件总线与持久化辅助);peerDependency 为 `zustand`。
