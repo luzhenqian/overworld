@@ -1,4 +1,4 @@
-import { createPredictedState, createSnapshotBuffer } from '@overworld/net'
+import { createPredictedState, createSnapshotBuffer } from '@overworld-engine/net'
 import { bench, mulberry32 } from '../lib.mjs'
 
 const lerp = (a, b, t) => ({

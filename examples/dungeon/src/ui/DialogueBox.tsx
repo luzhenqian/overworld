@@ -1,4 +1,4 @@
-import { KEYBOARD_PRIORITY, useHotkey, useKeyboardLayer } from '@overworld/input'
+import { KEYBOARD_PRIORITY, useHotkey, useKeyboardLayer } from '@overworld-engine/input'
 import { useStore } from 'zustand'
 import { dialogue } from '../game/engines'
 

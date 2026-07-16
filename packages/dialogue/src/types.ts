@@ -1,4 +1,4 @@
-import type { ConditionRef, EffectRef } from '@overworld/core'
+import type { ConditionRef, EffectRef } from '@overworld-engine/core'
 
 /**
  * A player choice offered on a dialogue node.

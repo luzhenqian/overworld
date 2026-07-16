@@ -4,16 +4,16 @@
  * peers that go silent. Headless — render the store with `<RemotePlayers>`
  * or your own component.
  */
-import { gameEvents } from '@overworld/core'
+import { gameEvents } from '@overworld-engine/core'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { createSnapshotBuffer, type SnapshotBuffer } from './snapshotBuffer'
 import type { NetMessage, Transport } from './transport'
 
 /**
- * Framework event map extension — dogfoods `@overworld/core`'s declaration
+ * Framework event map extension — dogfoods `@overworld-engine/core`'s declaration
  * merging so `net:*` events are fully typed on any bus.
  */
-declare module '@overworld/core' {
+declare module '@overworld-engine/core' {
   interface OverworldEventMap {
     'net:peer-joined': { peerId: string }
     'net:peer-left': { peerId: string }
@@ -44,7 +44,7 @@ export interface PresenceLocal {
 
 /**
  * Structural event sink for join/leave notifications. `EventBus` from
- * `@overworld/core` (including the default `gameEvents`) satisfies it.
+ * `@overworld-engine/core` (including the default `gameEvents`) satisfies it.
  */
 export interface PresenceEventSink {
   emit(event: 'net:peer-joined' | 'net:peer-left', payload: { peerId: string }): void
@@ -55,7 +55,7 @@ export interface PresenceSyncConfig {
   /** Transport to replicate over. */
   transport: Transport
   /**
-   * Read the local player's transform. With `@overworld/scene`:
+   * Read the local player's transform. With `@overworld-engine/scene`:
    * `() => ({ position: getPlayerPosition(), rotationY: playerRotationRef.current })`.
    */
   getLocal: () => PresenceLocal

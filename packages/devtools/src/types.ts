@@ -1,13 +1,13 @@
 /**
- * Shared types for `@overworld/devtools`.
+ * Shared types for `@overworld-engine/devtools`.
  *
  * ## Structural input types
  *
  * The `*Like` content types below are **duck-typed structural subsets** of the
- * real schemas in `@overworld/dialogue`, `@overworld/quest`,
- * `@overworld/inventory` and `@overworld/achievements`. They are defined
+ * real schemas in `@overworld-engine/dialogue`, `@overworld-engine/quest`,
+ * `@overworld-engine/inventory` and `@overworld-engine/achievements`. They are defined
  * locally so devtools keeps the framework's zero-cross-dependency rule: the
- * only runtime dependency is `@overworld/core`.
+ * only runtime dependency is `@overworld-engine/core`.
  *
  * Because TypeScript typing is structural, the real content types
  * (`DialogueTree`, `QuestDefinition`, `ItemDefinition`,
@@ -16,7 +16,7 @@
  */
 
 /**
- * Structural shape of `EffectRef` / `ConditionRef` from `@overworld/core`.
+ * Structural shape of `EffectRef` / `ConditionRef` from `@overworld-engine/core`.
  * Both are assignable to this type.
  */
 export interface RefLike {
@@ -62,7 +62,7 @@ export interface KnownTypeOptions {
 }
 
 // ---------------------------------------------------------------------------
-// Dialogue (structural subset of @overworld/dialogue types)
+// Dialogue (structural subset of @overworld-engine/dialogue types)
 // ---------------------------------------------------------------------------
 
 /** Structural subset of `DialogueResponse`. */
@@ -91,7 +91,7 @@ export interface DialogueTreeLike {
 }
 
 // ---------------------------------------------------------------------------
-// Quest (structural subset of @overworld/quest types)
+// Quest (structural subset of @overworld-engine/quest types)
 // ---------------------------------------------------------------------------
 
 /** Structural subset of `ObjectiveTrigger`. */
@@ -122,7 +122,7 @@ export interface QuestLike {
 }
 
 // ---------------------------------------------------------------------------
-// Inventory (structural subset of @overworld/inventory types)
+// Inventory (structural subset of @overworld-engine/inventory types)
 // ---------------------------------------------------------------------------
 
 /** Structural subset of `ItemDefinition`. */
@@ -134,7 +134,7 @@ export interface ItemLike {
 }
 
 // ---------------------------------------------------------------------------
-// Achievements (structural subset of @overworld/achievements types)
+// Achievements (structural subset of @overworld-engine/achievements types)
 // ---------------------------------------------------------------------------
 
 /** Structural subset of `AchievementTrigger`. */

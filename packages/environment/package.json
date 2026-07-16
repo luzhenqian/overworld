@@ -1,5 +1,5 @@
 {
-  "name": "@overworld/environment",
+  "name": "@overworld-engine/environment",
   "version": "0.9.0",
   "description": "Day-night cycle and weather system for Overworld games",
   "keywords": [
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@overworld/core": "workspace:*"
+    "@overworld-engine/core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0",

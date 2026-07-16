@@ -1,4 +1,4 @@
-import { EventBus, createMemoryStorage, type OverworldEventMap } from '@overworld/core'
+import { EventBus, createMemoryStorage, type OverworldEventMap } from '@overworld-engine/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createEnvironment, type EnvironmentConfig } from '../createEnvironment'
 import { DEFAULT_PHASES, derivePhase, getDaylightFactor, wrapTimeOfDay } from '../phase'

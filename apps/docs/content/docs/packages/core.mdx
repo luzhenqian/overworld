@@ -1,5 +1,5 @@
 ---
-title: '@overworld/core'
+title: '@overworld-engine/core'
 description: 框架核心:类型化事件总线、条件/效果注册表、持久化辅助、存档槽位与公共类型
 ---
 
@@ -36,7 +36,7 @@ Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协
 游戏通过 declaration merging 扩展事件表,扩展后的事件同样获得完整类型:
 
 ```ts
-declare module '@overworld/core' {
+declare module '@overworld-engine/core' {
   interface OverworldEventMap {
     'market:trade': { symbol: string; amount: number }
   }
@@ -46,7 +46,7 @@ declare module '@overworld/core' {
 ### API
 
 ```ts
-import { EventBus, gameEvents, type OverworldEventMap } from '@overworld/core'
+import { EventBus, gameEvents, type OverworldEventMap } from '@overworld-engine/core'
 
 // 全局单例:所有系统的零配置默认总线
 const off = gameEvents.on('quest:completed', ({ questId }) => {
@@ -97,7 +97,7 @@ interface ConditionRef {
 import {
   createConditionRegistry, createEffectRegistry,
   runEffects, evaluateConditions,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 
 const conditions = createConditionRegistry<GameCtx>()
 const effects = createEffectRegistry<GameCtx>()
@@ -117,7 +117,7 @@ evaluateConditions(conditions, [{ type: 'minLevel', params: { level: 3 } }], gam
 | `registerAll(entries, options?)` | 批量注册(`Record<string, Fn>`) |
 | `get(type)` / `has(type)` | 查询处理器 |
 | `unregister(type)` | 注销 |
-| `types()` | 已注册的全部 type(可交给 `@overworld/devtools` 做内容校验) |
+| `types()` | 已注册的全部 type(可交给 `@overworld-engine/devtools` 做内容校验) |
 
 两个求值辅助函数的语义(全部引擎都遵循):
 
@@ -135,7 +135,7 @@ evaluateConditions(conditions, [{ type: 'minLevel', params: { level: 3 } }], gam
 ```ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { persistOptions } from '@overworld/core'
+import { persistOptions } from '@overworld-engine/core'
 
 const useStore = create<State>()(
   persist(initializer, persistOptions({ name: 'inventory', version: 1 }))
@@ -169,7 +169,7 @@ const useStore = create<State>()(
 `persistOptions` 的 `storage` 工厂即可把存档落到远端服务器:
 
 ```ts
-import { createRestStorage, persistOptions } from '@overworld/core'
+import { createRestStorage, persistOptions } from '@overworld-engine/core'
 
 const storage = createRestStorage({
   baseUrl: 'https://api.example.com/saves',
@@ -232,7 +232,7 @@ window.addEventListener('beforeunload', () => {
 **live 存档**(当前进行中的游戏)。`createSaveSlots` 在其上提供命名槽位管理:
 
 ```ts
-import { createSaveSlots } from '@overworld/core'
+import { createSaveSlots } from '@overworld-engine/core'
 
 const slots = createSaveSlots()   // 默认 localStorage,前缀 overworld
 slots.saveTo('slot-1')            // 把 live 存档复制进槽位

@@ -6,7 +6,7 @@
  * (audio, quests, analytics, ...) can react without importing this store.
  */
 import { create } from 'zustand'
-import { gameEvents } from '@overworld/core'
+import { gameEvents } from '@overworld-engine/core'
 
 export interface SceneState {
   /** Active scene id, or null before the first `setScene` call. */

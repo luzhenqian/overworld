@@ -1,6 +1,6 @@
-import type { DialogueTree } from '@overworld/dialogue'
-import type { QuestDefinition } from '@overworld/quest'
-import type { ItemDefinition } from '@overworld/inventory'
+import type { DialogueTree } from '@overworld-engine/dialogue'
+import type { QuestDefinition } from '@overworld-engine/quest'
+import type { ItemDefinition } from '@overworld-engine/inventory'
 
 /**
  * 纯内容数据 —— 与 starter 不同,这里直接写中文字面量,不接 i18n,

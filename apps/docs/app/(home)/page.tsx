@@ -15,7 +15,7 @@ export default function HomePage() {
       <h1 className="text-4xl font-bold mb-4">Overworld</h1>
       <p className="text-fd-muted-foreground max-w-xl mb-8 leading-relaxed">
         模块化 Web 3D RPG 游戏开发框架 —— React + three.js + zustand。
-        写好内容数据与玩法系统,剩下的交给 18 个可组合的 @overworld/* 包。
+        写好内容数据与玩法系统,剩下的交给 18 个可组合的 @overworld-engine/* 包。
       </p>
       <div className="flex gap-3 mb-14">
         <Link

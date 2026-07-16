@@ -1,4 +1,4 @@
-# @overworld/environment
+# @overworld-engine/environment
 
 昼夜循环 + 天气系统。无头引擎(zustand store 工厂)+ 可选的 R3F 渲染组件,
 内容全部注入 —— 引擎不含任何硬编码的天气名称或美术参数。
@@ -6,7 +6,7 @@
 ## 安装
 
 ```bash
-pnpm add @overworld/environment @overworld/core
+pnpm add @overworld-engine/environment @overworld-engine/core
 # peers: react zustand three @react-three/fiber
 ```
 
@@ -17,7 +17,7 @@ import {
   createEnvironment, DEFAULT_WEATHERS,
   EnvironmentTick, DayNightLighting, WeatherVisuals,
   RainParticles, SnowParticles,
-} from '@overworld/environment'
+} from '@overworld-engine/environment'
 
 const environment = createEnvironment({
   dayLengthMs: 10 * 60 * 1000,     // 一个游戏日 = 现实 10 分钟(默认)

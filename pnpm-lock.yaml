@@ -108,19 +108,19 @@ importers:
 
   benchmarks:
     dependencies:
-      '@overworld/ai':
+      '@overworld-engine/ai':
         specifier: workspace:*
         version: link:../packages/ai
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../packages/core
-      '@overworld/net':
+      '@overworld-engine/net':
         specifier: workspace:*
         version: link:../packages/net
-      '@overworld/quest':
+      '@overworld-engine/quest':
         specifier: workspace:*
         version: link:../packages/quest
-      '@overworld/scene':
+      '@overworld-engine/scene':
         specifier: workspace:*
         version: link:../packages/scene
       react:
@@ -141,40 +141,40 @@ importers:
 
   examples/dungeon:
     dependencies:
-      '@overworld/ai':
+      '@overworld-engine/ai':
         specifier: workspace:*
         version: link:../../packages/ai
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@overworld/devtools':
+      '@overworld-engine/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@overworld/dialogue':
+      '@overworld-engine/dialogue':
         specifier: workspace:*
         version: link:../../packages/dialogue
-      '@overworld/editor':
+      '@overworld-engine/editor':
         specifier: workspace:*
         version: link:../../packages/editor
-      '@overworld/environment':
+      '@overworld-engine/environment':
         specifier: workspace:*
         version: link:../../packages/environment
-      '@overworld/input':
+      '@overworld-engine/input':
         specifier: workspace:*
         version: link:../../packages/input
-      '@overworld/inventory':
+      '@overworld-engine/inventory':
         specifier: workspace:*
         version: link:../../packages/inventory
-      '@overworld/minimap':
+      '@overworld-engine/minimap':
         specifier: workspace:*
         version: link:../../packages/minimap
-      '@overworld/notifications':
+      '@overworld-engine/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
-      '@overworld/quest':
+      '@overworld-engine/quest':
         specifier: workspace:*
         version: link:../../packages/quest
-      '@overworld/scene':
+      '@overworld-engine/scene':
         specifier: workspace:*
         version: link:../../packages/scene
       '@react-three/drei':
@@ -217,46 +217,46 @@ importers:
 
   examples/starter:
     dependencies:
-      '@overworld/achievements':
+      '@overworld-engine/achievements':
         specifier: workspace:*
         version: link:../../packages/achievements
-      '@overworld/ai':
+      '@overworld-engine/ai':
         specifier: workspace:*
         version: link:../../packages/ai
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@overworld/devtools':
+      '@overworld-engine/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@overworld/dialogue':
+      '@overworld-engine/dialogue':
         specifier: workspace:*
         version: link:../../packages/dialogue
-      '@overworld/editor':
+      '@overworld-engine/editor':
         specifier: workspace:*
         version: link:../../packages/editor
-      '@overworld/environment':
+      '@overworld-engine/environment':
         specifier: workspace:*
         version: link:../../packages/environment
-      '@overworld/input':
+      '@overworld-engine/input':
         specifier: workspace:*
         version: link:../../packages/input
-      '@overworld/inventory':
+      '@overworld-engine/inventory':
         specifier: workspace:*
         version: link:../../packages/inventory
-      '@overworld/minimap':
+      '@overworld-engine/minimap':
         specifier: workspace:*
         version: link:../../packages/minimap
-      '@overworld/net':
+      '@overworld-engine/net':
         specifier: workspace:*
         version: link:../../packages/net
-      '@overworld/notifications':
+      '@overworld-engine/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
-      '@overworld/quest':
+      '@overworld-engine/quest':
         specifier: workspace:*
         version: link:../../packages/quest
-      '@overworld/scene':
+      '@overworld-engine/scene':
         specifier: workspace:*
         version: link:../../packages/scene
       '@react-three/drei':
@@ -311,7 +311,7 @@ importers:
 
   packages/achievements:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       zustand:
@@ -320,7 +320,7 @@ importers:
 
   packages/ai:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       '@react-three/fiber':
@@ -339,7 +339,7 @@ importers:
 
   packages/analytics:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -348,7 +348,7 @@ importers:
 
   packages/audio:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       zustand:
@@ -363,13 +363,13 @@ importers:
 
   packages/devtools:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
 
   packages/dialogue:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -381,7 +381,7 @@ importers:
 
   packages/editor:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       '@react-three/fiber':
@@ -403,7 +403,7 @@ importers:
 
   packages/environment:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       '@react-three/fiber':
@@ -434,7 +434,7 @@ importers:
 
   packages/inventory:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       zustand:
@@ -459,7 +459,7 @@ importers:
 
   packages/minimap:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -471,7 +471,7 @@ importers:
 
   packages/net:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       '@react-three/fiber':
@@ -499,7 +499,7 @@ importers:
 
   packages/quest:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -511,7 +511,7 @@ importers:
 
   packages/scene:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       '@react-three/drei':
@@ -536,7 +536,7 @@ importers:
 
   packages/tutorial:
     dependencies:
-      '@overworld/core':
+      '@overworld-engine/core':
         specifier: workspace:*
         version: link:../core
       zustand:

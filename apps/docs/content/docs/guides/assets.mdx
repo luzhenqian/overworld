@@ -24,11 +24,11 @@ GLB 压缩:上线前跑一遍 draco 或 meshopt(如 `gltf-transform optimize`),
 
 ## 资产清单:声明、拆分、组合、预热
 
-用 `@overworld/loading` 的清单 API 把每个场景的资产声明成数据,**按场景一份 manifest**:
+用 `@overworld-engine/loading` 的清单 API 把每个场景的资产声明成数据,**按场景一份 manifest**:
 
 ```ts
 // game/assets.ts
-import { defineAssetManifest, mergeManifests, preloadManifest } from '@overworld/loading'
+import { defineAssetManifest, mergeManifests, preloadManifest } from '@overworld-engine/loading'
 
 export const VILLAGE_ASSETS = defineAssetManifest({
   models: ['/models/characters/guide.glb', '/models/props/crystal.glb'],

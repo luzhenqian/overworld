@@ -11,7 +11,7 @@
  *   convention as the scene Player: `0` faces **+Z**, `π/2` faces **+X**.
  *   Assignable directly to a three.js `rotation.y` for models that face +Z.
  */
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import { findPath, type PathPoint } from './astar'
 import { steerStep, type AvoidOptions } from './avoidance'
 import type { NavGrid } from './grid'

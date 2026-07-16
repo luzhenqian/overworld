@@ -1,11 +1,11 @@
 /**
  * Shared movement-input contract between on-screen controls (e.g. the
  * `VirtualJoystick`) and movement consumers (e.g. `<Player>` in
- * `@overworld/scene`).
+ * `@overworld-engine/scene`).
  *
  * The shape is a mutable ref-like object so producers can write per-frame
- * without triggering React re-renders. `@overworld/input` and
- * `@overworld/scene` deliberately do not import each other — each declares
+ * without triggering React re-renders. `@overworld-engine/input` and
+ * `@overworld-engine/scene` deliberately do not import each other — each declares
  * this interface itself and the two are **structurally compatible**, so a
  * value created here can be passed straight to `<Player externalInput>`.
  */

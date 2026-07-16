@@ -1,4 +1,4 @@
-import { EventBus } from '@overworld/core'
+import { EventBus } from '@overworld-engine/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAgent } from '../behaviors'
 import { bindScheduleToBus, createSchedule, type ScheduleBehavior } from '../schedule'

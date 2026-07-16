@@ -1,11 +1,11 @@
 ---
-title: '@overworld/dialogue'
+title: '@overworld-engine/dialogue'
 description: 无头对话树引擎:条件过滤选项、声明式效果、事件总线联动
 ---
 
 无头(headless)对话树引擎。只负责对话状态机:开始对话、按条件过滤选项、执行效果、
 沿节点跳转、结束对话。不含任何 UI、不含任何游戏内容 —— 对话树以数据形式注入,
-所有"条件"和"效果"都是指向 `@overworld/core` 注册表的声明式引用。
+所有"条件"和"效果"都是指向 `@overworld-engine/core` 注册表的声明式引用。
 
 ## 定位
 
@@ -47,8 +47,8 @@ interface DialogueResponse {
 ## 快速上手
 
 ```ts
-import { createConditionRegistry, createEffectRegistry } from '@overworld/core'
-import { createDialogueEngine, relationshipEffects } from '@overworld/dialogue'
+import { createConditionRegistry, createEffectRegistry } from '@overworld-engine/core'
+import { createDialogueEngine, relationshipEffects } from '@overworld-engine/dialogue'
 
 const conditions = createConditionRegistry<GameCtx>()
 const effects = createEffectRegistry<GameCtx>()
@@ -105,10 +105,10 @@ const responses = useStore(dialogue.store, (s) => s.availableResponses)
 - `start()` → emit `dialogue:started` `{ npcId, dialogueId }`(未传 npcId 时为空字符串)。
 - 任何方式结束(选项收尾、`advance()` 到终点、`end()`)→ emit `dialogue:ended`
   `{ npcId, dialogueId, nodeId }`,`nodeId` 为结束时所在节点。
-- 引擎自身不订阅任何事件;其它系统(如 `@overworld/quest`)通过订阅上述事件与对话解耦联动。
+- 引擎自身不订阅任何事件;其它系统(如 `@overworld-engine/quest`)通过订阅上述事件与对话解耦联动。
 
 ## 持久化
 
-显式开启(`persist: true` 或配置对象),经 `@overworld/core` 的 `persistOptions` 写入 `overworld:dialogue`
+显式开启(`persist: true` 或配置对象),经 `@overworld-engine/core` 的 `persistOptions` 写入 `overworld:dialogue`
 (可自定义 `name`/`version`/`storage`)。只持久化 `relationships`、`seenDialogues`、
 `completedDialogues`;进行中的会话状态永不落盘。省略或传 `false` 则不持久化。

@@ -1,4 +1,4 @@
-import { EventBus, createMemoryStorage, type OverworldEventMap } from '@overworld/core'
+import { EventBus, createMemoryStorage, type OverworldEventMap } from '@overworld-engine/core'
 import { describe, expect, it, vi } from 'vitest'
 import { createTutorial } from '../createTutorial'
 import type { TutorialDefinition } from '../types'

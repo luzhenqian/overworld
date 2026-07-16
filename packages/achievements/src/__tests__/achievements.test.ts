@@ -3,7 +3,7 @@ import {
   createEffectRegistry,
   createMemoryStorage,
   type OverworldEventMap,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 import { describe, expect, it, vi } from 'vitest'
 import { createAchievements } from '../createAchievements'
 import type { AchievementDefinition } from '../types'

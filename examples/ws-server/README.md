@@ -1,6 +1,6 @@
-# ws-server —— @overworld/net 参考中继服务器
+# ws-server —— @overworld-engine/net 参考中继服务器
 
-`@overworld/net` 的 WebSocket transport 只要求服务端做一件事:把每条消息
+`@overworld-engine/net` 的 WebSocket transport 只要求服务端做一件事:把每条消息
 **原样**广播给同一房间内的**其他**所有客户端。本示例就是这份契约的完整参考
 实现(约 90 行,仅依赖 `ws`),外加心跳保活与优雅退出。
 
@@ -18,7 +18,7 @@ PORT=9000 node server.mjs
 ## 与 createWebSocketTransport 对接
 
 ```ts
-import { createPresenceSync, createWebSocketTransport } from '@overworld/net'
+import { createPresenceSync, createWebSocketTransport } from '@overworld-engine/net'
 
 const transport = createWebSocketTransport({
   url: 'ws://localhost:8787/my-room',   // 路径即房间;省略路径 = 默认房间 '/'

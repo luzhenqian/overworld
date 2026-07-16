@@ -1,4 +1,4 @@
-# @overworld/core
+# @overworld-engine/core
 
 Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协作全部经由这里提供的
 机制完成:**类型化事件总线**(系统间通信)、**条件/效果注册表**(数据驱动内容与
@@ -8,7 +8,7 @@ Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协
 ## 事件总线(EventBus)
 
 ```ts
-import { EventBus, gameEvents, type OverworldEventMap } from '@overworld/core'
+import { EventBus, gameEvents, type OverworldEventMap } from '@overworld-engine/core'
 
 // 全局单例:所有系统的零配置默认总线
 const off = gameEvents.on('quest:completed', ({ questId }) => {
@@ -25,7 +25,7 @@ const bus = new EventBus<OverworldEventMap>()
 物品、成就、教程;游戏通过 declaration merging 扩展:
 
 ```ts
-declare module '@overworld/core' {
+declare module '@overworld-engine/core' {
   interface OverworldEventMap {
     'market:trade': { symbol: string; amount: number }
   }
@@ -40,7 +40,7 @@ declare module '@overworld/core' {
 内容数据里只写声明式引用(`{ type, params }`),游戏启动时注册处理函数:
 
 ```ts
-import { createConditionRegistry, createEffectRegistry, runEffects, evaluateConditions } from '@overworld/core'
+import { createConditionRegistry, createEffectRegistry, runEffects, evaluateConditions } from '@overworld-engine/core'
 
 const effects = createEffectRegistry<GameCtx>()
 effects.register('wallet.addGold', (params, ctx) => ctx.wallet.add(params.amount as number))

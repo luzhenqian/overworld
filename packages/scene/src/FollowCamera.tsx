@@ -6,7 +6,7 @@ import { useRef } from 'react'
 import { Vector3 } from 'three'
 import type * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 
 export interface FollowCameraProps {
   /** Object the camera follows (e.g. the player group). */

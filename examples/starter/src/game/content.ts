@@ -1,9 +1,9 @@
-import type { DialogueTree } from '@overworld/dialogue'
-import type { QuestDefinition } from '@overworld/quest'
-import type { ItemDefinition } from '@overworld/inventory'
-import type { AchievementDefinition } from '@overworld/achievements'
-import type { NPCConfig } from '@overworld/scene'
-import type { Vec3 } from '@overworld/core'
+import type { DialogueTree } from '@overworld-engine/dialogue'
+import type { QuestDefinition } from '@overworld-engine/quest'
+import type { ItemDefinition } from '@overworld-engine/inventory'
+import type { AchievementDefinition } from '@overworld-engine/achievements'
+import type { NPCConfig } from '@overworld-engine/scene'
+import type { Vec3 } from '@overworld-engine/core'
 
 /**
  * Pure content data. Everything behavioral is a declarative EffectRef /

@@ -7,7 +7,7 @@
  * shift+click = toggle multi-selection), property editing and JSON
  * import/export, plus a small floating `<EditorToggle>` button. Rendered
  * outside the three.js canvas as a plain HTML overlay (same pattern as
- * `@overworld/minimap`).
+ * `@overworld-engine/minimap`).
  *
  * Keyboard (only while the editor is enabled, never while typing in a
  * field): Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo, Ctrl/Cmd+D

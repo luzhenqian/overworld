@@ -5,7 +5,7 @@
  * 格子 (cx, cz) 的世界中心 = [minX + (cx + 0.5), minZ + (cz + 0.5)]。
  * 同一份格子数据同时喂给:
  *  - 场景碰撞(墙壳格 → SceneShell decorationCollisions 圆形碰撞体,半径 0.55)
- *  - @overworld/ai 的 NavGrid(墙格 → blockCircle,敌人寻路)
+ *  - @overworld-engine/ai 的 NavGrid(墙格 → blockCircle,敌人寻路)
  *  - 小地图 / 引导路径(findPathHierarchical)
  */
 

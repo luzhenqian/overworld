@@ -3,29 +3,29 @@ title: 从 degener-city 迁移
 description: 模块映射表与渐进迁移顺序
 ---
 
-本文给出 degener-city(框架的提取来源)如果要改造为基于 `@overworld/*`,各模块的映射关系
+本文给出 degener-city(框架的提取来源)如果要改造为基于 `@overworld-engine/*`,各模块的映射关系
 与改造要点。迁移是独立项目,可以按包渐进进行,不要求一次完成。
 
 ## 模块映射表
 
 | degener-city(apps/web/src) | Overworld 对应物 | 改造要点 |
 |---|---|---|
-| `store/collisionStore.ts` | `@overworld/scene` collisionStore | 直接替换 import |
-| `store/keyboardStore.ts`、`hooks/useKeyboardShortcuts.ts` | `@overworld/input` | 直接替换;`useKeyboardLayer` 已修正为真 hook |
-| `types/scene.ts` | `@overworld/scene` types | `SCENE_THEMES` 配色属于游戏内容,用 `createSceneTheme` 在游戏内定义 |
-| `components/city/shared/*`(SceneShell/BaseNPC/BaseBuilding/SelectionRing/CollisionRegistration) | `@overworld/scene` 同名组件 | 任务指示器/E 气泡改为 `npcIndicators`/`interactHint` props,由游戏从任务引擎推导 |
-| `components/city/Player.tsx` | `@overworld/scene` `<Player />` | 模型路径/边界/速度改 props;`questStore.onMoved()` 已被 `player:moved` 事件替代 |
-| `hooks/useModelLoader.ts`、`useProximityDetection.ts` | `@overworld/scene` | 邻近检测结果写 sceneStore 并发事件,不再写 gameStore |
-| `store/gameStore.ts`(场景路由/邻近实体半边) | `@overworld/scene` sceneStore | 玩家职业/五维属性等玩法属性留在游戏内新建 store |
-| `store/npcStore.ts` + `data/dialogues/*` | `@overworld/dialogue` + 游戏数据文件 | 对话树 schema 基本同构;`questTriggers`/effect 字符串改为 `EffectRef`;NPC 元数据(名字/头像/位置)留游戏 |
-| `store/questStore.ts` + `data/quests/*` | `@overworld/quest` + 游戏数据文件 | 原来 import 的 8 个玩法 store 全部改为:目标→事件触发器,奖励→效果注册表 |
-| `store/inventoryStore.ts` | `@overworld/inventory` | 物品表作为 `ItemDefinition[]` 注入 |
-| `store/achievementStore.ts` | `@overworld/achievements` | 1083 行硬编码检查改为声明式 trigger(event/filter/count) |
-| `store/tutorialStore.ts` | `@overworld/tutorial` | 步骤推进条件改 `advanceOn` 事件 |
-| `store/audioStore.ts` | `@overworld/audio` | `ZONE_BGM` 硬编码表改为 `sceneTracks` 配置注入 |
-| `store/toastStore.ts`、`alertStore.ts` | `@overworld/notifications` | `showQuestComplete` 等游戏味便捷方法在游戏内包一层 |
-| `store/loadingStore.ts`、`ui/ScenePreloader.tsx` | `@overworld/loading` | 直接替换 |
-| `utils/analytics.ts`、`hooks/useAnalytics.ts` | `@overworld/analytics` | GA4/Clarity 改 provider 注入 |
+| `store/collisionStore.ts` | `@overworld-engine/scene` collisionStore | 直接替换 import |
+| `store/keyboardStore.ts`、`hooks/useKeyboardShortcuts.ts` | `@overworld-engine/input` | 直接替换;`useKeyboardLayer` 已修正为真 hook |
+| `types/scene.ts` | `@overworld-engine/scene` types | `SCENE_THEMES` 配色属于游戏内容,用 `createSceneTheme` 在游戏内定义 |
+| `components/city/shared/*`(SceneShell/BaseNPC/BaseBuilding/SelectionRing/CollisionRegistration) | `@overworld-engine/scene` 同名组件 | 任务指示器/E 气泡改为 `npcIndicators`/`interactHint` props,由游戏从任务引擎推导 |
+| `components/city/Player.tsx` | `@overworld-engine/scene` `<Player />` | 模型路径/边界/速度改 props;`questStore.onMoved()` 已被 `player:moved` 事件替代 |
+| `hooks/useModelLoader.ts`、`useProximityDetection.ts` | `@overworld-engine/scene` | 邻近检测结果写 sceneStore 并发事件,不再写 gameStore |
+| `store/gameStore.ts`(场景路由/邻近实体半边) | `@overworld-engine/scene` sceneStore | 玩家职业/五维属性等玩法属性留在游戏内新建 store |
+| `store/npcStore.ts` + `data/dialogues/*` | `@overworld-engine/dialogue` + 游戏数据文件 | 对话树 schema 基本同构;`questTriggers`/effect 字符串改为 `EffectRef`;NPC 元数据(名字/头像/位置)留游戏 |
+| `store/questStore.ts` + `data/quests/*` | `@overworld-engine/quest` + 游戏数据文件 | 原来 import 的 8 个玩法 store 全部改为:目标→事件触发器,奖励→效果注册表 |
+| `store/inventoryStore.ts` | `@overworld-engine/inventory` | 物品表作为 `ItemDefinition[]` 注入 |
+| `store/achievementStore.ts` | `@overworld-engine/achievements` | 1083 行硬编码检查改为声明式 trigger(event/filter/count) |
+| `store/tutorialStore.ts` | `@overworld-engine/tutorial` | 步骤推进条件改 `advanceOn` 事件 |
+| `store/audioStore.ts` | `@overworld-engine/audio` | `ZONE_BGM` 硬编码表改为 `sceneTracks` 配置注入 |
+| `store/toastStore.ts`、`alertStore.ts` | `@overworld-engine/notifications` | `showQuestComplete` 等游戏味便捷方法在游戏内包一层 |
+| `store/loadingStore.ts`、`ui/ScenePreloader.tsx` | `@overworld-engine/loading` | 直接替换 |
+| `utils/analytics.ts`、`hooks/useAnalytics.ts` | `@overworld-engine/analytics` | GA4/Clarity 改 provider 注入 |
 
 ## 留在游戏里的(不迁移)
 

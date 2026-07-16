@@ -1,4 +1,4 @@
-import { EventBus, type OverworldEventMap } from '@overworld/core'
+import { EventBus, type OverworldEventMap } from '@overworld-engine/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPresenceSync, type PresenceSync } from '../presence'
 import { createLocalTransportHub, type LocalTransportHub } from '../transport'

@@ -1,4 +1,4 @@
-import type { EffectRef } from '@overworld/core'
+import type { EffectRef } from '@overworld-engine/core'
 import type { StateStorage } from 'zustand/middleware'
 
 /**
@@ -77,7 +77,7 @@ export interface InventoryState {
 
 /**
  * Persistence settings. Passing this object enables persistence through
- * zustand's `persist` middleware via `@overworld/core`'s `persistOptions`.
+ * zustand's `persist` middleware via `@overworld-engine/core`'s `persistOptions`.
  */
 export interface InventoryPersistConfig {
   /** Storage key (namespaced by `prefix`). @default 'inventory' */

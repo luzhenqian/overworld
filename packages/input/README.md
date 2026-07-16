@@ -1,4 +1,4 @@
-# @overworld/input
+# @overworld-engine/input
 
 键盘输入优先级层级系统 + 移动端虚拟摇杆。高优先级的 UI 层(模态框、对话框、侧边面板等)可以
 阻止低优先级的按键处理(如游戏移动控制),避免"打开菜单时角色还在跑"的经典问题。
@@ -76,12 +76,12 @@ useHotkey('e', () => interact(), { priority: KEYBOARD_PRIORITY.GAME_CONTROLS })
 (x:−1 左 … +1 右;z:−1 前/屏幕上方 … +1 后/屏幕下方),模长 ≤ 1;
 `running` 表示是否请求奔跑速度。
 
-该形状与 `@overworld/scene` 中 `<Player>` 的 `externalInput` prop(`MovementInputRef`)
+该形状与 `@overworld-engine/scene` 中 `<Player>` 的 `externalInput` prop(`MovementInputRef`)
 **结构兼容**——两个包互不 import,靠 TypeScript 结构化类型对接:
 
 ```tsx
-import { createMovementInput, VirtualJoystick } from '@overworld/input'
-import { Player } from '@overworld/scene'
+import { createMovementInput, VirtualJoystick } from '@overworld-engine/input'
+import { Player } from '@overworld-engine/scene'
 
 const movement = createMovementInput()
 

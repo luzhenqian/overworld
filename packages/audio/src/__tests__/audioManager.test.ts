@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EventBus, type OverworldEventMap } from '@overworld/core'
+import { EventBus, type OverworldEventMap } from '@overworld-engine/core'
 import { createAudioManager, type AudioManagerConfig } from '../audioManager'
 
 /** Minimal HTMLAudioElement stand-in for pure-logic tests. */

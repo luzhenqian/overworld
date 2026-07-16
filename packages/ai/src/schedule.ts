@@ -1,6 +1,6 @@
 /**
  * NPC schedules: map phase names (plain strings — e.g. the day-night phases
- * emitted by `@overworld/environment`) to declarative agent behaviors, and
+ * emitted by `@overworld-engine/environment`) to declarative agent behaviors, and
  * optionally drive them from an event bus.
  *
  * Deliberately decoupled: phases are untyped strings and the bus binding
@@ -64,7 +64,7 @@ export interface BindScheduleOptions {
 }
 
 /**
- * The slice of `@overworld/core`'s `EventBus` the schedule binding needs.
+ * The slice of `@overworld-engine/core`'s `EventBus` the schedule binding needs.
  * Structural on purpose: any bus with a compatible `onAny` works, keeping
  * the binding free of event-map type coupling.
  */

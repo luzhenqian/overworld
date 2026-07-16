@@ -47,7 +47,7 @@ export interface TutorialState {
 
 /**
  * Persistence settings. Passing this object enables persistence through
- * zustand's `persist` middleware via `@overworld/core`'s `persistOptions`.
+ * zustand's `persist` middleware via `@overworld-engine/core`'s `persistOptions`.
  */
 export interface TutorialPersistConfig {
   /** Storage key (namespaced by `prefix`). @default 'tutorial' */

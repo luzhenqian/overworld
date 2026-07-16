@@ -1,4 +1,4 @@
-import type { ConditionRef, EffectRef } from '@overworld/core'
+import type { ConditionRef, EffectRef } from '@overworld-engine/core'
 
 /**
  * Declarative event-bus trigger that auto-advances an objective. Replaces

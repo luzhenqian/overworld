@@ -3,7 +3,7 @@ import {
   createEffectRegistry,
   createMemoryStorage,
   type OverworldEventMap,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 import { describe, expect, it, vi } from 'vitest'
 import { createInventory } from '../createInventory'
 import type { ItemDefinition } from '../types'

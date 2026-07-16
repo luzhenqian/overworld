@@ -4,7 +4,7 @@
  * provided positions map.
  */
 import * as THREE from 'three'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
 import type { NPCTheme, BuildingTheme } from './types'
 

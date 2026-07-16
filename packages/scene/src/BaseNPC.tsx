@@ -17,7 +17,7 @@
 import { Suspense, useRef } from 'react'
 import { Text, Billboard, Float } from '@react-three/drei'
 import * as THREE from 'three'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
 import { useModelLoader } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'

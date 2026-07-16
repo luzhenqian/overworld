@@ -1,4 +1,4 @@
-import type { EventBus } from '@overworld/core'
+import type { EventBus } from '@overworld-engine/core'
 
 /** Options for {@link bindEventLogger}. */
 export interface EventLoggerOptions {

@@ -2,13 +2,13 @@ import {
   createConditionRegistry,
   createEffectRegistry,
   gameEvents,
-} from '@overworld/core'
-import { createDialogueEngine } from '@overworld/dialogue'
-import { createQuestEngine } from '@overworld/quest'
-import { createInventory } from '@overworld/inventory'
-import { useToastStore } from '@overworld/notifications'
-import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld/input'
-import { createEnvironment } from '@overworld/environment'
+} from '@overworld-engine/core'
+import { createDialogueEngine } from '@overworld-engine/dialogue'
+import { createQuestEngine } from '@overworld-engine/quest'
+import { createInventory } from '@overworld-engine/inventory'
+import { useToastStore } from '@overworld-engine/notifications'
+import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld-engine/input'
+import { createEnvironment } from '@overworld-engine/environment'
 import {
   action,
   condition,
@@ -22,12 +22,12 @@ import {
   sequence,
   type Agent,
   type BehaviorTree,
-} from '@overworld/ai'
+} from '@overworld-engine/ai'
 import {
   detectQualityPreset,
   playerPositionRef,
   useQualityStore,
-} from '@overworld/scene'
+} from '@overworld-engine/scene'
 import { DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { allWallCells, cellToWorld, generateDungeon, parseSeed } from './dungeon'
 import { useGameStore } from './state'
@@ -39,7 +39,7 @@ import { useGameStore } from './state'
 
 // ---- 游戏自定义事件:声明合并进框架事件表,全链路类型安全 -----------------
 
-declare module '@overworld/core' {
+declare module '@overworld-engine/core' {
   interface OverworldEventMap {
     /** 骷髅守卫碰到玩家。 */
     'dungeon:player-hit': { enemyId: string; damage: number }
@@ -248,7 +248,7 @@ gameEvents.on('dungeon:player-hit', ({ damage }) => {
 // ---- 开发期:内容校验 + 调试句柄(生产构建自动剔除) -----------------------
 
 if (import.meta.env.DEV) {
-  void import('@overworld/devtools').then((devtools) => {
+  void import('@overworld-engine/devtools').then((devtools) => {
     const report = devtools.validateContent(
       { dialogues: DIALOGUES, quests: QUESTS, items: ITEMS },
       { effectTypes: effects.types(), conditionTypes: conditions.types() }

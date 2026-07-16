@@ -6,7 +6,7 @@
  * The joystick does not know about players or scenes: it only writes a
  * normalized movement vector into the `target` ref (see
  * {@link createMovementInput}). Consumers such as `<Player>` in
- * `@overworld/scene` read the same shape via structural typing.
+ * `@overworld-engine/scene` read the same shape via structural typing.
  */
 import { useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'

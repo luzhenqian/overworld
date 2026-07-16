@@ -1,4 +1,4 @@
-# @overworld/editor
+# @overworld-engine/editor
 
 游戏内场景编辑器**雏形**:在运行中的游戏里摆放/移动 NPC、建筑、装饰物,
 调整属性,一键导出场景 JSON。由三部分组成:
@@ -13,7 +13,7 @@
 
 ```tsx
 import { Canvas } from '@react-three/fiber'
-import { EditorScene, EditorPanel, EditorToggle } from '@overworld/editor'
+import { EditorScene, EditorPanel, EditorToggle } from '@overworld-engine/editor'
 
 <Canvas>
   <MyScene />
@@ -71,7 +71,7 @@ import { EditorScene, EditorPanel, EditorToggle } from '@overworld/editor'
 游戏可以注册一份**放置预设**目录,启动时调用一次即可:
 
 ```ts
-import { useEditorStore, type EditorTemplate } from '@overworld/editor'
+import { useEditorStore, type EditorTemplate } from '@overworld-engine/editor'
 
 const templates: EditorTemplate[] = [
   { id: 'bank', label: '银行', kind: 'building',
@@ -144,7 +144,7 @@ useEditorStore.getState().setTemplates(templates)
 ## 无头 store
 
 ```ts
-import { useEditorStore } from '@overworld/editor'
+import { useEditorStore } from '@overworld-engine/editor'
 
 const store = useEditorStore.getState()
 store.setEnabled(true)
@@ -203,9 +203,9 @@ store.importScene(json)            // 逆操作(尽力解析,跳过坏条目;根
 面板的「导出 JSON」按钮会同时复制到剪贴板并下载 `.json` 文件;
 「导入 JSON」从文本框解析,结果(含错误)显示在面板内的状态行上。
 
-## 与 @overworld/scene 的关系
+## 与 @overworld-engine/scene 的关系
 
-按架构分层规则,本包**不 import** `@overworld/scene`。导出的
+按架构分层规则,本包**不 import** `@overworld-engine/scene`。导出的
 `npcs` / `buildings` / `decorations` 分别是 `NPCConfig` / `BuildingConfig` /
 `DecorationInstance` 的**结构化拷贝**,可以直接喂给 `<SceneShell>`:
 

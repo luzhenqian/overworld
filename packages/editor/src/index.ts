@@ -1,5 +1,5 @@
 /**
- * @overworld/editor — in-game scene editor prototype.
+ * @overworld-engine/editor — in-game scene editor prototype.
  *
  * Three pieces:
  * - {@link useEditorStore}: headless working set + placement templates +
@@ -9,7 +9,7 @@
  * - {@link EditorPanel} / {@link EditorToggle}: DOM overlay (mode switch,
  *   template picker, entity list, property editing, JSON import/export).
  *
- * The exported JSON is structurally compatible with `@overworld/scene`'s
+ * The exported JSON is structurally compatible with `@overworld-engine/scene`'s
  * `NPCConfig` / `BuildingConfig` / `DecorationInstance` — no import of the
  * scene package, per the architecture's layering rules.
  */

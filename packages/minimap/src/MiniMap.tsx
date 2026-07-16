@@ -4,7 +4,7 @@
  * re-renders) and markers from {@link useMinimapStore}.
  */
 import { useEffect, useRef, type CSSProperties, type ReactElement } from 'react'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import { projectToCanvas, type WorldBounds } from './projection'
 import { useMinimapStore } from './minimapStore'
 
@@ -16,14 +16,14 @@ export interface MiniMapProps {
   size?: number
   /**
    * Mutable ref holding the player world position, mutated in place every
-   * frame. Structurally matches `@overworld/scene`'s `playerPositionRef`,
+   * frame. Structurally matches `@overworld-engine/scene`'s `playerPositionRef`,
    * but any `{ current: [x, y, z] }` object works.
    */
   playerPosition: { current: Vec3 }
   /**
    * Mutable ref holding the player Y rotation in radians (three.js
    * convention: 0 = facing −Z, i.e. map-up). When omitted the player
-   * triangle always points up. Matches `@overworld/scene`'s
+   * triangle always points up. Matches `@overworld-engine/scene`'s
    * `playerRotationRef`.
    */
   playerRotation?: { current: number }
@@ -68,7 +68,7 @@ function traceRoundedRect(ctx: CanvasRenderingContext2D, size: number, radius: n
  * triangle rotates with `playerRotation`:
  *
  * ```tsx
- * import { playerPositionRef, playerRotationRef } from '@overworld/scene'
+ * import { playerPositionRef, playerRotationRef } from '@overworld-engine/scene'
  *
  * <MiniMap
  *   worldBounds={{ minX: -50, maxX: 50, minZ: -50, maxZ: 50 }}

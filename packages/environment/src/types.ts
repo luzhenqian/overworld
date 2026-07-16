@@ -69,10 +69,10 @@ export interface EnvironmentPersistConfig {
 }
 
 /**
- * Framework event map extension — dogfoods `@overworld/core`'s declaration
+ * Framework event map extension — dogfoods `@overworld-engine/core`'s declaration
  * merging so `environment:*` events are fully typed on any bus.
  */
-declare module '@overworld/core' {
+declare module '@overworld-engine/core' {
   interface OverworldEventMap {
     'environment:phase-changed': { phase: EnvironmentPhase; timeOfDay: number }
     'environment:weather-changed': { from: string | null; to: string }

@@ -4,7 +4,7 @@ description: 用 Changesets 管理版本与 npm 发布:changeset 添加 → Vers
 ---
 
 Overworld 使用 [Changesets](https://github.com/changesets/changesets) 管理版本与 npm 发布。
-所有 `@overworld/*` 包配置为 **fixed 版本组**,始终以同一版本号一起发布(锁步版本)。
+所有 `@overworld-engine/*` 包配置为 **fixed 版本组**,始终以同一版本号一起发布(锁步版本)。
 
 ## 日常流程
 
@@ -27,7 +27,7 @@ pnpm changeset
 PR 合入 `main` 后,`.github/workflows/release.yml` 中的 `changesets/action` 会自动创建
 (或更新)一个名为 "chore: release packages" 的 **Version PR**,内容包括:
 
-- 消费 `.changeset/*.md`,按最高 bump 级别更新所有 `@overworld/*` 包的版本号
+- 消费 `.changeset/*.md`,按最高 bump 级别更新所有 `@overworld-engine/*` 包的版本号
 - 生成 / 更新各包的 `CHANGELOG.md`
 
 多个 changeset 会在该 PR 中累积,直到你决定发版。
@@ -59,7 +59,7 @@ pnpm release            # 构建并发布(一般交给 CI)
 
 ## fixed 版本组说明
 
-`.changeset/config.json` 中 `"fixed": [["@overworld/*"]]` 使全部框架包版本永远一致,
-用户可以放心地把所有 `@overworld/*` 依赖固定在同一版本。私有应用与示例
+`.changeset/config.json` 中 `"fixed": [["@overworld-engine/*"]]` 使全部框架包版本永远一致,
+用户可以放心地把所有 `@overworld-engine/*` 依赖固定在同一版本。私有应用与示例
 (`starter`、`dungeon`、`ws-server`、`authority-server`、`docs`、`benchmarks`)在
 `ignore` 列表中,永不发布。

@@ -1,6 +1,6 @@
-# @overworld/achievements
+# @overworld-engine/achievements
 
-无头(headless)成就引擎。订阅 `@overworld/core` 事件总线,按声明式触发器自动累计进度、
+无头(headless)成就引擎。订阅 `@overworld-engine/core` 事件总线,按声明式触发器自动累计进度、
 达标解锁,解锁时经效果注册表发放奖励并广播 `achievement:unlocked`。UI(弹 Toast、成就面板)
 由游戏自己实现。
 
@@ -57,8 +57,8 @@ const achievements = createAchievements({
 ## 示例
 
 ```ts
-import { createEffectRegistry, gameEvents } from '@overworld/core'
-import { createAchievements } from '@overworld/achievements'
+import { createEffectRegistry, gameEvents } from '@overworld-engine/core'
+import { createAchievements } from '@overworld-engine/achievements'
 
 const effects = createEffectRegistry<GameCtx>()
 effects.register('wallet.addGold', ({ amount }, ctx) => ctx.wallet.add(Number(amount)))

@@ -2,26 +2,26 @@ import {
   createConditionRegistry,
   createEffectRegistry,
   gameEvents,
-} from '@overworld/core'
-import { createDialogueEngine, relationshipEffects } from '@overworld/dialogue'
-import { createQuestEngine } from '@overworld/quest'
-import { createInventory } from '@overworld/inventory'
-import { createAchievements } from '@overworld/achievements'
-import { useToastStore } from '@overworld/notifications'
-import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld/input'
-import { createEnvironment } from '@overworld/environment'
-import { bindScheduleToBus, createAgent, createNavGrid, createSchedule } from '@overworld/ai'
+} from '@overworld-engine/core'
+import { createDialogueEngine, relationshipEffects } from '@overworld-engine/dialogue'
+import { createQuestEngine } from '@overworld-engine/quest'
+import { createInventory } from '@overworld-engine/inventory'
+import { createAchievements } from '@overworld-engine/achievements'
+import { useToastStore } from '@overworld-engine/notifications'
+import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld-engine/input'
+import { createEnvironment } from '@overworld-engine/environment'
+import { bindScheduleToBus, createAgent, createNavGrid, createSchedule } from '@overworld-engine/ai'
 import {
   createBroadcastChannelTransport,
   createPresenceSync,
   isBroadcastChannelAvailable,
-} from '@overworld/net'
+} from '@overworld-engine/net'
 import {
   detectQualityPreset,
   playerPositionRef,
   playerRotationRef,
   useQualityStore,
-} from '@overworld/scene'
+} from '@overworld-engine/scene'
 import { ACHIEVEMENTS, DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
 
@@ -134,7 +134,7 @@ useQualityStore.getState().setPreset(detectQualityPreset())
 
 // ---- 场景编辑器:实体模板目录(启动时注册一次) ----------------------------
 
-void import('@overworld/editor').then(({ useEditorStore }) => {
+void import('@overworld-engine/editor').then(({ useEditorStore }) => {
   useEditorStore.getState().setTemplates([
     { id: 'tpl-guide', label: '向导 NPC', kind: 'npc', modelPath: '/models/guide.glb', name: '新向导' },
     { id: 'tpl-house', label: '小屋', kind: 'building', scale: 2, collisionRadius: 3, name: '小屋' },
@@ -196,7 +196,7 @@ gameEvents.on('achievement:unlocked', ({ achievementId }) => {
 
 // 开发期:内容校验(引用完整性 + 已注册效果/条件核对),生产构建自动剔除
 if (import.meta.env.DEV) {
-  void import('@overworld/devtools').then((devtools) => {
+  void import('@overworld-engine/devtools').then((devtools) => {
     const report = devtools.validateContent(
       { dialogues: DIALOGUES, quests: QUESTS, items: ITEMS, achievements: ACHIEVEMENTS },
       { effectTypes: effects.types(), conditionTypes: conditions.types() }
@@ -213,9 +213,9 @@ if (import.meta.env.DEV) {
 // 开发期调试句柄(生产构建自动剔除)
 if (import.meta.env.DEV) {
   void Promise.all([
-    import('@overworld/scene'),
+    import('@overworld-engine/scene'),
     import('@react-three/fiber'),
-    import('@overworld/editor'),
+    import('@overworld-engine/editor'),
   ]).then(([scene, fiber, editor]) => {
     {
       ;(window as unknown as Record<string, unknown>).__game = {
@@ -245,7 +245,7 @@ if (import.meta.env.DEV) {
 if (import.meta.hot) {
   import.meta.hot.accept('./content', (mod) => {
     if (!mod) return
-    void import('@overworld/devtools').then((devtools) => {
+    void import('@overworld-engine/devtools').then((devtools) => {
       const report = devtools.validateContent(
         { dialogues: mod.DIALOGUES, quests: mod.QUESTS, items: mod.ITEMS, achievements: mod.ACHIEVEMENTS },
         { effectTypes: effects.types(), conditionTypes: conditions.types() }

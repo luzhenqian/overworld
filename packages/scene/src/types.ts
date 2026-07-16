@@ -6,7 +6,7 @@
  * palettes are game content. Use {@link defaultSceneTheme} as a neutral base
  * and {@link createSceneTheme} to derive game-specific themes.
  */
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 
 // ========== Configuration interfaces ==========
 

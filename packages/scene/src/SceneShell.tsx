@@ -10,7 +10,7 @@
  */
 import { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import { Player } from './Player'
 import { BaseNPC } from './BaseNPC'
 import { BaseBuilding } from './BaseBuilding'

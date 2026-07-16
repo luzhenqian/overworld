@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { EventBus, type OverworldEventMap } from '@overworld/core'
+import { EventBus, type OverworldEventMap } from '@overworld-engine/core'
 import { bindEventLogger, createEventRecorder } from '../eventLogger'
 
 function makeBus(): EventBus<OverworldEventMap> {

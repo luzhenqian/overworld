@@ -6,7 +6,7 @@ import type { EntityKind, Vec3 } from './types'
  * Games extend this map via declaration merging:
  *
  * ```ts
- * declare module '@overworld/core' {
+ * declare module '@overworld-engine/core' {
  *   interface OverworldEventMap {
  *     'market:trade': { symbol: string; amount: number }
  *   }
@@ -21,7 +21,7 @@ export interface OverworldEventMap {
   'entity:interact': { kind: EntityKind; id: string }
   /**
    * @deprecated Use `'entity:interact'` instead. This is the legacy,
-   * unprefixed name; `@overworld/scene`'s `interact()` emits both during the
+   * unprefixed name; `@overworld-engine/scene`'s `interact()` emits both during the
    * transition. The legacy emit (and this entry) will be removed in 2.0.
    */
   interact: { kind: EntityKind; id: string }

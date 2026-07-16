@@ -7,11 +7,11 @@ import {
   useInteractKey,
   playerPositionRef,
   type NPCIndicator,
-} from '@overworld/scene'
-import { DayNightLighting, EnvironmentTick } from '@overworld/environment'
-import { useMinimapStore } from '@overworld/minimap'
-import { NPCWalker } from '@overworld/ai'
-import { RemotePlayers } from '@overworld/net'
+} from '@overworld-engine/scene'
+import { DayNightLighting, EnvironmentTick } from '@overworld-engine/environment'
+import { useMinimapStore } from '@overworld-engine/minimap'
+import { NPCWalker } from '@overworld-engine/ai'
+import { RemotePlayers } from '@overworld-engine/net'
 import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
 import { CRYSTAL_SPOTS, NPCS } from './game/content'
@@ -72,7 +72,7 @@ function Crystals() {
   )
 }
 
-/** 巡逻村民:@overworld/ai 驱动移动,视觉与小地图跟踪由游戏提供 */
+/** 巡逻村民:@overworld-engine/ai 驱动移动,视觉与小地图跟踪由游戏提供 */
 function Villager() {
   const minimapAcc = useRef(0)
 

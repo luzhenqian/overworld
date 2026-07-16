@@ -6,7 +6,7 @@ import {
   selector,
   sequence,
   wait,
-} from '@overworld/ai'
+} from '@overworld-engine/ai'
 import { bench, mulberry32 } from '../lib.mjs'
 import { makeObstacleGrid } from './pathfinding.mjs'
 

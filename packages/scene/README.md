@@ -1,4 +1,4 @@
-# @overworld/scene
+# @overworld-engine/scene
 
 Overworld 框架的 3D 世界层:场景外壳、玩家控制器、跟随相机、圆形碰撞、邻近检测、
 GLTF 模型加载、场景主题与传送门。基于 React + three.js + @react-three/fiber + drei + zustand。
@@ -7,7 +7,7 @@ GLTF 模型加载、场景主题与传送门。基于 React + three.js + @react-
 
 本包只负责"可探索的 3D 世界"这一层,**零游戏内容**:没有内置模型路径、NPC 名字、
 配色预设或世界边界,全部通过 props / 配置传入。跨系统通信一律走
-`@overworld/core` 的事件总线(`gameEvents`),因此对话、任务、音频等系统无需
+`@overworld-engine/core` 的事件总线(`gameEvents`),因此对话、任务、音频等系统无需
 import 本包即可响应玩家移动、场景切换与交互。
 
 发出的事件:
@@ -28,11 +28,11 @@ import 本包即可响应玩家移动、场景切换与交互。
   store 读取;`player` prop 默认渲染 `<Player />`,传 `null` 可关闭。
 - **`<Player>`** — WASD / 方向键移动,Shift 奔跑;圆形碰撞解算、可选世界边界钳制、
   动画 crossfade(idle/walk/run)。`modelUrl` 省略时渲染胶囊体占位。
-  `isInputBlocked?: () => boolean` 用于接入你的输入优先级系统(如 @overworld/input)。
+  `isInputBlocked?: () => boolean` 用于接入你的输入优先级系统(如 @overworld-engine/input)。
   `externalInput?: MovementInputRef` 接受外部移动源(虚拟摇杆/手柄等,形如
   `{ current: { x, z, running } }`,模长 ≤ 1),每帧与键盘输入合并:方向相加后归一化,
   `running = Shift 或 externalInput.current.running`;模拟量模长 < 1 时速度按比例缩放
-  (纯键盘保持全速),同样受 `isInputBlocked` 约束。与 `@overworld/input` 的
+  (纯键盘保持全速),同样受 `isInputBlocked` 约束。与 `@overworld-engine/input` 的
   `createMovementInput()` / `<VirtualJoystick>` 结构兼容——两个包互不 import。
 - **`<FollowCamera targetRef offset lerp>`** — 平滑跟随相机,可独立使用。
 - **`<BaseNPC>` / `<BaseBuilding>`** — 模型加载 + 名牌 + 发光 + 交互气泡,
@@ -64,7 +64,7 @@ import 本包即可响应玩家移动、场景切换与交互。
 
 ```tsx
 import { Canvas } from '@react-three/fiber'
-import { gameEvents } from '@overworld/core'
+import { gameEvents } from '@overworld-engine/core'
 import {
   SceneShell,
   Player,
@@ -73,7 +73,7 @@ import {
   useSceneStore,
   createSceneTheme,
   type NPCConfig,
-} from '@overworld/scene'
+} from '@overworld-engine/scene'
 
 const theme = createSceneTheme({ npc: { primaryColor: '#ff9f43' } })
 
@@ -167,7 +167,7 @@ NPC 回退胶囊与名牌 / 角标 / 交互气泡高度随 `scale` 等比缩放(
 - **`useParticleMultiplier()`** — 读当前粒子倍率的便捷 selector。
 
 ```tsx
-import { ApplyQuality, detectQualityPreset, useQualityStore, useParticleMultiplier } from '@overworld/scene'
+import { ApplyQuality, detectQualityPreset, useQualityStore, useParticleMultiplier } from '@overworld-engine/scene'
 
 useQualityStore.getState().setPreset(detectQualityPreset()) // 启动时定档
 

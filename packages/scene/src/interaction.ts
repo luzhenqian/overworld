@@ -5,7 +5,7 @@
  * anything.
  */
 import { useEffect, useRef } from 'react'
-import { gameEvents } from '@overworld/core'
+import { gameEvents } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
 
 /**

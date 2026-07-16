@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Reference relay server for @overworld/net's WebSocket transport.
+ * Reference relay server for @overworld-engine/net's WebSocket transport.
  *
- * Contract (see the @overworld/net README): broadcast every incoming
+ * Contract (see the @overworld-engine/net README): broadcast every incoming
  * message, verbatim, to all OTHER clients in the same room. The envelope
  * (`{ from, data }`) is opaque to the server — no parsing, no state, no
  * authority. Rooms are the URL path: `ws://host:8787/lobby` only relays

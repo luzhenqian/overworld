@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { gameEvents } from '@overworld/core'
+import { gameEvents } from '@overworld-engine/core'
 import { useSceneStore } from '../sceneStore'
 import { interact } from '../interaction'
 

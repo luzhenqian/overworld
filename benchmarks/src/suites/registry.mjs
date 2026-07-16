@@ -3,7 +3,7 @@ import {
   createEffectRegistry,
   evaluateConditions,
   runEffects,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 import { bench } from '../lib.mjs'
 
 export function run() {

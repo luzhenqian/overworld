@@ -1,7 +1,7 @@
-# @overworld/quest
+# @overworld-engine/quest
 
 无头(headless)、事件驱动的任务状态机。任务定义以数据注入,目标进度由事件总线
-自动推进,奖励与前置条件通过 `@overworld/core` 的效果/条件注册表解析 ——
+自动推进,奖励与前置条件通过 `@overworld-engine/core` 的效果/条件注册表解析 ——
 引擎不 import 任何玩法系统。
 
 ## 定位
@@ -48,8 +48,8 @@ interface ObjectiveDefinition {
 ## 快速上手
 
 ```ts
-import { createConditionRegistry, createEffectRegistry, gameEvents } from '@overworld/core'
-import { createQuestEngine } from '@overworld/quest'
+import { createConditionRegistry, createEffectRegistry, gameEvents } from '@overworld-engine/core'
+import { createQuestEngine } from '@overworld-engine/quest'
 
 const conditions = createConditionRegistry<GameCtx>()
 const effects = createEffectRegistry<GameCtx>()

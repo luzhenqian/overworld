@@ -1,4 +1,4 @@
-# @overworld/notifications
+# @overworld-engine/notifications
 
 无头(headless)通知队列:Toast 队列 + Promise 风格的 Alert / Confirm 对话框队列。
 本包只管理排队、上限与自动过期,**不包含任何 UI** —— 渲染完全交给游戏自己实现。
@@ -8,7 +8,7 @@
 ## Toast
 
 ```ts
-import { useToastStore, configureToasts } from '@overworld/notifications'
+import { useToastStore, configureToasts } from '@overworld-engine/notifications'
 
 configureToasts({ max: 5, defaultDuration: 3000 }) // 可选,全局配置
 
@@ -39,7 +39,7 @@ return <>{toasts.map((t) => <MyToast key={t.id} toast={t} />)}</>
 Promise 风格 API,由 zustand 队列驱动,游戏 UI 渲染当前对话框并回传用户操作:
 
 ```ts
-import { alert, confirm, useAlertStore } from '@overworld/notifications'
+import { alert, confirm, useAlertStore } from '@overworld-engine/notifications'
 
 await alert({ message: '存档已损坏' })                 // 用户关闭后 resolve
 const ok = await confirm({ message: '出售全部物品?' }) // true / false

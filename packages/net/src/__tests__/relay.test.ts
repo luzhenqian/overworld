@@ -1,4 +1,4 @@
-import { EventBus, type OverworldEventMap } from '@overworld/core'
+import { EventBus, type OverworldEventMap } from '@overworld-engine/core'
 import { describe, expect, it } from 'vitest'
 import { relayEvents } from '../relay'
 import { createLocalTransportHub } from '../transport'

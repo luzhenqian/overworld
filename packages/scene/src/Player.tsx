@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
-import { gameEvents, type Vec3 } from '@overworld/core'
+import { gameEvents, type Vec3 } from '@overworld-engine/core'
 import { useCollisionStore } from './collisionStore'
 import { playerPositionRef, playerRotationRef, consumePlayerTeleport } from './playerStore'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
@@ -49,7 +49,7 @@ export interface PlayerAnimationMap {
  * forward/up-screen … +1 backward/down-screen) with magnitude ≤ 1; `running`
  * requests run speed.
  *
- * Structurally compatible with `MovementInputRef` from `@overworld/input`
+ * Structurally compatible with `MovementInputRef` from `@overworld-engine/input`
  * (e.g. the value returned by its `createMovementInput()` and driven by
  * `<VirtualJoystick>`) — the two packages deliberately do not import each
  * other, so either side's declaration satisfies the other.

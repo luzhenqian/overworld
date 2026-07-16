@@ -4,12 +4,12 @@
  *
  * The exported JSON shapes (`EditorNPCJSON` / `EditorBuildingJSON` /
  * `EditorDecorationInstanceJSON`) are **structural copies** of
- * `@overworld/scene`'s `NPCConfig` / `BuildingConfig` / `DecorationInstance`.
+ * `@overworld-engine/scene`'s `NPCConfig` / `BuildingConfig` / `DecorationInstance`.
  * Per the architecture rules, system packages never import each other; the
  * editor's output plugs into `<SceneShell>` purely via structural typing.
  */
 import { create } from 'zustand'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 
 /** Entity categories the editor can place. */
 export type EditorEntityKind = 'npc' | 'building' | 'decoration'
@@ -68,7 +68,7 @@ export interface EditorTemplate {
   name?: string
 }
 
-/** Structurally compatible with `@overworld/scene`'s `NPCConfig`. */
+/** Structurally compatible with `@overworld-engine/scene`'s `NPCConfig`. */
 export interface EditorNPCJSON {
   id: string
   modelPath: string
@@ -78,7 +78,7 @@ export interface EditorNPCJSON {
   name?: string
 }
 
-/** Structurally compatible with `@overworld/scene`'s `BuildingConfig`. */
+/** Structurally compatible with `@overworld-engine/scene`'s `BuildingConfig`. */
 export interface EditorBuildingJSON {
   id: string
   name: string
@@ -89,7 +89,7 @@ export interface EditorBuildingJSON {
   collisionRadius: number
 }
 
-/** Structurally compatible with `@overworld/scene`'s `DecorationInstance`. */
+/** Structurally compatible with `@overworld-engine/scene`'s `DecorationInstance`. */
 export interface EditorDecorationInstanceJSON {
   position: Vec3
   rotation?: Vec3
@@ -98,7 +98,7 @@ export interface EditorDecorationInstanceJSON {
 
 /**
  * A decoration group: repeated instances of one prop plus a shared collider
- * radius. Structurally compatible with `@overworld/scene`'s
+ * radius. Structurally compatible with `@overworld-engine/scene`'s
  * `DecorationCollisionGroup`.
  */
 export interface EditorDecorationGroupJSON {

@@ -12,7 +12,7 @@ Overworld 是一个模块化的 **Web 3D RPG 游戏开发框架**,基于 React 1
 
 ## 设计哲学
 
-1. **系统之间零依赖** —— 所有系统包只依赖 `@overworld/core`,跨系统通信一律走类型化事件总线
+1. **系统之间零依赖** —— 所有系统包只依赖 `@overworld-engine/core`,跨系统通信一律走类型化事件总线
 2. **数据驱动 + 注册表** —— 内容里只写声明式引用,游戏启动时注册处理函数,框架永不 import 游戏代码
 3. **内容注入,而非内容内置** —— 引擎都是工厂函数,框架包内零游戏内容
 4. **事件表可扩展** —— declaration merging 把玩法事件并入 `OverworldEventMap`,同样类型安全
@@ -20,7 +20,7 @@ Overworld 是一个模块化的 **Web 3D RPG 游戏开发框架**,基于 React 1
 ## 五分钟上手
 
 ```bash
-pnpm add @overworld/core @overworld/scene @overworld/quest @overworld/dialogue
+pnpm add @overworld-engine/core @overworld-engine/scene @overworld-engine/quest @overworld-engine/dialogue
 ```
 
 定义内容(纯数据,零代码):
@@ -43,8 +43,8 @@ const QUESTS: QuestDefinition[] = [
 装配引擎(唯一让内容、注册表与引擎相遇的地方):
 
 ```ts
-import { createConditionRegistry, createEffectRegistry } from '@overworld/core'
-import { createQuestEngine } from '@overworld/quest'
+import { createConditionRegistry, createEffectRegistry } from '@overworld-engine/core'
+import { createQuestEngine } from '@overworld-engine/quest'
 
 const conditions = createConditionRegistry()
 const effects = createEffectRegistry()
@@ -57,7 +57,7 @@ export const quests = createQuestEngine({ quests: QUESTS, conditions, effects })
 
 ```tsx
 import { Canvas } from '@react-three/fiber'
-import { SceneShell, Player } from '@overworld/scene'
+import { SceneShell, Player } from '@overworld-engine/scene'
 
 <Canvas shadows>
   <SceneShell npcs={NPCS} player={<Player bounds={BOUNDS} />}>

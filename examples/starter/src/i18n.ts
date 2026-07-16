@@ -13,7 +13,7 @@ export const resources = {
       'npc.guide.name': '向导艾拉',
       'dlg.guideIntro.hello': '你好,旅行者!欢迎来到 Overworld 示例村。',
       'dlg.guideIntro.explain':
-        '这是用 @overworld/* 搭的最小示例。村子里散落着 3 颗能量水晶,帮我收集回来吧!',
+        '这是用 @overworld-engine/* 搭的最小示例。村子里散落着 3 颗能量水晶,帮我收集回来吧!',
       'dlg.guideIntro.thanks': '太棒了!这些水晶会让村庄重新亮起来。这是给你的报酬!',
       'dlg.guideIntro.r.ask': '这里是哪里?',
       'dlg.guideIntro.r.done': '水晶都找齐了!',
@@ -48,7 +48,7 @@ export const resources = {
       'npc.guide.name': 'Guide Ella',
       'dlg.guideIntro.hello': 'Hello, traveler! Welcome to the Overworld starter village.',
       'dlg.guideIntro.explain':
-        'This is a minimal example built with @overworld/*. Three energy crystals are scattered around the village — bring them back for me!',
+        'This is a minimal example built with @overworld-engine/*. Three energy crystals are scattered around the village — bring them back for me!',
       'dlg.guideIntro.thanks':
         'Wonderful! These crystals will light the village up again. Here is your reward!',
       'dlg.guideIntro.r.ask': 'Where am I?',

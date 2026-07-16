@@ -15,7 +15,7 @@ export interface AchievementValidationOptions extends KnownTypeOptions {
  * - `trigger.count < 1` (the achievement would unlock at zero progress)
  *
  * Warnings:
- * - `trigger` missing entirely. Verified against `@overworld/achievements`:
+ * - `trigger` missing entirely. Verified against `@overworld-engine/achievements`:
  *   the schema requires `trigger: AchievementTrigger | null`, where `null`
  *   explicitly means manual-only (valid, no issue). The runtime treats a
  *   missing trigger like `null`, so an omitted field still works but hides

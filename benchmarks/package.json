@@ -3,18 +3,18 @@
   "version": "0.9.0",
   "private": true,
   "type": "module",
-  "description": "Performance benchmarks and regression guards for @overworld/* packages",
+  "description": "Performance benchmarks and regression guards for @overworld-engine/* packages",
   "scripts": {
     "bench": "node src/run.mjs",
     "test": "vitest run",
     "typecheck": "echo skip"
   },
   "dependencies": {
-    "@overworld/ai": "workspace:*",
-    "@overworld/core": "workspace:*",
-    "@overworld/net": "workspace:*",
-    "@overworld/quest": "workspace:*",
-    "@overworld/scene": "workspace:*",
+    "@overworld-engine/ai": "workspace:*",
+    "@overworld-engine/core": "workspace:*",
+    "@overworld-engine/net": "workspace:*",
+    "@overworld-engine/quest": "workspace:*",
+    "@overworld-engine/scene": "workspace:*",
     "zustand": "^5.0.2",
     "three": "^0.170.0",
     "react": "^18.3.1"

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Reference AUTHORITATIVE movement server for @overworld/net's client-side
+ * Reference AUTHORITATIVE movement server for @overworld-engine/net's client-side
  * prediction (`createPredictedState` + `createInputChannel`).
  *
  * Unlike examples/ws-server (a pure relay), this server owns the truth:

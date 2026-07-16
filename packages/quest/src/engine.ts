@@ -7,7 +7,7 @@ import {
   type EffectRegistry,
   type EventBus,
   type OverworldEventMap,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 import { persist, type StateStorage } from 'zustand/middleware'
 import { createStore, type StateCreator, type StoreApi } from 'zustand/vanilla'
 import type { ActiveQuest, ObjectiveProgress, QuestDefinition } from './types'

@@ -1,10 +1,10 @@
 ---
-title: '@overworld/inventory'
+title: '@overworld-engine/inventory'
 description: 无头物品/背包引擎:堆叠、容量、使用效果与事件广播
 ---
 
 无头(headless)物品/背包引擎。不含任何 UI、不含任何游戏内容:物品定义通过配置注入,
-使用物品的副作用走 `@overworld/core` 的效果注册表,所有变更通过事件总线广播
+使用物品的副作用走 `@overworld-engine/core` 的效果注册表,所有变更通过事件总线广播
 (`item:added` / `item:removed` / `item:used`),供任务、成就等系统消费。
 
 ## 定位
@@ -55,8 +55,8 @@ const inventory = createInventory({
 ## 示例
 
 ```ts
-import { createEffectRegistry, gameEvents } from '@overworld/core'
-import { createInventory } from '@overworld/inventory'
+import { createEffectRegistry, gameEvents } from '@overworld-engine/core'
+import { createInventory } from '@overworld-engine/inventory'
 
 const effects = createEffectRegistry<GameCtx>()
 effects.register('player.heal', ({ amount }, ctx) => ctx.heal(Number(amount)))

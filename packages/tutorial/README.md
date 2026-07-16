@@ -1,4 +1,4 @@
-# @overworld/tutorial
+# @overworld-engine/tutorial
 
 无头(headless)教程步骤引擎。管理线性教程的启动、推进、跳过与完成状态,步骤可以
 手动 `next()` 推进,也可以通过声明式 `advanceOn` 事件触发器自动推进。步骤变化与完成
@@ -57,8 +57,8 @@ const tutorial = createTutorial({
 ## 示例
 
 ```ts
-import { gameEvents } from '@overworld/core'
-import { createTutorial } from '@overworld/tutorial'
+import { gameEvents } from '@overworld-engine/core'
+import { createTutorial } from '@overworld-engine/tutorial'
 
 const tutorial = createTutorial({
   tutorials: [

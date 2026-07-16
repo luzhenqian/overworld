@@ -1,5 +1,5 @@
 {
-  "name": "@overworld/tutorial",
+  "name": "@overworld-engine/tutorial",
   "version": "0.9.0",
   "description": "Headless tutorial step engine",
   "keywords": [
@@ -30,7 +30,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@overworld/core": "workspace:*"
+    "@overworld-engine/core": "workspace:*"
   },
   "peerDependencies": {
     "zustand": "^5.0.0"

@@ -1,8 +1,8 @@
 import { useStore } from 'zustand'
-import { useToastStore } from '@overworld/notifications'
-import { playerPositionRef, playerRotationRef, useSceneStore } from '@overworld/scene'
-import { MiniMap } from '@overworld/minimap'
-import { VirtualJoystick } from '@overworld/input'
+import { useToastStore } from '@overworld-engine/notifications'
+import { playerPositionRef, playerRotationRef, useSceneStore } from '@overworld-engine/scene'
+import { MiniMap } from '@overworld-engine/minimap'
+import { VirtualJoystick } from '@overworld-engine/input'
 import { dungeonSeed, inventory, layout, movementInput, quests } from '../game/engines'
 import { useGameStore } from '../game/state'
 

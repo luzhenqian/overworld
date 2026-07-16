@@ -2,8 +2,8 @@ import {
   createConditionRegistry,
   createEffectRegistry,
   EventBus,
-} from '@overworld/core'
-import { createQuestEngine } from '@overworld/quest'
+} from '@overworld-engine/core'
+import { createQuestEngine } from '@overworld-engine/quest'
 import { bench } from '../lib.mjs'
 
 const HUGE_TARGET = 1e9 // objectives never complete during the bench

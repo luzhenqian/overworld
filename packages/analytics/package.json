@@ -1,5 +1,5 @@
 {
-  "name": "@overworld/analytics",
+  "name": "@overworld-engine/analytics",
   "version": "0.9.0",
   "description": "Pluggable analytics providers (GA4, Clarity, console)",
   "keywords": [
@@ -30,7 +30,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@overworld/core": "workspace:*"
+    "@overworld-engine/core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0"

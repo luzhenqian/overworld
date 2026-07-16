@@ -1,4 +1,4 @@
-import type { EffectFn } from '@overworld/core'
+import type { EffectFn } from '@overworld-engine/core'
 import type { DialogueEngine } from './engine'
 
 /**

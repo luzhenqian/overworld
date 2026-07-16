@@ -1,5 +1,5 @@
 {
-  "name": "@overworld/ai",
+  "name": "@overworld-engine/ai",
   "version": "0.9.0",
   "description": "Grid A* pathfinding and NPC steering behaviors (patrol/wander/follow) for Overworld games",
   "keywords": [
@@ -32,7 +32,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@overworld/core": "workspace:*"
+    "@overworld-engine/core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0",

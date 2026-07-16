@@ -21,15 +21,15 @@ starter 演示"手摆村庄 + i18n + 联机 presence",本示例演示**程序化
 
 | 能力 | 用法 |
 | --- | --- |
-| `@overworld/ai` NavGrid | 生成器的墙格逐格 `blockCircle` 进 NavGrid,碰撞与寻路共享同一份网格数据 |
-| `@overworld/ai` 行为树 | 守卫 = `createBehaviorTree`(selector/sequence/parallel/patrolAction)+ `tickTreeWithAgent`,巡逻→追击→放弃回岗 |
-| `@overworld/ai` HPA* | `createHierarchicalGrid` + `findPathHierarchical` 每 0.8s 重算"玩家→当前目标"的引导路径 |
-| `@overworld/core` 事件声明合并 | 游戏自定义事件 `dungeon:player-hit` / `dungeon:chest-opened` 类型安全地并入框架事件表 |
-| `@overworld/quest` 任务链 | `autoStart` + `chainNext` + `prerequisites.conditions`(`inventory.has` 自注册条件),宝箱任务由自定义事件触发 |
-| `@overworld/scene` 碰撞 | 数百个墙格通过 `decorationCollisions`(圆形碰撞体半径 0.55 近似方格)一次性声明注册 |
-| `@overworld/scene` 交互 | 宝箱不是 NPC 也不是 Building 组件:自绘网格 + `useProximityDetection` + `interact` 事件 |
-| `@overworld/environment` | 时间锁定午夜 + `setPaused(true)`,`DayNightLighting` 常驻夜间;火把 = 挂在 Player children 上的点光源 |
-| `@overworld/minimap` | 钥匙/金币/宝箱/守卫(移动)/NPC 全部打标记,玩家箭头内建 |
+| `@overworld-engine/ai` NavGrid | 生成器的墙格逐格 `blockCircle` 进 NavGrid,碰撞与寻路共享同一份网格数据 |
+| `@overworld-engine/ai` 行为树 | 守卫 = `createBehaviorTree`(selector/sequence/parallel/patrolAction)+ `tickTreeWithAgent`,巡逻→追击→放弃回岗 |
+| `@overworld-engine/ai` HPA* | `createHierarchicalGrid` + `findPathHierarchical` 每 0.8s 重算"玩家→当前目标"的引导路径 |
+| `@overworld-engine/core` 事件声明合并 | 游戏自定义事件 `dungeon:player-hit` / `dungeon:chest-opened` 类型安全地并入框架事件表 |
+| `@overworld-engine/quest` 任务链 | `autoStart` + `chainNext` + `prerequisites.conditions`(`inventory.has` 自注册条件),宝箱任务由自定义事件触发 |
+| `@overworld-engine/scene` 碰撞 | 数百个墙格通过 `decorationCollisions`(圆形碰撞体半径 0.55 近似方格)一次性声明注册 |
+| `@overworld-engine/scene` 交互 | 宝箱不是 NPC 也不是 Building 组件:自绘网格 + `useProximityDetection` + `interact` 事件 |
+| `@overworld-engine/environment` | 时间锁定午夜 + `setPaused(true)`,`DayNightLighting` 常驻夜间;火把 = 挂在 Player children 上的点光源 |
+| `@overworld-engine/minimap` | 钥匙/金币/宝箱/守卫(移动)/NPC 全部打标记,玩家箭头内建 |
 | 其余 | quest 追踪 HUD、toast、虚拟摇杆、键盘层(对话阻断移动)、质量预设、场景编辑器、devtools 内容校验,与 starter 同款 |
 
 starter 有而本示例刻意没有的:i18n、联机 presence、NPC 日程(昼夜相位)、成就。

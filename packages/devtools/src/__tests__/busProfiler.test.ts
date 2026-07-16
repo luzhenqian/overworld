@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { EventBus, type OverworldEventMap } from '@overworld/core'
+import { EventBus, type OverworldEventMap } from '@overworld-engine/core'
 import { profileBus } from '../busProfiler'
 import { createEventRecorder } from '../eventLogger'
 

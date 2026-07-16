@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import type * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 
 /** Props for {@link RainParticles}. */
 export interface RainParticlesProps {

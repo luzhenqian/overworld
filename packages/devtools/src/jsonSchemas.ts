@@ -2,20 +2,20 @@
  * Hand-written JSON Schemas (draft 2020-12) for Overworld content files.
  *
  * These describe the **real** content schemas — `DialogueTree`
- * (`@overworld/dialogue`), `QuestDefinition` (`@overworld/quest`),
- * `ItemDefinition` (`@overworld/inventory`), `AchievementDefinition`
- * (`@overworld/achievements`) and `EffectRef` / `ConditionRef`
- * (`@overworld/core`) — so games can author content as plain `.json` files
+ * (`@overworld-engine/dialogue`), `QuestDefinition` (`@overworld-engine/quest`),
+ * `ItemDefinition` (`@overworld-engine/inventory`), `AchievementDefinition`
+ * (`@overworld-engine/achievements`) and `EffectRef` / `ConditionRef`
+ * (`@overworld-engine/core`) — so games can author content as plain `.json` files
  * and validate/autocomplete them outside TypeScript (ajv, editors via
  * `$schema`, CI).
  *
  * The schemas are **plain data**: devtools deliberately ships no validator
- * dependency (its only runtime dependency stays `@overworld/core`). Feed them
+ * dependency (its only runtime dependency stays `@overworld-engine/core`). Feed them
  * to any draft 2020-12 validator, e.g. ajv:
  *
  * ```ts
  * import Ajv from 'ajv/dist/2020'
- * import { questDefinitionsSchema } from '@overworld/devtools'
+ * import { questDefinitionsSchema } from '@overworld-engine/devtools'
  *
  * const validate = new Ajv().compile(questDefinitionsSchema)
  * if (!validate(JSON.parse(fs.readFileSync('quests.json', 'utf8')))) {
@@ -60,7 +60,7 @@ const BASE = 'https://overworld.dev/schemas/'
 // Shared $defs building blocks (no $id/$schema — embedded per schema)
 // ---------------------------------------------------------------------------
 
-/** `EffectRef` from `@overworld/core`. */
+/** `EffectRef` from `@overworld-engine/core`. */
 const effectRefDef: JsonSchema = {
   type: 'object',
   description: 'Declarative reference to a registered effect handler.',
@@ -72,7 +72,7 @@ const effectRefDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `ConditionRef` from `@overworld/core`. */
+/** `ConditionRef` from `@overworld-engine/core`. */
 const conditionRefDef: JsonSchema = {
   type: 'object',
   description: 'Declarative reference to a registered condition handler.',
@@ -85,7 +85,7 @@ const conditionRefDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `DialogueResponse` from `@overworld/dialogue`. */
+/** `DialogueResponse` from `@overworld-engine/dialogue`. */
 const dialogueResponseDef: JsonSchema = {
   type: 'object',
   description: 'A player choice offered on a dialogue node.',
@@ -108,7 +108,7 @@ const dialogueResponseDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `DialogueNode` from `@overworld/dialogue`. */
+/** `DialogueNode` from `@overworld-engine/dialogue`. */
 const dialogueNodeDef: JsonSchema = {
   type: 'object',
   description: 'A single line of dialogue plus how the conversation continues.',
@@ -129,7 +129,7 @@ const dialogueNodeDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `DialogueTree` from `@overworld/dialogue`. */
+/** `DialogueTree` from `@overworld-engine/dialogue`. */
 const dialogueTreeDef: JsonSchema = {
   type: 'object',
   description: 'A complete dialogue tree. Content only — no code.',
@@ -142,7 +142,7 @@ const dialogueTreeDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `ObjectiveTrigger` from `@overworld/quest`. */
+/** `ObjectiveTrigger` from `@overworld-engine/quest`. */
 const objectiveTriggerDef: JsonSchema = {
   type: 'object',
   description: 'Declarative event-bus trigger that auto-advances an objective.',
@@ -161,7 +161,7 @@ const objectiveTriggerDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `ObjectiveDefinition` from `@overworld/quest`. */
+/** `ObjectiveDefinition` from `@overworld-engine/quest`. */
 const objectiveDef: JsonSchema = {
   type: 'object',
   description: 'One requirement of a quest.',
@@ -180,7 +180,7 @@ const objectiveDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `QuestPrerequisites` from `@overworld/quest`. */
+/** `QuestPrerequisites` from `@overworld-engine/quest`. */
 const questPrerequisitesDef: JsonSchema = {
   type: 'object',
   description: 'Requirements that gate starting a quest.',
@@ -199,7 +199,7 @@ const questPrerequisitesDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `QuestDefinition` from `@overworld/quest`. */
+/** `QuestDefinition` from `@overworld-engine/quest`. */
 const questDef: JsonSchema = {
   type: 'object',
   description: 'A quest. Content only — rewards/prerequisites are declarative refs.',
@@ -226,7 +226,7 @@ const questDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `ItemDefinition` from `@overworld/inventory`. */
+/** `ItemDefinition` from `@overworld-engine/inventory`. */
 const itemDef: JsonSchema = {
   type: 'object',
   description: 'Static definition of an item.',
@@ -253,7 +253,7 @@ const itemDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `AchievementTrigger` from `@overworld/achievements`. */
+/** `AchievementTrigger` from `@overworld-engine/achievements`. */
 const achievementTriggerDef: JsonSchema = {
   type: 'object',
   description: 'Declarative unlock trigger fed by bus events.',
@@ -277,7 +277,7 @@ const achievementTriggerDef: JsonSchema = {
   additionalProperties: true,
 }
 
-/** `AchievementDefinition` from `@overworld/achievements`. */
+/** `AchievementDefinition` from `@overworld-engine/achievements`. */
 const achievementDef: JsonSchema = {
   type: 'object',
   description: 'Static definition of an achievement.',
@@ -321,7 +321,7 @@ const achievementDefs = { effectRef: effectRefDef, achievementTrigger: achieveme
 // Single-object schemas
 // ---------------------------------------------------------------------------
 
-/** JSON Schema for a single `EffectRef` (`@overworld/core`). */
+/** JSON Schema for a single `EffectRef` (`@overworld-engine/core`). */
 export const effectRefSchema: JsonSchema = {
   $id: `${BASE}effect-ref.json`,
   $schema: DRAFT,
@@ -329,7 +329,7 @@ export const effectRefSchema: JsonSchema = {
   ...effectRefDef,
 }
 
-/** JSON Schema for a single `ConditionRef` (`@overworld/core`). */
+/** JSON Schema for a single `ConditionRef` (`@overworld-engine/core`). */
 export const conditionRefSchema: JsonSchema = {
   $id: `${BASE}condition-ref.json`,
   $schema: DRAFT,
@@ -337,7 +337,7 @@ export const conditionRefSchema: JsonSchema = {
   ...conditionRefDef,
 }
 
-/** JSON Schema for a single `DialogueTree` (`@overworld/dialogue`). */
+/** JSON Schema for a single `DialogueTree` (`@overworld-engine/dialogue`). */
 export const dialogueTreeSchema: JsonSchema = {
   $id: `${BASE}dialogue-tree.json`,
   $schema: DRAFT,
@@ -346,7 +346,7 @@ export const dialogueTreeSchema: JsonSchema = {
   $defs: dialogueDefs,
 }
 
-/** JSON Schema for a single `QuestDefinition` (`@overworld/quest`). */
+/** JSON Schema for a single `QuestDefinition` (`@overworld-engine/quest`). */
 export const questDefinitionSchema: JsonSchema = {
   $id: `${BASE}quest-definition.json`,
   $schema: DRAFT,
@@ -355,7 +355,7 @@ export const questDefinitionSchema: JsonSchema = {
   $defs: questDefs,
 }
 
-/** JSON Schema for a single `ItemDefinition` (`@overworld/inventory`). */
+/** JSON Schema for a single `ItemDefinition` (`@overworld-engine/inventory`). */
 export const itemDefinitionSchema: JsonSchema = {
   $id: `${BASE}item-definition.json`,
   $schema: DRAFT,
@@ -364,7 +364,7 @@ export const itemDefinitionSchema: JsonSchema = {
   $defs: itemDefs,
 }
 
-/** JSON Schema for a single `AchievementDefinition` (`@overworld/achievements`). */
+/** JSON Schema for a single `AchievementDefinition` (`@overworld-engine/achievements`). */
 export const achievementDefinitionSchema: JsonSchema = {
   $id: `${BASE}achievement-definition.json`,
   $schema: DRAFT,

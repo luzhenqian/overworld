@@ -1,4 +1,4 @@
-import { EventBus } from '@overworld/core'
+import { EventBus } from '@overworld-engine/core'
 import { bench } from '../lib.mjs'
 
 export function run() {

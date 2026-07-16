@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { Color } from 'three'
 import type * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import type { Environment } from './createEnvironment'
 import { getDaylightFactor } from './phase'
 

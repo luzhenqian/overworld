@@ -11,30 +11,30 @@ Overworld 从实际上线的 3D RPG 项目(degener-city)中提取通用能力沉
 
 | 包 | 职责 |
 |---|---|
-| `@overworld/core` | 类型化事件总线、条件/效果注册表、存档(持久化)辅助、存档槽位管理、公共类型 |
-| `@overworld/scene` | 3D 世界层:SceneShell 数据驱动场景、玩家控制器、跟随相机、碰撞、邻近检测、GLTF 加载、主题 |
-| `@overworld/input` | 键盘输入优先级层级(模态框 > 对话 > 面板 > 游戏控制)、移动端虚拟摇杆 |
-| `@overworld/environment` | 昼夜循环 + 天气状态机,配套 R3F 灯光/雨雪粒子组件 |
-| `@overworld/minimap` | 通用小地图(标记注册表 + canvas 顶视图组件) |
-| `@overworld/ai` | 网格 A* + 层级化寻路(HPA*)、NPC 行为(巡逻/游荡/跟随/goTo)、行为树、昼夜日程、动态避障 |
-| `@overworld/devtools` | 开发期内容校验(对话/任务引用完整性)、内容 JSON Schema、事件总线日志 |
-| `@overworld/editor` | 游戏内场景编辑器:放置/拖拽实体、撤销重做、属性面板、导出场景 JSON |
-| `@overworld/net` | 多人同步抽象:Transport 接口(内存/BroadcastChannel/WebSocket)、presence 复制、事件中继 |
-| `@overworld/dialogue` | 无头对话树引擎(条件门控选项、效果、好感度) |
-| `@overworld/quest` | 无头任务状态机(声明式目标触发器、前置条件、奖励、任务链) |
-| `@overworld/inventory` | 无头背包/物品引擎(堆叠、容量、使用效果) |
-| `@overworld/achievements` | 无头成就引擎(订阅事件总线自动解锁) |
-| `@overworld/tutorial` | 无头教程步骤引擎(事件自动推进) |
-| `@overworld/audio` | BGM/音效管理(场景→曲目映射、自动播放策略、淡入淡出) |
-| `@overworld/notifications` | Toast / Alert / Confirm 无头通知队列 |
-| `@overworld/loading` | 资源加载进度聚合、场景预加载、资产清单(manifest)约定 |
-| `@overworld/analytics` | 可插拔埋点(GA4 / Clarity / console) |
+| `@overworld-engine/core` | 类型化事件总线、条件/效果注册表、存档(持久化)辅助、存档槽位管理、公共类型 |
+| `@overworld-engine/scene` | 3D 世界层:SceneShell 数据驱动场景、玩家控制器、跟随相机、碰撞、邻近检测、GLTF 加载、主题 |
+| `@overworld-engine/input` | 键盘输入优先级层级(模态框 > 对话 > 面板 > 游戏控制)、移动端虚拟摇杆 |
+| `@overworld-engine/environment` | 昼夜循环 + 天气状态机,配套 R3F 灯光/雨雪粒子组件 |
+| `@overworld-engine/minimap` | 通用小地图(标记注册表 + canvas 顶视图组件) |
+| `@overworld-engine/ai` | 网格 A* + 层级化寻路(HPA*)、NPC 行为(巡逻/游荡/跟随/goTo)、行为树、昼夜日程、动态避障 |
+| `@overworld-engine/devtools` | 开发期内容校验(对话/任务引用完整性)、内容 JSON Schema、事件总线日志 |
+| `@overworld-engine/editor` | 游戏内场景编辑器:放置/拖拽实体、撤销重做、属性面板、导出场景 JSON |
+| `@overworld-engine/net` | 多人同步抽象:Transport 接口(内存/BroadcastChannel/WebSocket)、presence 复制、事件中继 |
+| `@overworld-engine/dialogue` | 无头对话树引擎(条件门控选项、效果、好感度) |
+| `@overworld-engine/quest` | 无头任务状态机(声明式目标触发器、前置条件、奖励、任务链) |
+| `@overworld-engine/inventory` | 无头背包/物品引擎(堆叠、容量、使用效果) |
+| `@overworld-engine/achievements` | 无头成就引擎(订阅事件总线自动解锁) |
+| `@overworld-engine/tutorial` | 无头教程步骤引擎(事件自动推进) |
+| `@overworld-engine/audio` | BGM/音效管理(场景→曲目映射、自动播放策略、淡入淡出) |
+| `@overworld-engine/notifications` | Toast / Alert / Confirm 无头通知队列 |
+| `@overworld-engine/loading` | 资源加载进度聚合、场景预加载、资产清单(manifest)约定 |
+| `@overworld-engine/analytics` | 可插拔埋点(GA4 / Clarity / console) |
 
 “无头”(headless)= 只提供状态与逻辑,不带 UI;游戏用自己的视觉风格渲染。
 
 ## 设计哲学
 
-1. **系统之间零依赖** —— 所有系统包只依赖 `@overworld/core`。跨系统通信一律走类型化
+1. **系统之间零依赖** —— 所有系统包只依赖 `@overworld-engine/core`。跨系统通信一律走类型化
    事件总线(`gameEvents`),例如玩家移动 → `player:moved` → 任务引擎自动推进"行走"目标。
 2. **数据驱动 + 注册表** —— 对话/任务/成就的内容里只写声明式引用
    (`{ type: 'wallet.addGold', params: { amount: 100 } }`),游戏启动时注册对应处理函数。
@@ -53,7 +53,7 @@ pnpm test         # 全部单测
 pnpm --filter starter dev   # 运行示例游戏
 ```
 
-两个官方示例(均只用 `@overworld/*` 公开 API):
+两个官方示例(均只用 `@overworld-engine/*` 公开 API):
 
 - [`examples/starter`](examples/starter) —— 村庄演示:移动/对话/任务/物品/成就/联机/编辑器/中英切换
 - [`examples/dungeon`](examples/dungeon) —— 地牢探索:种子化程序地牢、行为树敌人、钥匙宝箱任务链、HPA* 引路(`?seed=N` 换地图)

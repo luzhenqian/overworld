@@ -3,7 +3,7 @@ import {
   persistOptions,
   type EventBus,
   type OverworldEventMap,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 import { persist } from 'zustand/middleware'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { DEFAULT_PHASES, derivePhase, validatePhaseBoundaries, wrapTimeOfDay } from './phase'

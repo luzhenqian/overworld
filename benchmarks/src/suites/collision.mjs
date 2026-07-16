@@ -1,4 +1,4 @@
-import { useCollisionStore } from '@overworld/scene'
+import { useCollisionStore } from '@overworld-engine/scene'
 import * as THREE from 'three'
 import { bench, mulberry32 } from '../lib.mjs'
 

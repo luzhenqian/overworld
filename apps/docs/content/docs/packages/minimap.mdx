@@ -1,17 +1,17 @@
 ---
-title: '@overworld/minimap'
+title: '@overworld-engine/minimap'
 description: 通用俯视小地图:标记注册表 + DOM canvas 组件,不依赖 three.js
 ---
 
 通用俯视小地图:无头标记(marker)注册表 + 基于 DOM `<canvas>` 的 `<MiniMap>` 组件。
 不依赖 three.js —— 玩家位置通过结构化的 ref(`{ current: [x, y, z] }`)传入,可直接
-使用 `@overworld/scene` 的 `playerPositionRef` / `playerRotationRef`,也可以传任何
+使用 `@overworld-engine/scene` 的 `playerPositionRef` / `playerRotationRef`,也可以传任何
 形状相同的对象。
 
 ## 标记注册表(无头)
 
 ```ts
-import { useMinimapStore } from '@overworld/minimap'
+import { useMinimapStore } from '@overworld-engine/minimap'
 
 const { registerMarker, unregisterMarker, setMarkerPosition, clearMarkers } =
   useMinimapStore.getState()
@@ -34,8 +34,8 @@ clearMarkers()                              // 场景卸载时清空
 ## `<MiniMap>` 组件
 
 ```tsx
-import { MiniMap } from '@overworld/minimap'
-import { playerPositionRef, playerRotationRef } from '@overworld/scene'
+import { MiniMap } from '@overworld-engine/minimap'
+import { playerPositionRef, playerRotationRef } from '@overworld-engine/scene'
 
 <MiniMap
   worldBounds={{ minX: -50, maxX: 50, minZ: -50, maxZ: 50 }}
@@ -61,7 +61,7 @@ import { playerPositionRef, playerRotationRef } from '@overworld/scene'
 ## 投影辅助(纯函数)
 
 ```ts
-import { projectToCanvas, projectionScale } from '@overworld/minimap'
+import { projectToCanvas, projectionScale } from '@overworld-engine/minimap'
 
 projectToCanvas(x, z, { worldBounds, size })   // → [px, py]
 projectionScale({ worldBounds, size })         // → 每世界单位像素数
@@ -72,4 +72,4 @@ projectionScale({ worldBounds, size })         // → 每世界单位像素数
 
 ## 依赖
 
-依赖 `@overworld/core`(仅类型);peer:`react`、`zustand`。不依赖 three.js。
+依赖 `@overworld-engine/core`(仅类型);peer:`react`、`zustand`。不依赖 three.js。

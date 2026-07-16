@@ -7,7 +7,7 @@ import {
   persistOptions,
   type EventBus,
   type OverworldEventMap,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 
 /** Persistence tuning for {@link createAudioManager}. */
 export interface AudioPersistConfig {

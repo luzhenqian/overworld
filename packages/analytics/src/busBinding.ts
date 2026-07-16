@@ -1,4 +1,4 @@
-import type { EventBus } from '@overworld/core'
+import type { EventBus } from '@overworld-engine/core'
 import { track, type AnalyticsParams } from './analytics'
 
 /** Options for {@link bindAnalyticsToBus}. */

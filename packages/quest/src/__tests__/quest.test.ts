@@ -5,7 +5,7 @@ import {
   createEffectRegistry,
   createMemoryStorage,
   type OverworldEventMap,
-} from '@overworld/core'
+} from '@overworld-engine/core'
 import type { StateStorage } from 'zustand/middleware'
 import { createQuestEngine } from '../engine'
 import type { QuestDefinition } from '../types'

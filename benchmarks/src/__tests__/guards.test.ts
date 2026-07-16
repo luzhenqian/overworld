@@ -12,10 +12,10 @@ import {
   createNavGrid,
   findPath,
   findPathHierarchical,
-} from '@overworld/ai'
-import { createConditionRegistry, createEffectRegistry, EventBus } from '@overworld/core'
-import { createQuestEngine } from '@overworld/quest'
-import { createSnapshotBuffer } from '@overworld/net'
+} from '@overworld-engine/ai'
+import { createConditionRegistry, createEffectRegistry, EventBus } from '@overworld-engine/core'
+import { createQuestEngine } from '@overworld-engine/quest'
+import { createSnapshotBuffer } from '@overworld-engine/net'
 // @ts-expect-error -- plain-JS benchmark fixture (no type declarations)
 import { makeObstacleGrid } from '../suites/pathfinding.mjs'
 // @ts-expect-error -- plain-JS benchmark harness (no type declarations)

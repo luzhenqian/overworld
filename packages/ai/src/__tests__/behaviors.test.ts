@@ -1,4 +1,4 @@
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 import { describe, expect, it } from 'vitest'
 import { createAgent } from '../behaviors'
 import { createNavGrid } from '../grid'

@@ -5,7 +5,7 @@
  */
 import { create } from 'zustand'
 import * as THREE from 'three'
-import type { EntityKind } from '@overworld/core'
+import type { EntityKind } from '@overworld-engine/core'
 
 /** One registered circular collider (X/Z plane, `position.y` is ignored). */
 export interface Collider {

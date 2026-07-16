@@ -3,7 +3,7 @@
  * the subtree throws (e.g. a rejected model load surfacing through
  * `useGLTF`/`useModelLoader`). Key it by the model URL at the call site so
  * changing the path retries with a fresh boundary — the pattern
- * `@overworld/editor` uses for its entity models.
+ * `@overworld-engine/editor` uses for its entity models.
  */
 import { Component, type ReactNode } from 'react'
 

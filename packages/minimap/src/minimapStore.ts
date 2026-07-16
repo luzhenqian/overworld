@@ -4,7 +4,7 @@
  * No React or canvas dependency — usable from any code, testable headlessly.
  */
 import { create } from 'zustand'
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 
 /** A dot on the minimap. */
 export interface MinimapMarker {

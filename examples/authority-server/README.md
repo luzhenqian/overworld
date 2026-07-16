@@ -1,4 +1,4 @@
-# authority-server —— @overworld/net 权威移动服务器参考
+# authority-server —— @overworld-engine/net 权威移动服务器参考
 
 `examples/ws-server` 是纯中继(不解析、不裁决);本示例则是**权威服务器**:
 服务端持有每位玩家位置 `{ x, z }` 的唯一真相,接收客户端输入
@@ -28,7 +28,7 @@ node server.mjs    # 默认监听 8788;PORT=9000 node server.mjs 换端口
 ```ts
 import {
   createPredictedState, createInputChannel, createWebSocketTransport,
-} from '@overworld/net'
+} from '@overworld-engine/net'
 
 const step = (s, { dx, dz }, dtMs) => { /* 与 server.mjs 完全相同 */ }
 

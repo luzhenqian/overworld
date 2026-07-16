@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
-import { ApplyQuality } from '@overworld/scene'
-import { EditorPanel, EditorScene, EditorToggle } from '@overworld/editor'
+import { ApplyQuality } from '@overworld-engine/scene'
+import { EditorPanel, EditorScene, EditorToggle } from '@overworld-engine/editor'
 import { World } from './World'
 import { HUD } from './ui/HUD'
 import { DialogueBox } from './ui/DialogueBox'

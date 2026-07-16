@@ -1,6 +1,6 @@
 import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
-import { KEYBOARD_PRIORITY, useHotkey, useKeyboardLayer } from '@overworld/input'
+import { KEYBOARD_PRIORITY, useHotkey, useKeyboardLayer } from '@overworld-engine/input'
 import { dialogue } from '../game/engines'
 
 /**

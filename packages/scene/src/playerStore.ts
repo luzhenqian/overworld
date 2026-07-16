@@ -7,7 +7,7 @@
  * Systems that need reactive, throttled position updates should subscribe to
  * the `player:moved` event on the bus instead.
  */
-import type { Vec3 } from '@overworld/core'
+import type { Vec3 } from '@overworld-engine/core'
 
 /**
  * Current player world position. Mutated in place every frame by

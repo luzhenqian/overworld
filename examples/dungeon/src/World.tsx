@@ -12,12 +12,12 @@ import {
   useProximityDetection,
   type NPCConfig,
   type NPCIndicator,
-} from '@overworld/scene'
-import { DayNightLighting } from '@overworld/environment'
-import { findPathHierarchical, tickTreeWithAgent } from '@overworld/ai'
-import { useMinimapStore } from '@overworld/minimap'
-import { useToastStore } from '@overworld/notifications'
-import { gameEvents } from '@overworld/core'
+} from '@overworld-engine/scene'
+import { DayNightLighting } from '@overworld-engine/environment'
+import { findPathHierarchical, tickTreeWithAgent } from '@overworld-engine/ai'
+import { useMinimapStore } from '@overworld-engine/minimap'
+import { useToastStore } from '@overworld-engine/notifications'
+import { gameEvents } from '@overworld-engine/core'
 import { useStore } from 'zustand'
 import { cellToWorld, isFloorWorld, wallShellCells } from './game/dungeon'
 import {

@@ -1,4 +1,4 @@
-import type { EventBus } from '@overworld/core'
+import type { EventBus } from '@overworld-engine/core'
 
 /** Accumulated timing stats for one event name. */
 export interface EventStats {

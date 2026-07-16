@@ -7,7 +7,7 @@
 import type { NetMessage, Transport } from './transport'
 
 /**
- * Structural bus shape the relay needs — `EventBus` from `@overworld/core`
+ * Structural bus shape the relay needs — `EventBus` from `@overworld-engine/core`
  * (including `gameEvents`) satisfies it.
  */
 export interface RelayBus {

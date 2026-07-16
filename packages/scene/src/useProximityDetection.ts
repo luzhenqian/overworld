@@ -9,7 +9,7 @@
  * whether they are the nearby entity.
  */
 import { useFrame } from '@react-three/fiber'
-import { gameEvents, type Vec3 } from '@overworld/core'
+import { gameEvents, type Vec3 } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
 import { playerPositionRef } from './playerStore'
 
