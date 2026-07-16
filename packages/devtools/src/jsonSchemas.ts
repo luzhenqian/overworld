@@ -301,8 +301,102 @@ const achievementDef: JsonSchema = {
   additionalProperties: true,
 }
 
+/** A `[x, y, z]` tuple (`Vec3` from `@overworld-engine/core`). */
+const vec3Def: JsonSchema = {
+  type: 'array',
+  description: 'A [x, y, z] world-space triple.',
+  items: { type: 'number' },
+  minItems: 3,
+  maxItems: 3,
+}
+
+/** `NPCConfig` from `@overworld-engine/scene` (structurally the editor's `EditorNPCJSON`). */
+const npcConfigDef: JsonSchema = {
+  type: 'object',
+  description: 'Static placement/config for one NPC.',
+  properties: {
+    id: { type: 'string' },
+    modelPath: { type: 'string', description: 'GLTF/GLB model URL; "" renders the fallback capsule.' },
+    position: { $ref: '#/$defs/vec3' },
+    rotation: { $ref: '#/$defs/vec3' },
+    scale: { type: 'number', description: 'Uniform scale. Default 1 when omitted.' },
+    name: { type: 'string', description: 'Floating label shown when the player is nearby.' },
+  },
+  required: ['id', 'modelPath', 'position', 'rotation'],
+  additionalProperties: true,
+}
+
+/** `BuildingConfig` from `@overworld-engine/scene` (structurally the editor's `EditorBuildingJSON`). */
+const buildingConfigDef: JsonSchema = {
+  type: 'object',
+  description: 'Static placement/config for one building.',
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string', description: 'Floating label shown when the player is nearby.' },
+    modelPath: { type: 'string', description: 'GLTF/GLB model URL; "" renders the fallback box.' },
+    position: { $ref: '#/$defs/vec3' },
+    rotation: { $ref: '#/$defs/vec3' },
+    scale: { type: 'number' },
+    collisionRadius: { type: 'number', description: 'Circular collider radius on the X/Z plane.' },
+  },
+  required: ['id', 'name', 'modelPath', 'position', 'rotation', 'scale', 'collisionRadius'],
+  additionalProperties: true,
+}
+
+/** `DecorationInstance` from `@overworld-engine/scene`. */
+const decorationInstanceDef: JsonSchema = {
+  type: 'object',
+  description: 'One placed instance of a repeated decoration.',
+  properties: {
+    position: { $ref: '#/$defs/vec3' },
+    rotation: { $ref: '#/$defs/vec3' },
+    scale: { type: 'number' },
+  },
+  required: ['position'],
+  additionalProperties: true,
+}
+
+/** `DecorationCollisionGroup` from `@overworld-engine/scene`. */
+const decorationGroupDef: JsonSchema = {
+  type: 'object',
+  description: 'A set of identical decorations sharing one collision radius.',
+  properties: {
+    instances: { type: 'array', items: { $ref: '#/$defs/decorationInstance' } },
+    radius: { type: 'number', description: 'Shared circular collider radius for every instance.' },
+  },
+  required: ['instances', 'radius'],
+  additionalProperties: true,
+}
+
+/**
+ * `SceneJson` from `@overworld-engine/scene` — the scene-authoring document,
+ * structurally identical to the editor's `EditorSceneJSON`.
+ */
+const sceneConfigStructure: JsonSchema = {
+  type: 'object',
+  description: 'A serialized scene document: NPC / building / decoration placement.',
+  properties: {
+    npcs: { type: 'array', items: { $ref: '#/$defs/npcConfig' } },
+    buildings: { type: 'array', items: { $ref: '#/$defs/buildingConfig' } },
+    decorations: {
+      type: 'object',
+      description: 'Decoration groups keyed by type name.',
+      additionalProperties: { $ref: '#/$defs/decorationGroup' },
+    },
+  },
+  required: ['npcs'],
+  additionalProperties: true,
+}
+
 // $defs subsets each schema needs to be self-contained.
 const refDefs = { effectRef: effectRefDef, conditionRef: conditionRefDef }
+const sceneDefs = {
+  vec3: vec3Def,
+  npcConfig: npcConfigDef,
+  buildingConfig: buildingConfigDef,
+  decorationInstance: decorationInstanceDef,
+  decorationGroup: decorationGroupDef,
+}
 const dialogueDefs = {
   ...refDefs,
   dialogueResponse: dialogueResponseDef,
@@ -371,6 +465,22 @@ export const achievementDefinitionSchema: JsonSchema = {
   title: 'Overworld AchievementDefinition',
   ...achievementDef,
   $defs: achievementDefs,
+}
+
+/**
+ * JSON Schema for a `SceneJson` document (`@overworld-engine/scene`) — the
+ * scene-authoring document produced by the in-game editor's `exportScene()`
+ * and rendered by `<SceneFromJson>`. Self-contained (`$defs` embed the NPC /
+ * building / decoration shapes). Cross-object rules (duplicate ids, negative
+ * scale/radius, malformed groups) are beyond JSON Schema — run
+ * `validateScene` on the parsed data for those.
+ */
+export const sceneConfigSchema: JsonSchema = {
+  $id: `${BASE}scene-config.json`,
+  $schema: DRAFT,
+  title: 'Overworld SceneJson',
+  ...sceneConfigStructure,
+  $defs: sceneDefs,
 }
 
 // ---------------------------------------------------------------------------
@@ -465,22 +575,30 @@ export const allContentSchemas: Record<string, JsonSchema> = {
   itemDefinitions: itemDefinitionsSchema,
   achievementDefinition: achievementDefinitionSchema,
   achievementDefinitions: achievementDefinitionsSchema,
+  sceneConfig: sceneConfigSchema,
   contentBundle: contentBundleSchema,
 }
 
-/** Content-file kinds, matching the `ContentBundle` section names. */
-export type ContentKind = 'dialogues' | 'quests' | 'items' | 'achievements'
+/**
+ * Content-file kinds. The first four match the `ContentBundle` section names;
+ * `'scene'` is a standalone document (a `SceneJson`, not a bundle section)
+ * whose schema `schemaFor` also resolves.
+ */
+export type ContentKind = 'dialogues' | 'quests' | 'items' | 'achievements' | 'scene'
 
 const schemasByKind: Record<ContentKind, JsonSchema> = {
   dialogues: dialogueTreesSchema,
   quests: questDefinitionsSchema,
   items: itemDefinitionsSchema,
   achievements: achievementDefinitionsSchema,
+  scene: sceneConfigSchema,
 }
 
 /**
- * The array-wrapper schema for one content-file kind — handy when validating
- * a directory of `dialogues.json` / `quests.json` / … files in a loop.
+ * The schema for one content-file kind — the array-wrapper schema for
+ * `dialogues` / `quests` / `items` / `achievements`, or the single-document
+ * `sceneConfigSchema` for `'scene'`. Handy when validating a directory of
+ * content files in a loop.
  */
 export function schemaFor(kind: ContentKind): JsonSchema {
   return schemasByKind[kind]

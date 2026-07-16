@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/scene",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "3D world layer: scene shell, player controller, collision, proximity, model loading",
   "keywords": [
     "overworld",

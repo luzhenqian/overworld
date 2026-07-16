@@ -1,9 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { gameEvents, type EnumerableStorage } from '@overworld-engine/core'
+import { createSaveSlots, gameEvents, type EnumerableStorage } from '@overworld-engine/core'
 import type { TelegramBridge } from '@overworld-engine/platform'
 import { bridge, platform } from './game/platform'
 import { setSaveStorage } from './game/save-storage'
+
+/**
+ * 云端/文件存档是异步写回的(setItem 先更内存镜像,再串行队列落云端)。
+ * FlushableStorage(createTelegramCloudStorage / createTauriFileStorage 返回)
+ * 带 flush():等待写回队列排空。切后台前 await flush() 才能保证存档已到云端。
+ * localStorage 兜底没有 flush(),这里做特性探测,返回统一的 Promise。
+ */
+function flushSaveStorage(storage: EnumerableStorage): Promise<void> {
+  const maybe = storage as Partial<{ flush: () => Promise<void> }>
+  return typeof maybe.flush === 'function' ? maybe.flush() : Promise.resolve()
+}
 
 // ---- Telegram 主题 → HUD CSS 变量 -----------------------------------------
 // themeParams 优先走桥的 getTheme()(telegramBridge 暴露),
@@ -64,6 +75,21 @@ async function bootstrap() {
   // 引擎装配必须在 setSaveStorage() 之后 import(见 save-storage.ts)。
   const { dialogue, quests } = await import('./game/engines')
 
+  // ---- 命名存档槽位(createSaveSlots)-------------------------------------
+  // saveSlots 在任意 EnumerableStorage 上工作,这里直接复用上面解析出的 storage
+  // (Telegram 端 = CloudStorage 云存档镜像,浏览器直开 = localStorage)。
+  // 槽位落在 overworld:slots:<slot> —— 与 quest 引擎的 overworld:quest 同前缀,
+  // 因此 saveTo 会把当前任务进度整体拷进槽位,loadFrom 再整体恢复。
+  const slots = createSaveSlots({ storage })
+
+  // ---- 切后台前 flush 云端存档 --------------------------------------------
+  // Telegram deactivated / 浏览器 visibilitychange 都会经桥的 bindLifecycle
+  // 打到总线的 app:paused。CloudStorage 写回是异步的,切后台前 await flush()
+  // 才能保证最后一次存档已抵达云端(localStorage 兜底时 flush 为 no-op)。
+  gameEvents.on('app:paused', () => {
+    void flushSaveStorage(storage)
+  })
+
   applyTelegramTheme()
 
   // ---- Telegram BackButton 可见性跟随对话状态 ------------------------------
@@ -81,7 +107,16 @@ async function bootstrap() {
   }
 
   // ---- E2E / 调试句柄 ------------------------------------------------------
-  window.__overworld = { platform, bridge, dialogue, quests, gameEvents }
+  // slots:命名存档槽位;flush():强制排空云端写回队列(切后台/关页前调用)。
+  window.__overworld = {
+    platform,
+    bridge,
+    dialogue,
+    quests,
+    gameEvents,
+    slots,
+    flush: () => flushSaveStorage(storage),
+  }
 
   const { default: App } = await import('./App')
   ReactDOM.createRoot(document.getElementById('root')!).render(

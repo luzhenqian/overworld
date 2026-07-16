@@ -27,6 +27,7 @@ export type {
   PlatformBridge,
   TelegramBridge,
   SafeAreaInsets,
+  FlushableStorage,
   TauriFileStorageOptions,
   TelegramCloudStorageOptions,
 } from './bridge'

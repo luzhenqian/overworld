@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/loading",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Asset loading progress and scene preloading",
   "keywords": [
     "overworld",

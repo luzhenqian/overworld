@@ -12,6 +12,7 @@ import {
   itemDefinitionsSchema,
   questDefinitionSchema,
   questDefinitionsSchema,
+  sceneConfigSchema,
   schemaFor,
 } from '../jsonSchemas'
 import type { JsonSchema } from '../jsonSchemas'
@@ -154,6 +155,34 @@ const countedAchievement = {
 
 const manualAchievement = { id: 'secret', title: 'ach.secret.title', hidden: true, trigger: null }
 
+const starterScene = {
+  npcs: [
+    {
+      id: 'guide',
+      modelPath: '/models/guide.glb',
+      position: [4, 0, 2],
+      rotation: [0, Math.PI, 0],
+      scale: 1.2,
+      name: '向导',
+    },
+    { id: 'merchant', modelPath: '', position: [-4, 0, 3], rotation: [0, 0, 0] },
+  ],
+  buildings: [
+    {
+      id: 'bank',
+      name: '银行',
+      modelPath: '/models/bank.glb',
+      position: [0, 0, -8],
+      rotation: [0, 0, 0],
+      scale: 2,
+      collisionRadius: 5,
+    },
+  ],
+  decorations: {
+    tree: { radius: 0.8, instances: [{ position: [1, 0, 1] }, { position: [2, 0, 2], scale: 1.5 }] },
+  },
+}
+
 // ----------------------------------------------------------------------------
 
 describe('jsonSchemas: valid starter-shaped content passes', () => {
@@ -198,6 +227,11 @@ describe('jsonSchemas: valid starter-shaped content passes', () => {
   it('accepts bare effect/condition refs', () => {
     expect(check(effectRefSchema, { type: 'gold.add', params: { amount: 5 } })).toEqual([])
     expect(check(conditionRefSchema, { type: 'quest.completed', negate: true })).toEqual([])
+  })
+
+  it('accepts a starter-shaped scene (npcs + building + decorations)', () => {
+    expect(check(sceneConfigSchema, starterScene)).toEqual([])
+    expect(check(sceneConfigSchema, { npcs: [] })).toEqual([])
   })
 })
 
@@ -251,6 +285,12 @@ describe('jsonSchemas: invalid content fails', () => {
       'expected type object, got array',
     ])
   })
+
+  it('rejects a scene missing npcs, and an npc missing modelPath', () => {
+    expect(check(sceneConfigSchema, { buildings: [] })).toEqual(['missing required "npcs"'])
+    const scene = { npcs: [{ id: 'a', position: [0, 0, 0], rotation: [0, 0, 0] }] }
+    expect(check(sceneConfigSchema, scene)).toEqual(['npcs: [0] missing required "modelPath"'])
+  })
 })
 
 describe('jsonSchemas: registry and metadata', () => {
@@ -267,6 +307,7 @@ describe('jsonSchemas: registry and metadata', () => {
       'itemDefinitions',
       'questDefinition',
       'questDefinitions',
+      'sceneConfig',
     ])
   })
 
@@ -291,5 +332,6 @@ describe('jsonSchemas: registry and metadata', () => {
     expect(schemaFor('quests')).toBe(questDefinitionsSchema)
     expect(schemaFor('items')).toBe(itemDefinitionsSchema)
     expect(schemaFor('achievements')).toBe(achievementDefinitionsSchema)
+    expect(schemaFor('scene')).toBe(sceneConfigSchema)
   })
 })

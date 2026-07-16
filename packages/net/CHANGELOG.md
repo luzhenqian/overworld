@@ -1,5 +1,16 @@
 # @overworld-engine/net
 
+## 1.4.0
+
+### Minor Changes
+
+- v1.4 授权闭环与出包硬化:编辑器 ↔SceneShell 场景往返(scene `SceneFromJson` + 纯映射器、devtools `sceneConfigSchema`/`validateScene`、editor `sceneConfigToEditorEntities`),examples/scene-authoring 演示 edit→export→validate→render→re-import;跨端云端命名存档槽位(`FlushableStorage.flush()`、`createSaveSlots` over Telegram CloudStorage、Tauri 文件存储 flush);发布签名与商店上架脚手架 + 指南(build-artifacts.yml 无 secrets 时 skip 不 fail)。
+
+### Patch Changes
+
+- Updated dependencies
+  - @overworld-engine/core@1.4.0
+
 ## 1.3.0
 
 ### Minor Changes

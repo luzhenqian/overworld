@@ -371,6 +371,45 @@ export function importEntities(json: unknown): EditorEntity[] {
   return entities
 }
 
+/**
+ * A live `<SceneShell>` scene config — the props a game already hands to
+ * `<SceneShell>` (or `@overworld-engine/scene`'s `SceneFromJson`). Structurally
+ * compatible with `{ npcs, buildings?, decorationCollisions? }`; the
+ * per-entity shapes are the {@link EditorNPCJSON} / {@link EditorBuildingJSON}
+ * / {@link EditorDecorationGroupJSON} structural copies of scene's
+ * `NPCConfig` / `BuildingConfig` / `DecorationCollisionGroup`, so a game can
+ * pass its live config straight in with no import of the scene package.
+ *
+ * Note the key is `decorationCollisions` (the `<SceneShell>` prop name), not
+ * the `decorations` key used by the exported scene JSON.
+ */
+export interface SceneConfigInput {
+  npcs: EditorNPCJSON[]
+  buildings?: EditorBuildingJSON[]
+  decorationCollisions?: Record<string, EditorDecorationGroupJSON>
+}
+
+/**
+ * Convert a live `<SceneShell>` scene config into editor entities so a game
+ * can load a hand-authored scene into the editor and tweak it. The inverse of
+ * placing entities and calling {@link EditorState.exportScene} — implemented
+ * on top of {@link importEntities} by mapping the `decorationCollisions` prop
+ * key to the `decorations` JSON key. Malformed rows are skipped, exactly like
+ * `importEntities`. Pure.
+ *
+ * ```ts
+ * const entities = sceneConfigToEditorEntities({ npcs, buildings, decorationCollisions })
+ * useEditorStore.getState().loadEntities(entities) // or loadSceneConfig(config)
+ * ```
+ */
+export function sceneConfigToEditorEntities(config: SceneConfigInput): EditorEntity[] {
+  return importEntities({
+    npcs: config.npcs,
+    buildings: config.buildings,
+    decorations: config.decorationCollisions,
+  })
+}
+
 /** Options for {@link EditorState.updateEntity}. */
 export interface UpdateEntityOptions {
   /**
@@ -537,6 +576,14 @@ export interface EditorState {
   distributeSelected: (axis: AlignAxis) => void
   /** Replace the whole working set (resets selection, re-seeds id counters). */
   loadEntities: (entities: EditorEntity[]) => void
+  /**
+   * Load a live `<SceneShell>` scene config into the editor:
+   * `loadEntities(sceneConfigToEditorEntities(config))`. History-tracked and
+   * non-destructive exactly like {@link EditorState.loadEntities} — lets a
+   * game import a hand-authored, currently-rendering scene to tweak it. See
+   * {@link sceneConfigToEditorEntities}.
+   */
+  loadSceneConfig: (config: SceneConfigInput) => void
   /** Remove all entities and reset selection + id counters. */
   clear: () => void
   /** Snapshot the working set as scene JSON. See {@link exportEntities}. */
@@ -886,6 +933,10 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       counters: countersFrom(entities),
       ...pushHistory(state),
     })),
+
+  loadSceneConfig: (config) => {
+    get().loadEntities(sceneConfigToEditorEntities(config))
+  },
 
   clear: () =>
     set((state) => ({

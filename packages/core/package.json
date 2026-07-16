@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/core",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Overworld framework core: typed event bus, condition/effect registries, persistence helpers, shared types",
   "keywords": [
     "overworld",

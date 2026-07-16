@@ -17,6 +17,7 @@ export {
   useEditorStore,
   exportEntities,
   importEntities,
+  sceneConfigToEditorEntities,
   DEFAULT_COLLISION_RADIUS,
   DEFAULT_SNAP,
   HISTORY_LIMIT,
@@ -36,6 +37,7 @@ export type {
   EditorBuildingJSON,
   EditorDecorationInstanceJSON,
   EditorDecorationGroupJSON,
+  SceneConfigInput,
 } from './editorStore'
 
 export { EditorScene } from './EditorScene'

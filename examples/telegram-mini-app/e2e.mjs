@@ -280,6 +280,76 @@ async function main() {
     )
     check('重载后 gather-crystals 进度从 CloudStorage 恢复', restored === true)
 
+    // ---- 命名存档槽位(createSaveSlots)跨云存档往返 -----------------------
+    // saveSlots 直接架在 CloudStorage 镜像上:把当前 live 存档(含 gather-crystals)
+    // 存进命名槽位 slot-a → 清空 live 存档("新游戏")→ 从槽位恢复。
+    // 槽位键 overworld:slots:slot-a 同样必须经键编码写回(charset [A-Za-z0-9_])。
+    const slotsExposed = await page.evaluate(
+      () =>
+        typeof window.__overworld.slots?.saveTo === 'function' &&
+        typeof window.__overworld.flush === 'function'
+    )
+    check('window.__overworld.slots / flush 已暴露', slotsExposed === true)
+
+    // 存入槽位 slot-a,flush() 保证槽位已写回云端(localStorage 后端),重载后可读回。
+    await page.evaluate(async () => {
+      window.__overworld.slots.saveTo('slot-a')
+      await window.__overworld.flush()
+    })
+    const hasSlotA = await page.evaluate(() =>
+      window.__overworld.slots.listSlots().some((s) => s.slot === 'slot-a')
+    )
+    check('listSlots() 含 slot-a', hasSlotA === true)
+
+    // 槽位命名空间键也走键编码:CloudStorage 收到的应是合法键且解码回 overworld:slots:slot-a。
+    const slotWire = await page.evaluate((decodeSrc) => {
+      const decode = eval(decodeSrc)
+      return (
+        window.__tgMock.cloudSets.find(
+          (s) => /^[A-Za-z0-9_]+$/.test(s.key) && decode(s.key) === 'overworld:slots:slot-a'
+        ) ?? null
+      )
+    }, decodeCloudKeyInPage)
+    check(
+      '槽位键经编码写回 CloudStorage(合法键→解码 overworld:slots:slot-a)',
+      slotWire !== null,
+      slotWire ? `wire key ${slotWire.key}` : '未捕获槽位写入'
+    )
+
+    // 全部命中 CloudStorage 的 wire key(set + remove)都必须落在 [A-Za-z0-9_]。
+    const allKeysLegal = await page.evaluate(
+      () =>
+        window.__tgMock.cloudSets.every((s) => /^[A-Za-z0-9_]+$/.test(s.key)) &&
+        window.__tgMock.cloudRemoves.every((k) => /^[A-Za-z0-9_]+$/.test(k))
+    )
+    check('全部 CloudStorage wire key 均为合法字符集 [A-Za-z0-9_]', allKeysLegal === true)
+
+    // 清空 live 存档 → flush → 重载:任务不再 active(证明清档确实落到了云端)。
+    await page.evaluate(async () => {
+      window.__overworld.slots.clearCurrent()
+      await window.__overworld.flush()
+    })
+    await page.reload()
+    await page.waitForFunction(() => Boolean(window.__overworld), null, { timeout: 15_000 })
+    const clearedActive = await page.evaluate(() =>
+      Boolean(window.__overworld.quests.getState().active['gather-crystals'])
+    )
+    check('clearCurrent 后重载:gather-crystals 不再 active', clearedActive === false)
+
+    // 从槽位恢复 → flush → 重载:任务重新 active。
+    const loadOk = await page.evaluate(async () => {
+      const ok = window.__overworld.slots.loadFrom('slot-a')
+      await window.__overworld.flush()
+      return ok
+    })
+    check('loadFrom slot-a 返回 true', loadOk === true)
+    await page.reload()
+    await page.waitForFunction(() => Boolean(window.__overworld), null, { timeout: 15_000 })
+    const reactivated = await page.evaluate(() =>
+      Boolean(window.__overworld.quests.getState().active['gather-crystals'])
+    )
+    check('loadFrom slot-a 后重载:gather-crystals 重新 active', reactivated === true)
+
     if (failures > 0) throw new Error(`${failures} 项断言失败`)
     console.log('全部通过 ✔')
   } finally {

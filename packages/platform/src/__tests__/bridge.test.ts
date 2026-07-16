@@ -1,4 +1,4 @@
-import { EventBus, type OverworldEventMap } from '@overworld-engine/core'
+import { EventBus, createSaveSlots, type OverworldEventMap } from '@overworld-engine/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createBridge,
@@ -569,6 +569,76 @@ describe('createTelegramCloudStorage', () => {
     const bridge = createTelegramBridge() as TelegramBridge
     const storage = await bridge.cloudStorage()
     expect(storage.getItem('overworld:x')).toBe('9')
+  })
+
+  it('flush() resolves only after the serialized write-through queue drains', async () => {
+    const stub = stubCloudStorage()
+    const storage = await createTelegramCloudStorage()
+
+    storage.setItem('overworld:a', '1')
+    storage.setItem('overworld:b', '2')
+    // Writes are queued (async); nothing has necessarily reached the cloud yet.
+    await storage.flush()
+    // By the time flush() resolves, every queued write has landed on the wire.
+    expect(stub.sets).toHaveLength(2)
+    expect(stub.data.get(encodeCloudKey('overworld:a'))).toBe('1')
+    expect(stub.data.get(encodeCloudKey('overworld:b'))).toBe('2')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// createSaveSlots over Telegram CloudStorage
+// ---------------------------------------------------------------------------
+
+describe('createSaveSlots over Telegram CloudStorage', () => {
+  it('named save slots round-trip through the charset-enforcing cloud mirror', async () => {
+    // Seed a live save exactly as Telegram holds it (under an *encoded* key).
+    const stub = stubCloudStorage(seedEncoded({ 'overworld:quest': '{"active":{"gather":1}}' }))
+    const storage = await createTelegramCloudStorage()
+    // createSaveSlots works over ANY EnumerableStorage — the cloud mirror's
+    // synchronous keys()/getItem satisfy it with no cloud-specific code.
+    const slots = createSaveSlots({ storage }) // prefix defaults to 'overworld'
+
+    // The live key is visible to saveSlots through the mirror's sync keys().
+    expect(storage.keys()).toEqual(['overworld:quest'])
+
+    // Copy the live save into a named slot.
+    slots.saveTo('slot-1')
+    expect(slots.listSlots().map((info) => info.slot)).toEqual(['slot-1'])
+
+    // Mutate + clear the live save ("new game").
+    storage.setItem('overworld:quest', '{"active":{"gather":3}}')
+    slots.clearCurrent()
+    expect(storage.getItem('overworld:quest')).toBeNull()
+    expect(slots.snapshot().entries).toEqual({}) // live save empty
+    // Only the slot key survives in the mirror; the live namespace is empty.
+    expect(storage.keys()).toEqual(['overworld:slots:slot-1'])
+
+    // Restore the slot back into the live keys.
+    expect(slots.loadFrom('slot-1')).toBe(true)
+    expect(storage.getItem('overworld:quest')).toBe('{"active":{"gather":1}}')
+
+    // Drain the serialized write-through, then assert EVERY wire key that ever
+    // hit CloudStorage is Telegram-legal — including the slots namespace key.
+    await storage.flush()
+    for (const { key } of stub.sets) expect(key).toMatch(/^[A-Za-z0-9_]+$/)
+    for (const key of stub.removes) expect(key).toMatch(/^[A-Za-z0-9_]+$/)
+
+    // The slot namespace key (overworld:slots:slot-1) must be encoded on the wire.
+    const slotWireKey = encodeCloudKey('overworld:slots:slot-1')
+    expect(slotWireKey).toMatch(/^[A-Za-z0-9_]+$/)
+    expect(slotWireKey).not.toContain(':')
+    expect(stub.sets.some((entry) => entry.key === slotWireKey)).toBe(true)
+    expect(stub.data.has(slotWireKey)).toBe(true) // slot persisted under the encoded key
+
+    // deleteSlot removes it from both the mirror and (after flush) the cloud.
+    slots.deleteSlot('slot-1')
+    expect(slots.listSlots()).toEqual([])
+    await storage.flush()
+    expect(stub.data.has(slotWireKey)).toBe(false)
+
+    // keys() enumerates the live keys correctly for saveSlots after a flush.
+    expect(storage.keys()).toEqual(['overworld:quest'])
   })
 })
 

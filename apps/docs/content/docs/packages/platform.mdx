@@ -100,7 +100,9 @@ persistOptions({ name: 'inventory', storage: () => storage })
 createSaveSlots({ storage })
 ```
 
-插件缺失时以带安装指引的错误 reject。
+插件缺失时以带安装指引的错误 reject。返回的存储是 `FlushableStorage`
+(见下方「切后台前 flush」),Tauri 把关窗的 `beforeunload` 接到 `app:paused`,
+在该事件里 `await storage.flush()` 可保证最后一次写入落盘后再退出。
 
 ### 云存档(Telegram CloudStorage,可选升级)
 
@@ -156,6 +158,50 @@ persistOptions({ name: 'quest', storage: () => storage })
 大体量缓存仍走 localStorage。参见 `examples/telegram-mini-app`:
 `detectPlatform() === 'telegram'` 且客户端支持 CloudStorage 时用云存档,
 否则回退 localStorage,同一份代码两种介质。
+
+#### 切后台前 flush(`app:paused`)
+
+CloudStorage(与 Tauri 文件存档)的写回是**异步**的:`setItem` 先同步更新内存
+镜像,再经串行队列异步落云端 / 落盘。切后台的一瞬间 OS 可能冻结 WebView,
+导致最后一次写回没发出去。因此 `createTelegramCloudStorage` /
+`createTauriFileStorage` 返回的是 **`FlushableStorage`**(`EnumerableStorage`
+加一个 `flush(): Promise<void>`),`flush()` 在写回队列排空后 resolve。约定在
+`app:paused` 里 `await` 它,保证存档在应用退到后台前已抵达云端:
+
+```ts
+const storage = await bridge.cloudStorage()
+persistOptions({ name: 'quest', storage: () => storage })
+
+gameEvents.on('app:paused', () => {
+  void storage.flush()   // 切后台前排空云端写回队列
+})
+```
+
+`flush()` 是对 `EnumerableStorage` 的**纯增补**(非破坏):按 `EnumerableStorage`
+类型使用的代码原样工作;当后端可能是没有 `flush` 的 localStorage 兜底时,用
+`'flush' in storage` 做特性探测(见 `examples/telegram-mini-app/src/main.tsx`)。
+
+#### 云端存档槽位(createSaveSlots + CloudStorage)
+
+`createSaveSlots`(core 包)在**任意** `EnumerableStorage` 上工作,云存档镜像的
+同步 `keys()` / `getItem` 天然满足它 —— 无需任何云端专属代码即可获得跨设备的
+**命名存档槽位**:
+
+```ts
+import { createSaveSlots } from '@overworld-engine/core'
+
+const storage = await bridge.cloudStorage()   // FlushableStorage
+const slots = createSaveSlots({ storage })    // 前缀默认 overworld
+
+slots.saveTo('slot-a')     // 把 live 存档拷进槽位 overworld:slots:slot-a
+await storage.flush()      // 保证槽位写回云端(换设备也能读回)
+slots.loadFrom('slot-a')   // 从槽位恢复到 live 存档
+```
+
+槽位落在 `overworld:slots:<slot>`,同样带冒号 —— 适配器会**透明编码**为合法
+wire key(`overworld:slots:slot-a` ⇄ `overworld_003Aslots_003Aslot_002Da`),
+槽位与 live 存档都能跨设备同步。恢复只改写存储,已 hydrate 的 zustand store
+需刷新页面或 `persist.rehydrate()` 才反映(见 core 包的水合警告)。
 
 ## app:* 事件(经 declaration merging 并入框架事件表)
 

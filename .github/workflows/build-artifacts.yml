@@ -1,19 +1,43 @@
-# Native build & artifact CI for the Overworld multi-platform templates (v1.3).
+# Native build, signing & store-upload CI for the Overworld multi-platform
+# templates (v1.4).
 #
 # Produces REAL, downloadable artifacts for the desktop (Tauri) and mobile
-# (Capacitor) templates. Runs on manual dispatch and on version tag pushes.
+# (Capacitor) templates, and — WHEN the relevant repository secrets are present —
+# additionally SIGNS them and UPLOADS to the corresponding store.
+#
+# Runs on manual dispatch and on version tag pushes.
 #
 # NOTE: End-to-end tests in CI (Playwright driving the web templates) are a
 # deliberate follow-up and are intentionally NOT part of this workflow.
 #
-# Everything built here is UNSIGNED:
-#   - macOS / Windows Tauri bundles are not codesigned or notarized.
-#   - Android is a debug-signed APK (auto-generated debug keystore, not a
-#     release key).
-#   - iOS is a simulator build with code signing disabled.
-# Signing / notarization requires repository secrets (Apple Developer ID +
-# notarization creds, a Windows code-signing cert, an Android release keystore)
-# and hardware, so it is intentionally out of scope here.
+# --- Signing is OPTIONAL and fully guarded ---------------------------------
+# Every signing / notarization / store-upload step is gated on a boolean that a
+# per-job "Detect signing secrets" step derives from the presence of secrets.
+# The `secrets` context is NOT available in step-level `if:` conditions
+# (GitHub's context-availability table omits it there, so `if: secrets.X != ''`
+# silently evaluates to false and would skip even when the secret IS set), so
+# secrets are read ONLY inside `env:` / `with:` / `run:` — where they ARE
+# available — mapped to plain booleans in `$GITHUB_OUTPUT`, and the `if:`
+# conditions read those `steps.detect.outputs.*` values instead.
+#
+# With NO secrets configured the workflow behaves exactly like v1.3:
+#   - macOS / Windows Tauri bundles build UNSIGNED and upload.
+#   - Android builds a debug-signed APK and uploads it.
+#   - iOS builds an unsigned simulator app and uploads it.
+# The signing / store-upload steps SKIP (never fail) because their guard
+# booleans are `false`.
+#
+# With secrets configured, each native leg additionally:
+#   - Tauri macOS: imports the Developer ID cert, signs + notarizes + staples,
+#     and (if the updater key is present) signs the updater artifacts.
+#   - Tauri Windows: signs the .msi / .exe with signtool + the code-signing PFX.
+#   - Android: builds a keystore-signed release .aab and uploads it to the
+#     Google Play "internal" track.
+#   - iOS: imports the distribution cert, archives + exports a signed .ipa, and
+#     uploads it to TestFlight.
+#
+# See docs/guides/signing-and-store.md for the full secret list and how to
+# obtain each credential.
 
 name: Build Artifacts
 
@@ -72,12 +96,90 @@ jobs:
         with:
           workspaces: examples/desktop-tauri/src-tauri
 
-      # UNSIGNED build. Signing needs secrets that are intentionally not wired
-      # up here: an Apple Developer ID cert + notarization credentials on macOS,
-      # and a code-signing certificate on Windows. The bundles are still fully
-      # installable, just flagged as unidentified by Gatekeeper / SmartScreen.
-      - name: Build Tauri bundles (unsigned)
+      # Map the (optional) signing secrets to plain booleans. `secrets` is
+      # readable inside `env:` but NOT inside step `if:`, so downstream steps
+      # gate on these outputs. Absent secrets → empty env → boolean `false` →
+      # the guarded steps skip and the unsigned build path below still runs.
+      - name: Detect signing secrets
+        id: detect
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          all() { for v in "$@"; do [ -z "$v" ] && { echo false; return; }; done; echo true; }
+          {
+            echo "has_updater_key=$(all "$TAURI_SIGNING_PRIVATE_KEY")"
+            echo "has_apple=$(all "$APPLE_CERTIFICATE" "$APPLE_CERTIFICATE_PASSWORD" "$APPLE_SIGNING_IDENTITY" "$APPLE_ID" "$APPLE_PASSWORD" "$APPLE_TEAM_ID")"
+            echo "has_windows_cert=$(all "$WINDOWS_CERTIFICATE")"
+          } >> "$GITHUB_OUTPUT"
+
+      # macOS only: import the Developer ID Application cert into a temporary
+      # keychain so `tauri build` can sign + notarize. Skipped without secrets.
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS' && steps.detect.outputs.has_apple == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      # SIGNED macOS build. Runs only when the full Apple credential set is
+      # present. Tauri signs the .app/.dmg with APPLE_SIGNING_IDENTITY, then
+      # notarizes + staples using the APPLE_ID / APPLE_PASSWORD (app-specific
+      # password) / APPLE_TEAM_ID. TAURI_SIGNING_PRIVATE_KEY signs the updater
+      # artifacts when the template's tauri.conf.json enables them.
+      - name: Build Tauri bundles (signed, macOS)
+        if: runner.os == 'macOS' && steps.detect.outputs.has_apple == 'true'
         run: pnpm --filter desktop-tauri tauri:build
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      # DEFAULT build path. Runs on Windows always, and on macOS whenever the
+      # Apple credentials are absent — i.e. the unchanged v1.3 unsigned path.
+      # Exactly one of this step / the signed-macOS step runs per runner. The
+      # updater key is passed through and is an inert no-op when empty or when
+      # updater artifacts are not enabled in tauri.conf.json.
+      - name: Build Tauri bundles (unsigned)
+        if: runner.os == 'Windows' || steps.detect.outputs.has_apple != 'true'
+        run: pnpm --filter desktop-tauri tauri:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      # Windows code signing. Tauri leaves the installers unsigned; sign them
+      # in place with signtool + the PFX decoded from WINDOWS_CERTIFICATE.
+      # Skipped (never failed) when the cert secret is absent.
+      - name: Sign Windows installers
+        if: runner.os == 'Windows' && steps.detect.outputs.has_windows_cert == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pfx = Join-Path $env:RUNNER_TEMP 'windows-cert.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match 'x64' } | Select-Object -Last 1 -ExpandProperty FullName
+          $targets = Get-ChildItem `
+            -Path 'examples/desktop-tauri/src-tauri/target/release/bundle/msi', `
+                  'examples/desktop-tauri/src-tauri/target/release/bundle/nsis' `
+            -Include *.msi, *.exe -Recurse -ErrorAction SilentlyContinue
+          foreach ($t in $targets) {
+            & $signtool sign /f $pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD /fd SHA256 `
+              /tr http://timestamp.digicert.com /td SHA256 $t.FullName
+          }
 
       - name: Upload macOS bundles
         if: runner.os == 'macOS'
@@ -100,7 +202,7 @@ jobs:
             examples/desktop-tauri/src-tauri/target/release/bundle/nsis/*.exe
 
   android:
-    name: Android (Capacitor) — debug APK
+    name: Android (Capacitor) — debug APK + signed release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -133,6 +235,23 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      # Map the (optional) Android signing / publishing secrets to booleans.
+      - name: Detect signing secrets
+        id: detect
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          all() { for v in "$@"; do [ -z "$v" ] && { echo false; return; }; done; echo true; }
+          {
+            echo "has_keystore=$(all "$ANDROID_KEYSTORE_BASE64" "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_ALIAS" "$ANDROID_KEY_PASSWORD")"
+            echo "has_play=$(all "$PLAY_SERVICE_ACCOUNT_JSON")"
+          } >> "$GITHUB_OUTPUT"
+
       # The native android/ project is generated by Capacitor and not committed,
       # so it is created fresh here, then the web assets are synced into it.
       - name: Add & sync Android platform
@@ -141,7 +260,8 @@ jobs:
           pnpm --filter mobile-capacitor exec cap sync android
 
       # assembleDebug produces a debug-signed APK using the auto-generated debug
-      # keystore — no release keystore or secrets required.
+      # keystore — no release keystore or secrets required. This artifact is
+      # always produced, signed or not.
       - name: Assemble debug APK
         working-directory: examples/mobile-capacitor/android
         run: |
@@ -155,8 +275,57 @@ jobs:
           if-no-files-found: error
           path: examples/mobile-capacitor/android/app/build/outputs/apk/debug/*.apk
 
+      # Decode the upload keystore from base64. Skipped without secrets.
+      - name: Decode release keystore
+        if: steps.detect.outputs.has_keystore == 'true'
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/overworld-release.jks"
+
+      # Build a keystore-signed release AAB. Uses the Android Gradle Plugin's
+      # `android.injected.signing.*` properties so no build.gradle edit is
+      # needed (the android/ project is generated, not committed). Skipped
+      # without secrets.
+      - name: Build signed release AAB
+        if: steps.detect.outputs.has_keystore == 'true'
+        working-directory: examples/mobile-capacitor/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/overworld-release.jks" \
+            -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+
+      - name: Upload signed release AAB
+        if: steps.detect.outputs.has_keystore == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-aab
+          if-no-files-found: error
+          path: examples/mobile-capacitor/android/app/build/outputs/bundle/release/*.aab
+
+      # Publish the signed AAB to the Google Play "internal" testing track.
+      # Requires both a signed AAB (keystore secrets) and the service-account
+      # JSON; skipped otherwise.
+      - name: Upload to Google Play (internal)
+        if: steps.detect.outputs.has_keystore == 'true' && steps.detect.outputs.has_play == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.overworld.mobile
+          releaseFiles: examples/mobile-capacitor/android/app/build/outputs/bundle/release/*.aab
+          track: internal
+          status: completed
+
   ios:
-    name: iOS (Capacitor) — simulator build
+    name: iOS (Capacitor) — simulator build + signed TestFlight
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -180,6 +349,24 @@ jobs:
       - name: Build mobile-capacitor web bundle
         run: pnpm --filter mobile-capacitor build
 
+      # Map the (optional) iOS signing / App Store Connect secrets to booleans.
+      - name: Detect signing secrets
+        id: detect
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          all() { for v in "$@"; do [ -z "$v" ] && { echo false; return; }; done; echo true; }
+          {
+            echo "has_ios_signing=$(all "$APPLE_CERTIFICATE" "$APPLE_CERTIFICATE_PASSWORD" "$APPLE_TEAM_ID")"
+            echo "has_appstore_api=$(all "$APP_STORE_CONNECT_API_KEY" "$APP_STORE_CONNECT_API_KEY_ID" "$APP_STORE_CONNECT_API_ISSUER_ID")"
+          } >> "$GITHUB_OUTPUT"
+
       # The native ios/ project is generated by Capacitor and not committed, so
       # it is created fresh here; `cap sync` runs `pod install` under the hood.
       - name: Add & sync iOS platform
@@ -190,7 +377,8 @@ jobs:
       # Capacitor always scaffolds ios/App/App.xcworkspace with an `App` scheme.
       # The appName "Overworld" in capacitor.config.ts only sets the display
       # name (CFBundleDisplayName), not the Xcode project/scheme name. A
-      # simulator build with CODE_SIGNING_ALLOWED=NO needs no Apple certs.
+      # simulator build with CODE_SIGNING_ALLOWED=NO needs no Apple certs. This
+      # artifact is always produced, signed leg or not.
       - name: Build iOS app (simulator, unsigned)
         working-directory: examples/mobile-capacitor
         run: |
@@ -209,3 +397,82 @@ jobs:
           name: ios-simulator-app
           if-no-files-found: error
           path: examples/mobile-capacitor/build/Build/Products/Debug-iphonesimulator/App.app
+
+      # Import the iOS Distribution cert into a temporary keychain. Skipped
+      # without secrets.
+      - name: Import Apple signing certificate
+        if: steps.detect.outputs.has_ios_signing == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      # Archive + export a signed, App-Store-ready .ipa. Uses xcodebuild's
+      # -allowProvisioningUpdates with the App Store Connect API key so Xcode
+      # manages the provisioning profile automatically. Needs both the imported
+      # distribution cert and the API key; skipped otherwise.
+      - name: Archive & export signed IPA
+        if: steps.detect.outputs.has_ios_signing == 'true' && steps.detect.outputs.has_appstore_api == 'true'
+        working-directory: examples/mobile-capacitor
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$ASC_KEY" > "$KEY_PATH"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild archive \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Upload signed IPA
+        if: steps.detect.outputs.has_ios_signing == 'true' && steps.detect.outputs.has_appstore_api == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          if-no-files-found: error
+          path: ${{ runner.temp }}/export/*.ipa
+
+      # Upload the signed .ipa to TestFlight. Skipped without the API key.
+      - name: Upload to TestFlight
+        if: steps.detect.outputs.has_ios_signing == 'true' && steps.detect.outputs.has_appstore_api == 'true'
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ${{ runner.temp }}/export/App.ipa
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}

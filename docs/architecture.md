@@ -264,7 +264,21 @@ GitHub luzhenqian/overworld。
 （工程质量:本轮用带对抗验证的 workflow 编排——独立验证 agent 抓出了 CloudStorage
 「冒号键在真机被静默拒收」的 hollow-green 缺陷,修复后以字符集强校验的 stub 端到端复验。）
 
-## 版本路线(v1.4+)
+## v1.4 已落地:授权闭环与出包硬化
 
-微信 useGLTF 官方适配器 vendor 化、Tauri/Capacitor CI 签名与商店上传、
-TG CloudStorage 与 saveSlots 的枚举桥、编辑器场景 JSON 与 SceneShell 的往返工具。
+- 编辑器↔SceneShell 场景往返(授权闭环):scene 导出 `SceneJson` 类型 +
+  `<SceneFromJson>` 便捷组件 + 纯映射器 `sceneJsonToShellProps`/`sceneConfigToSceneJson`;
+  devtools `sceneConfigSchema`(draft 2020-12)+ `validateScene`(mirror 其它内容校验);
+  editor `sceneConfigToEditorEntities`/`loadSceneConfig`(把手写场景导入编辑器调整)。
+  新示例 examples/scene-authoring 端到端演示编辑→导出→校验→从 JSON 出图→重新导入闭环。
+- 跨端云端命名存档槽位:`FlushableStorage`(CloudStorage / Tauri 文件存储的 `flush()`
+  排空序列化写队列,`app:paused` 前保证落盘);`createSaveSlots` 直接跑在 Telegram
+  CloudStorage 镜像上,`overworld:slots:*` 槽位键沿用 v1.3 透明编码。
+- 发布签名与商店上架:build-artifacts.yml 增签名/上传步骤(Apple 公证、Windows 签名、
+  Google Play internal、TestFlight),用 `steps.detect.outputs` 布尔守卫——secrets
+  缺失时跳过而非失败,无签名构件照常产出;docs/guides/signing-and-store.md 四端手册。
+
+## 版本路线(v1.5+)
+
+微信 useGLTF 官方适配器 vendor 化、编辑器多场景/关卡管理、内容包热更新分发、
+存档迁移工具(version/migrate 辅助)、可视化事件总线调试面板。

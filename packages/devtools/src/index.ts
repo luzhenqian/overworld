@@ -20,6 +20,8 @@ export type { QuestValidationOptions } from './validateQuests'
 export { validateItems } from './validateItems'
 export { validateAchievements } from './validateAchievements'
 export type { AchievementValidationOptions } from './validateAchievements'
+export { validateScene } from './validateScene'
+export type { SceneValidationOptions } from './validateScene'
 export { validateContent, assertValidContent } from './validateContent'
 export type { ContentBundle, ContentValidationOptions } from './validateContent'
 export { bindEventLogger, createEventRecorder } from './eventLogger'
@@ -39,6 +41,7 @@ export {
   itemDefinitionsSchema,
   questDefinitionSchema,
   questDefinitionsSchema,
+  sceneConfigSchema,
   schemaFor,
 } from './jsonSchemas'
 export type { ContentKind, JsonSchema } from './jsonSchemas'

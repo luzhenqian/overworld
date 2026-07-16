@@ -3,6 +3,12 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v1.4 授权闭环与出包硬化
+
+- **编辑器↔SceneShell 场景往返(授权闭环)**:scene `<SceneFromJson>` + 纯映射器(`sceneJsonToShellProps`/`sceneConfigToSceneJson`);devtools `sceneConfigSchema` + `validateScene`;editor `sceneConfigToEditorEntities`/`loadSceneConfig`。新示例 `examples/scene-authoring` 端到端演示 **编辑 → 导出 → 校验 → 从 JSON 出图 → 重新导入**(E2E:导出校验 0 错、SceneFromJson 渲染 5 网格、往返实体数一致)
+- **跨端云端命名存档槽位**:`FlushableStorage.flush()`(Telegram CloudStorage / Tauri 文件存储,`app:paused` 前落盘);`createSaveSlots` 直接跑在 CloudStorage 上,槽位键 `overworld:slots:*` 同样透明编码为合法 wire key
+- **发布签名与商店上架脚手架**:`build-artifacts.yml` 增签名/上传步骤(Apple 公证 / Windows 签名 / Google Play / TestFlight),secrets 缺失时 **skip 不 fail**(无签名构件照常产出);`docs/guides/signing-and-store.md` 四端手册
+
 ## v1.3 原生交互与出包
 
 - **微信小游戏完整交互**:R3F 指针桥(`createWeappPointerBridge`,wx 触摸驱动的 raycast 拾取,点 NPC 网格→onClick)+ vendor `XMLHttpRequest`-over-`wx.request` polyfill 使 `useGLTF` 可加载真实 GLB;wx-shim harness 新增两条真断言

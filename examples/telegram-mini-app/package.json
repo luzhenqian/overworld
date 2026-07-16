@@ -1,6 +1,6 @@
 {
   "name": "telegram-mini-app",
-  "version": "1.0.3",
+  "version": "1.4.1",
   "private": true,
   "type": "module",
   "scripts": {

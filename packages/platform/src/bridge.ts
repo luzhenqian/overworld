@@ -88,6 +88,52 @@ function openWithWindow(url: string): void {
 
 const ZERO_INSETS: SafeAreaInsets = { top: 0, right: 0, bottom: 0, left: 0 }
 
+/**
+ * An {@link EnumerableStorage} whose asynchronous write-through can be awaited.
+ *
+ * Both {@link createTelegramCloudStorage} and {@link createTauriFileStorage}
+ * return this: their `setItem`/`removeItem` update a synchronous in-memory
+ * mirror and flush to the cloud/disk through a serialized queue, so `flush()`
+ * resolves once that queue has drained. Await it on `app:paused` to guarantee
+ * the save reached the cloud/disk *before* the app backgrounds — CloudStorage
+ * and file writes are async and an OS may freeze the WebView the moment it is
+ * hidden:
+ *
+ * ```ts
+ * gameEvents.on('app:paused', () => {
+ *   void storage.flush() // fire the drain; the platform is going to background
+ * })
+ * ```
+ *
+ * `flush()` is additive over {@link EnumerableStorage}, so anything typed as
+ * `EnumerableStorage` keeps working; feature-detect with `'flush' in storage`
+ * when the backend might instead be plain `localStorage`.
+ */
+export interface FlushableStorage extends EnumerableStorage {
+  /**
+   * Resolve once every queued async write has been flushed to the backing
+   * store. Writes enqueued *while* the flush is in flight are followed too, so
+   * the returned promise resolves only when the queue is quiescent.
+   */
+  flush(): Promise<void>
+}
+
+/**
+ * Build a `flush()` that awaits the tail of a serialized write-through queue.
+ * The queue's tail (`getTail()`) is reassigned on every enqueue, so we re-read
+ * it after each await and loop until it stops changing — guaranteeing every
+ * write outstanding at (and enqueued during) the flush has settled.
+ */
+function drainQueue(getTail: () => Promise<void>): () => Promise<void> {
+  return async () => {
+    let tail: Promise<void>
+    do {
+      tail = getTail()
+      await tail
+    } while (tail !== getTail())
+  }
+}
+
 /** `document.visibilitychange` → `app:paused` / `app:resumed`. */
 function bindVisibility(bus: EventBus<OverworldEventMap>): () => void {
   if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') {
@@ -198,9 +244,11 @@ export interface TelegramBridge extends PlatformBridge {
    * outside Telegram or on clients below Bot API 6.9. Resolve it *before*
    * creating your persisted stores; fall back to {@link PlatformBridge.storage}
    * (localStorage) when it rejects. See {@link createTelegramCloudStorage} for
-   * the size limits.
+   * the size limits. The resolved storage is a {@link FlushableStorage} — call
+   * `flush()` on `app:paused` to force the cloud write-through to drain before
+   * the app backgrounds.
    */
-  cloudStorage(options?: TelegramCloudStorageOptions): Promise<EnumerableStorage>
+  cloudStorage(options?: TelegramCloudStorageOptions): Promise<FlushableStorage>
 }
 
 /**
@@ -380,10 +428,14 @@ export interface TelegramCloudStorageOptions {
  * state, not large blobs. Encoded keys longer than 128 chars (very long store
  * names with many escaped characters) are logged and skipped rather than
  * crashing.
+ *
+ * The returned storage is a {@link FlushableStorage}: `flush()` resolves once
+ * the serialized cloud write-through queue has drained. Await it on
+ * `app:paused` to guarantee saves reach the cloud before the app backgrounds.
  */
 export async function createTelegramCloudStorage(
   options?: TelegramCloudStorageOptions
-): Promise<EnumerableStorage> {
+): Promise<FlushableStorage> {
   const cloud = getTelegramWebApp()?.CloudStorage
   if (
     cloud === undefined ||
@@ -482,6 +534,7 @@ export async function createTelegramCloudStorage(
       )
     },
     keys: () => [...entries.keys()],
+    flush: drainQueue(() => pendingWrite),
   }
 }
 
@@ -597,10 +650,16 @@ interface TauriFsModule {
  * persistOptions({ name: 'inventory', storage: () => storage })
  * createSaveSlots({ storage })
  * ```
+ *
+ * Like {@link createTelegramCloudStorage}, the result is a
+ * {@link FlushableStorage}: `flush()` resolves once the serialized disk
+ * write-through queue has drained — await it on `app:paused` (Tauri wires
+ * `beforeunload` → `app:paused`) so the last save lands before the window
+ * closes.
  */
 export async function createTauriFileStorage(
   options?: TauriFileStorageOptions
-): Promise<EnumerableStorage> {
+): Promise<FlushableStorage> {
   const fileName = options?.fileName ?? 'overworld-save.json'
 
   let fs: TauriFsModule
@@ -647,7 +706,7 @@ export async function createTauriFileStorage(
 
   const writeTextFile = fs.writeTextFile
   let pendingWrite: Promise<void> = Promise.resolve()
-  const flush = (): void => {
+  const scheduleWrite = (): void => {
     const snapshot = JSON.stringify(Object.fromEntries(entries))
     pendingWrite = pendingWrite
       .then(() => writeTextFile(fileName, snapshot, fsOptions))
@@ -660,12 +719,13 @@ export async function createTauriFileStorage(
     getItem: (key) => entries.get(key) ?? null,
     setItem: (key, value) => {
       entries.set(key, value)
-      flush()
+      scheduleWrite()
     },
     removeItem: (key) => {
-      if (entries.delete(key)) flush()
+      if (entries.delete(key)) scheduleWrite()
     },
     keys: () => [...entries.keys()],
+    flush: drainQueue(() => pendingWrite),
   }
 }
 
