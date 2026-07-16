@@ -1,0 +1,245 @@
+---
+title: '@overworld/ai'
+description: 网格 A*/HPA* 寻路、NPC 转向行为、行为树、日程系统与动态避障
+---
+
+网格 A* 寻路 + NPC 转向行为(巡逻/游荡/跟随/前往)。纯函数的网格与寻路
+(含面向大地图的 HPA* 层级化寻路)、无头 agent 引擎、行为树、日程系统与
+动态避障,加上可选的 R3F 驱动组件 —— 视觉模型由游戏注入。
+
+## 安装
+
+```bash
+pnpm add @overworld/ai @overworld/core
+# peers: react three @react-three/fiber
+```
+
+## 快速开始
+
+```tsx
+import { createNavGrid, createAgent, NPCWalker, collidersToObstacles } from '@overworld/ai'
+
+const grid = createNavGrid({
+  bounds: { minX: 0, maxX: 40, minZ: 0, maxZ: 40 },
+  cellSize: 1,                       // 默认 1
+  agentRadius: 0.5,                  // 障碍按此半径膨胀(默认 0.5)
+  // 结构化兼容 scene 的碰撞表:collidersToObstacles(colliders.values())
+  obstacles: [{ x: 10, z: 12, radius: 2 }],
+})
+
+const guard = createAgent({ grid, position: [4, 4], speed: 1.5 })
+guard.patrol([[4, 4], [20, 4], [20, 20]], { pauseMs: 800 })   // loop: false = 往返
+
+function Guard() {
+  return (
+    <NPCWalker agent={guard} onArrive={(i) => console.log('到达路点', i)}>
+      <GuardModel />   {/* 视觉由游戏提供 */}
+    </NPCWalker>
+  )
+}
+```
+
+## 网格与 A*(纯函数)
+
+- `createNavGrid(config)` → `NavGrid`:圆形障碍栅格化(**格子中心**落在
+  `障碍半径 + agentRadius` 内即阻塞),提供 `isWalkable(cx, cz)`、
+  `worldToCell` / `cellToWorld`(中心点)、动态 `blockCircle(x, z, radius)`、
+  `unblockAll()` 与 `rebuild(obstacles?)`(整体重刷,省参则恢复创建时的障碍)。
+- `findPath(grid, from, to, options?)` → `[x, z][] | null`:A* + octile 启发式,
+  8 方向且**禁止斜穿角**(斜向要求两个正交邻格均可走)。起点/终点格被阻塞时,
+  在 `fallbackRadius`(默认 3 格)内回退到最近可走格 —— 此时路径终点是该格中心
+  而非精确目标;首个路点恒为精确 `from`,目标格可走时末路点为精确 `to`。
+  找不到路(或回退失败)返回 `null`。默认自动平滑,`smooth: false` 关闭。
+- `smoothPath(grid, path)`:拉绳式平滑(基于 `hasLineOfSight` 的网格射线,
+  1/4 格步进采样),保端点、不增长。`hasLineOfSight` / `nearestWalkableCell` 亦导出。
+
+## 层级化寻路(HPA*,`createHierarchicalGrid`)
+
+面向**大地图**的 HPA* 风格两级寻路:把网格切成 `clusterSize × clusterSize`
+(单位:**格子**,默认 16)的簇,沿簇边界提取入口作为抽象图的过渡节点;
+查询先走小小的抽象图,再只在**窗口受限**的范围内精化底层路段 ——
+最坏情况展开的格子数远小于整图 A*。
+
+```ts
+import { createHierarchicalGrid, findPathHierarchical } from '@overworld/ai'
+
+const hgrid = createHierarchicalGrid(grid, { clusterSize: 16 })
+const path = findPathHierarchical(hgrid, [1.5, 1.5], [198.5, 198.5])  // [x, z][] | null
+
+grid.blockCircle(50, 50, 3)
+hgrid.rebuild()   // 网格变化后整体重建抽象图
+```
+
+- **入口提取**:对每对相邻簇,取共享边界上可通行格子对的**最长连续段**;
+  段长 ≤ 8 时在段中点放 1 对过渡节点,更长的段在**两端各放 1 对**
+  (宽开口走中点会绕远,端点让贴角路线接近最优,残余误差交给拉绳平滑)。
+- **抽象图**:配对的过渡节点间为跨簇边(代价 1 步);同簇节点间为簇内边,
+  代价 = 限制在该簇窗口内的 A* 距离(不可达则无边)。
+- `findPathHierarchical(hgrid, from, to, options?)` — 与 `findPath`
+  **同一路点格式与端点语义**(首路点恒为精确 `from`,目标格被阻塞时按
+  `fallbackRadius` 回退到最近可走格,默认自动平滑),不可达返回 `null`:
+  - 起终点在同簇或相邻簇 → 直接在覆盖两簇的窗口内跑一次普通 A*;
+  - 否则 → 端点接入各自簇的过渡节点(簇内受限 A*)、抽象图 Dijkstra、
+    逐段精化(全部窗口受限、查询时现算,因此过期的抽象图不会给出穿墙路径)、
+    最后对拼接结果整体 `smoothPath`;
+  - 层级路线失败(路径需要绕出再绕回同一簇的罕见形状,或 `rebuild()`
+    之前的过期图)→ **自动回退整图 `findPath`**,可达性与普通寻路完全一致。
+- `rebuild()` — 底层网格(`blockCircle` / `unblockAll` / `rebuild`)变化后全量重建。
+- **统计**:两个寻路函数都接受 `options.stats = { visited: 0 }`(原地累加
+  展开的格子数,抽象节点也计入),便于基准对比 —— 200×200 蛇形墙地图上
+  层级版本访问量约为整图 A* 的 1/10。测试可读的结构:`hgrid.nodes`
+  (过渡节点及其簇)、`nodesOfCluster(cluster)`、`edgesOf(id)`。
+
+## 行为树(`createBehaviorTree`)
+
+可组合的 tick 驱动决策逻辑,配共享黑板;纯工厂函数,每个节点实例自带状态
+(每个 agent 建一棵树)。状态:`'success' | 'failure' | 'running'`;
+tick 上下文:`{ blackboard, deltaMs }`。
+
+```ts
+import {
+  createBehaviorTree, sequence, parallel, condition,
+  patrolAction, goToAction, isNearCondition, tickTreeWithAgent,
+} from '@overworld/ai'
+
+const tree = createBehaviorTree(
+  sequence(
+    parallel('any',                                  // 「巡逻直到接近触发点」
+      isNearCondition(guard, [4, 0], 0.5),
+      patrolAction(guard, [[4, 0], [0, 0]]),
+    ),
+    goToAction(guard, [0, 5]),                       // 然后回家
+  ),
+  { alertLevel: 0 }                                  // 黑板(任意可变对象)
+)
+
+useFrame((_, delta) => tickTreeWithAgent(tree, guard, delta * 1000))
+```
+
+- **节点构造器**:`action(fn)`(返回 `void` 视为 success)、`condition(fn)`
+  (true = success)、`sequence(...)` / `selector(...)`、`invert(child)`、
+  `alwaysSucceed(child)`、`wait(ms)`(跨 tick 累计 `deltaMs`,到时 success,
+  `reset` 清零)、`repeat(child, times?)`(迭代间重置 child;省略 `times`
+  为无限 → 恒 running;给定次数时子节点失败即失败,每 tick 至多消耗一次
+  子节点完成)、`parallel('all' | 'any', ...)`。
+- **记忆语义**:`sequence` / `selector` **带记忆** —— 子节点返回 running 时,
+  下一 tick 从该子节点续跑,不重复 tick 前面的兄弟;记忆只跨 running:
+  组合节点一旦完成(success/failure)即重置游标与全部子节点。`parallel`
+  **无记忆**:每 tick 重新 tick 所有子节点(条件每帧重估 —— 监视模式),
+  完成时重置全部子节点(含仍在 running 的)。`'all'` 遇失败即失败(快速)、
+  全成功才成功;`'any'` 遇成功即成功(快速)、同一 tick 全失败才失败。
+- `createBehaviorTree(root, blackboard)` → `{ tick(deltaMs), reset(), blackboard }`。
+  根节点完成后,**下一次 tick 先自动整树重置**再执行 —— 树自动从头重启。
+- **agent 集成**(显式组合,绝不改写 agent):`tickTreeWithAgent(tree, agent, deltaMs)`
+  = 先 tick 树(树里可下发 `goTo` 等指令)再 `agent.update(deltaMs)`。
+  agent 味的叶子(闭包持有 agent,无上下文魔法):
+  - `goToAction(agent, point)` — 首个 tick 发起 `goTo`;`behavior === 'goTo'`
+    期间 running;到达自动转 idle 时 success(含最近可走格回退与多次寻路
+    失败后的放弃转 idle);被其他行为抢占则 failure。完成或 `reset` 后
+    下次 tick 重新发起。
+  - `patrolAction(agent, waypoints, opts?)` — agent 不在 patrol 模式就
+    (重新)发起巡逻,恒 running;配 `parallel('any', ...)` + 条件即
+    「巡逻直到……」。
+  - `idleAction(agent)` — 置为 idle(已 idle 则跳过),恒 success。
+  - `isNearCondition(agent, point, radius)` — 距离判定(含边界)。
+
+## 无头 agent(`createAgent`)
+
+`createAgent({ position?, speed?, grid?, random? })` → `Agent`。配置了 `grid`
+时每段行程走 A*,否则直线。用 `update(deltaMs)` 驱动,返回 `AgentStatus`
+(`behavior` / `position` / `heading` / `isMoving` / `arrived?`)。
+
+**约定**:`speed` 单位是**世界单位/秒**(与帧率无关,一次 `update` 内的
+剩余时间会跨到达/停顿结转);`heading = Math.atan2(dx, dz)`(弧度,`0` 朝 **+Z**、
+`π/2` 朝 **+X**,与 scene 的 Player 一致,可直接赋给 `rotation.y`,模型默认朝 +Z)。
+
+- `patrol(waypoints, { loop?, pauseMs? })` — `loop: true`(默认)循环,
+  `false` 往返(ping-pong);每个路点停 `pauseMs`;到达时 `arrived` = 路点下标。
+- `wander({ center, radius, pauseMsRange?, random? })` — 在圆内随机取可达点,
+  两段之间随机停顿。`random` 可注入以获得确定性,消耗顺序:角度、距离
+  (寻路被拒时每段最多重掷 5 次),有 `pauseMsRange` 时再掷 1 次停顿时长。
+- `follow(target, { stopDistance?, repathMs? })` — `target` 为
+  `{ current: [x, y, z] }` 形状的引用(结构化兼容 scene 的 `playerPositionRef`)
+  或 `() => [x, z]` 函数;最多每 `repathMs`(默认 500)且目标移动超过约 0.1
+  单位时才重寻路;进入 `stopDistance`(默认 1)即停,目标走远后自动恢复。
+- `goTo(point)` — 走到 `point` 后自动转入 `idle`(到达帧 `arrived = 0`);
+  途中 `behavior` 报告 `'goTo'`。寻路失败时 `findPath` 会先回退到最近可走格;
+  连回退都失败(完全不可达)则停顿 500ms 重试,3 次后放弃转入 `idle`。
+- `idle()` — 停在原地,保留朝向。`position` / `speed` 均可运行期直接改写。
+
+## 日程系统(`createSchedule`)
+
+把**阶段名(纯字符串)**映射到声明式行为,随阶段切换驱动 agent ——
+键刻意不绑定任何环境包的类型,任何阶段词汇表都可用。
+
+```ts
+import { createSchedule, bindScheduleToBus } from '@overworld/ai'
+
+const schedule = createSchedule({
+  agent: guard,
+  entries: {
+    day:   { type: 'patrol', waypoints: [[4, 4], [20, 4]], pauseMs: 800 },
+    dusk:  { type: 'goTo', point: [12, 8] },
+    night: { type: 'wander', center: [12, 8], radius: 3, pauseMsRange: [500, 1500] },
+  },
+  initialPhase: 'day',       // 省略则保持现状,等第一个阶段到来
+})
+
+// 挂到事件总线(默认监听 'environment:phase-changed',取 payload.phase)
+const unbind = bindScheduleToBus(schedule, bus)
+```
+
+- `ScheduleBehavior` — 与 agent 行为一一对应的声明式联合类型:
+  `patrol` / `wander` / `follow` / `goTo` / `idle`(字段同各行为的选项)。
+- `createSchedule({ agent, entries, initialPhase? })` → `Schedule`:
+  `applyPhase(phase)` 把该阶段的行为应用到 agent(重复应用同一阶段会重启该
+  行为;未知阶段为 no-op,**每个阶段名只警告一次**)、`currentPhase`
+  (最近成功应用的阶段,初始 `null`)、`dispose()`(之后 `applyPhase`
+  全部静默忽略)。
+- `bindScheduleToBus(schedule, bus, { event?, phaseFrom? })` → 解绑函数。
+  `event` 默认 `'environment:phase-changed'`,`phaseFrom` 默认取
+  `payload.phase`(非字符串忽略)。实现走 `bus.onAny` 按事件名过滤 ——
+  **零类型耦合**:本包不 import `@overworld/environment`,任何带兼容
+  `onAny` 的总线(`ScheduleBusLike`)均可。
+
+## 动态避障(`createAgent({ avoid })`)
+
+对每一步做**局部转向**绕开运行期移动的障碍 —— 只扰动当前帧的位移,
+**绝不改写已规划的路径**;完全确定性(无随机)。
+
+```ts
+const npc = createAgent({
+  grid, position: [4, 4], speed: 2,
+  avoid: {
+    obstacles: () => movingCrowd,   // 每步查询 { x, z, radius }[]
+    lookahead: 1.5,                 // 前探距离(世界单位,默认 1.5)
+    agentRadius: 0.4,               // 障碍膨胀半径(默认 0.4)
+    stuckAfterMs: 1200,             // 完全被堵多久后重寻路(默认 1200)
+  },
+})
+```
+
+- 每步沿移动方向前探 `min(到路点距离, lookahead)` 的线段,与
+  (膨胀 `agentRadius` 后的)动态障碍求交;畅通则照常前进
+  (单步位移封顶在已验证的前探长度内)。
+- 被挡则按 **+30° / −30° / +60° / −60° / +90° / −90°** 的固定顺序尝试偏转,
+  取第一个前探畅通的方向走这一步;下一步重新朝路点瞄准。
+- 全部方向被堵:原地不动并累计被堵时间;累计满 `stuckAfterMs` 且配置了
+  `grid` 时,向当前目的地重寻路(游戏可先把堵点同步进网格),仍失败则
+  继续等待并每 `stuckAfterMs` 重试;一旦动起来计时清零。行为层的兜底
+  (如 patrol 跳过不可达路点)照常生效。
+- 纯几何辅助函数可独立测试:`segmentHitsCircle(ax, az, bx, bz, cx, cz, r)`
+  (相切算命中)、`deflect(dirX, dirZ, angle)`(按 heading 增长方向旋转)、
+  `steerStep(obstacles, x, z, dirX, dirZ, probeLength, agentRadius)`。
+
+## R3F 组件
+
+- `<NPCWalker agent y? rotationOffset? rotationLerp? onArrive?>{children}</NPCWalker>`
+  — 每帧调 `agent.update(delta * 1000)`,把 group 放到 `[x, y, z]`(`y` 默认 0)
+  并沿最短弧平滑转向 `heading`;`rotationOffset` 适配非 +Z 朝向的模型;
+  `onArrive(waypointIndex)` 在到达行为级目的地那一帧触发。
+- `useAgentDriver(agent, options?)` — 同逻辑的 hook 形式,返回挂到自建
+  `<group>` 上的 ref。
+- `collidersToObstacles(colliders)` — 把 scene 碰撞表形状的碰撞体
+  (`{ position: { x, z }, radius }`,结构化类型,不依赖 `@overworld/scene`)
+  映射成 `createNavGrid` 的障碍数组。

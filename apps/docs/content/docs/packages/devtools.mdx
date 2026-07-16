@@ -1,0 +1,151 @@
+---
+title: '@overworld/devtools'
+description: 开发期工具:内容静态校验、JSON Schema 与事件总线日志
+---
+
+开发期工具:**内容静态校验**(对话 / 任务 / 物品 / 成就)与**事件总线日志**。
+所有校验器都是纯函数,只返回问题列表、从不抛出;`assertValidContent` 供
+开发启动脚本与测试在存在 error 时快速失败。
+
+## 零交叉依赖:结构化输入类型
+
+devtools 校验的是 dialogue / quest / inventory / achievements 包的内容数据,
+但**不 import 这些包**——唯一的运行时依赖是 `@overworld/core`。输入类型
+(`DialogueTreeLike`、`QuestLike`、`ItemLike`、`AchievementLike`)是在本包内
+定义的**结构化子集**(duck typing):TypeScript 是结构化类型系统,真实的
+`DialogueTree` / `QuestDefinition` / `ItemDefinition` / `AchievementDefinition`
+可以直接原样传入,无需转换。
+
+## 校验 API
+
+```ts
+import { assertValidContent, formatReport, validateContent } from '@overworld/devtools'
+
+const report = validateContent(
+  { dialogues, quests, items, achievements },        // 每个分区都可选
+  {
+    effectTypes: effects.types(),                     // 注册表已知类型,提供才检查
+    conditionTypes: conditions.types(),
+    knownEvents: ['player:moved', 'item:added'],      // 提供才检查 trigger.event
+    questStartEffectType: 'quest.start',              // 跨分区检查用,默认 'quest.start'
+  }
+)
+console.log(formatReport(report))                     // 人类可读的多行摘要
+if (import.meta.env.DEV) assertValidContent({ dialogues, quests }) // 有 error 即抛出
+```
+
+`ValidationReport = { issues, errors, warnings, ok }`,`ok` 表示没有 error
+(warning 不影响)。每条 `ValidationIssue` 带 `severity`、`source`
+(如 `dialogue:guide-intro`)、`path`(如 `nodes.hello.responses.ask.next`)与 `message`。
+
+分区校验器也可单独使用:`validateDialogues` / `validateQuests` /
+`validateItems` / `validateAchievements`。
+
+### 规则一览
+
+| 分区 | error | warning |
+| --- | --- | --- |
+| 对话 | 树/节点 id 重复;startNodeId 缺失;`next` / `response.next` 指向不存在的节点 | 从 startNodeId 不可达的节点;空 `responses: []`;`endsDialogue` 节点上永不生效的 `next`;未注册的 effect/condition 类型 |
+| 任务 | 任务/目标 id 重复;零目标;`target < 1`;前置/`chainNext` 指向未知任务;前置循环(A 依赖 B 依赖 A) | 未注册的奖励/前置条件类型;`trigger.event` 不在已知事件表;autoStart 同时又是别人的 chainNext(双重启动);从未被内容启动的任务 |
+| 物品 | id 重复 | 未注册的 `useEffects` 类型;`maxStack < 1` |
+| 成就 | id 重复;`trigger.count < 1` | 缺失 `trigger` 字段;未注册的奖励类型;`trigger.event` 不在已知事件表 |
+
+跨分区(`validateContent` 独有):对话中 `quest.start` 类效果的
+`params.questId` 若缺失或不是已知任务 id → error;同时,被这类效果启动的
+任务不再报"从未被启动"的 warning。
+
+### 终止节点语义(与对话引擎一致)
+
+已对照 `@overworld/dialogue` 引擎实现确认:**没有 `responses` 也没有 `next`
+的节点就是合法的终止节点**——`advance()` 会在此结束对话并计为完成,与
+`endsDialogue: true` 等价,因此校验器不会对它报任何问题。相反,
+`endsDialogue` 节点上的 `next` 永远不会被走到(`advance()` 先判
+`endsDialogue`),会得到 warning,且不算作可达性的边。
+
+## JSON Schema(外部内容文件)
+
+面向把内容写成 **`.json` 文件**的游戏,devtools 导出一组手写的
+**JSON Schema(draft 2020-12)**,描述真实的内容类型:`DialogueTree` /
+`QuestDefinition` / `ItemDefinition` / `AchievementDefinition` 与
+`EffectRef` / `ConditionRef`。
+
+- 单对象:`dialogueTreeSchema`、`questDefinitionSchema`、`itemDefinitionSchema`、
+  `achievementDefinitionSchema`、`effectRefSchema`、`conditionRefSchema`
+- 数组(整份内容文件的形状,`$id` 带 `-list` 后缀):`dialogueTreesSchema`、
+  `questDefinitionsSchema`、`itemDefinitionsSchema`、`achievementDefinitionsSchema`
+- `contentBundleSchema`:`{ dialogues?, quests?, items?, achievements? }`
+  整包(与 `validateContent` 的输入同形)
+- `allContentSchemas`:按名字迭代所有 schema;`schemaFor('quests')` 等
+  直接取某一分区的数组 schema
+
+每个 schema 都**自包含**(共享形状内嵌在各自的 `$defs` 里)、带唯一
+`$id`(如 `https://overworld.dev/schemas/dialogue-tree.json`),可以单独交给
+任何校验器或编辑器。
+
+### 与 ajv 一起使用
+
+devtools **不依赖 ajv**——schema 只是普通数据。在你自己的构建/CI 里装
+ajv(draft 2020-12 要从 `ajv/dist/2020` 导入):
+
+```ts
+import Ajv from 'ajv/dist/2020'
+import { schemaFor } from '@overworld/devtools'
+import { readFileSync } from 'node:fs'
+
+const ajv = new Ajv({ allErrors: true })
+const validate = ajv.compile(schemaFor('quests'))
+const quests = JSON.parse(readFileSync('content/quests.json', 'utf8'))
+if (!validate(quests)) console.error(validate.errors)
+```
+
+### 编辑器提示($schema)
+
+把 schema 写到磁盘后,在内容 JSON 顶部加 `$schema` 即可获得编辑器内的
+自动补全与即时校验(VS Code 原生支持;`additionalProperties: true`,多出的
+`$schema` 字段不会校验失败):
+
+```jsonc
+// content/quests.json 若是单个对象;数组文件请在 VS Code 的
+// json.schemas 设置里把文件模式映射到对应的 *-list schema
+{ "$schema": "./schemas/quest-definition.json", "id": "welcome", ... }
+```
+
+### 保真度说明
+
+- **`additionalProperties: true`**:TypeScript 接口是结构化开放的,内容类型
+  本来就允许游戏扩展额外字段(如 `ItemDefinition.metadata`),schema 不会
+  拒绝它们。
+- **number 而非 integer**:`target` / `count` / `maxStack` 在 TS 里是
+  `number`,校验器也只检查 `>= 1`,schema 与之一致。
+- **`minimum: 1`** 只加在校验器判为 **error** 的地方:任务目标 `target`
+  与成就 `trigger.count`(`maxStack < 1` 只是 warning,schema 不硬性限制)。
+- 成就的 **`trigger` 为必填**,取值 `AchievementTrigger | null`
+  (`oneOf: [trigger, null]`),与真实 `AchievementDefinition` 一致——
+  `null` 显式表示仅手动解锁。
+- 跨对象规则(id 唯一、`next` 悬空、前置循环……)超出 JSON Schema 能力,
+  解析后请继续用 `validateContent` 检查。
+
+## 事件日志
+
+```ts
+import { bindEventLogger, createEventRecorder } from '@overworld/devtools'
+import { gameEvents } from '@overworld/core'
+
+// 开发期把总线上的所有事件打到控制台(基于 bus.onAny)
+const unbind = bindEventLogger(gameEvents, {
+  filter: (event) => event.startsWith('quest:'),  // 可选
+  includePayload: true,                            // 默认 true
+  log: (line, payload) => console.debug(line, payload), // 默认 console.debug,前缀 [overworld]
+})
+unbind()
+
+// 测试断言:录制事件序列
+const recorder = createEventRecorder(bus)
+bus.emit('quest:started', { questId: 'welcome' })
+recorder.events // [{ event: 'quest:started', payload: {...}, at: 0 }]
+recorder.stop()
+```
+
+注意:`RecordedEvent.at` 是**单调递增的序号**(0、1、2…),不是
+`Date.now()` 时间戳——这样在假时钟、同毫秒多次 emit 或任何运行环境下,
+顺序断言都是确定的。

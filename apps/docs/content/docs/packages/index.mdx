@@ -1,0 +1,55 @@
+---
+title: 包参考
+description: 全部 @overworld/* 包的定位、API 与示例
+---
+
+Overworld 由 18 个独立发布的包组成,按分层组织:系统包之间零依赖,只允许依赖
+`@overworld/core`,跨系统协作一律走事件总线与注册表(详见[架构说明](/docs/architecture))。
+
+## 基础层
+
+| 包 | 说明 |
+| --- | --- |
+| [@overworld/core](/docs/packages/core) | 类型化事件总线、条件/效果注册表、持久化辅助、存档槽位与公共类型 |
+
+## 3D 世界层
+
+| 包 | 说明 |
+| --- | --- |
+| [@overworld/scene](/docs/packages/scene) | 场景外壳、玩家控制器、碰撞、邻近检测、模型加载与传送门 |
+| [@overworld/environment](/docs/packages/environment) | 昼夜循环与天气系统(无头引擎 + R3F 组件) |
+| [@overworld/minimap](/docs/packages/minimap) | 通用俯视小地图:标记注册表 + DOM canvas 组件 |
+
+## 无头引擎层
+
+| 包 | 说明 |
+| --- | --- |
+| [@overworld/dialogue](/docs/packages/dialogue) | 对话树引擎,条件/效果声明式解析 |
+| [@overworld/quest](/docs/packages/quest) | 事件驱动的任务状态机 |
+| [@overworld/inventory](/docs/packages/inventory) | 物品/背包引擎(堆叠、容量、使用效果) |
+| [@overworld/achievements](/docs/packages/achievements) | 由事件总线驱动的成就引擎 |
+| [@overworld/tutorial](/docs/packages/tutorial) | 教程步骤引擎(手动/事件自动推进) |
+
+## AI 层
+
+| 包 | 说明 |
+| --- | --- |
+| [@overworld/ai](/docs/packages/ai) | 网格 A*/HPA* 寻路、NPC 行为、行为树、日程系统与动态避障 |
+
+## 基础设施层
+
+| 包 | 说明 |
+| --- | --- |
+| [@overworld/input](/docs/packages/input) | 键盘输入优先级层级 + 移动端虚拟摇杆 |
+| [@overworld/audio](/docs/packages/audio) | BGM/音效管理器:场景-曲目映射与自动播放策略处理 |
+| [@overworld/notifications](/docs/packages/notifications) | 无头 Toast 与 Alert/Confirm 队列 |
+| [@overworld/loading](/docs/packages/loading) | 资源加载进度与资产清单预加载 |
+| [@overworld/analytics](/docs/packages/analytics) | 可插拔埋点 Provider(GA4、Clarity、console) |
+| [@overworld/net](/docs/packages/net) | Transport 无关的多人同步:presence 复制与事件中继 |
+
+## 工具层
+
+| 包 | 说明 |
+| --- | --- |
+| [@overworld/devtools](/docs/packages/devtools) | 开发期内容校验、JSON Schema 与事件总线日志 |
+| [@overworld/editor](/docs/packages/editor) | 游戏内场景编辑器:摆放/移动实体、导出场景 JSON |

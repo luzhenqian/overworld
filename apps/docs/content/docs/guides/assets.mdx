@@ -1,0 +1,77 @@
+---
+title: 资产组织与预加载
+description: 目录约定、资产清单与加载进度的分工
+---
+
+## 目录建议
+
+资产放 `public/` 下按类型 + 用途两级划分,URL 即路径,内容文件里直接引用:
+
+```
+public/
+  models/
+    characters/   # 玩家、NPC(guide.glb、trader.glb…)
+    buildings/    # 建筑
+    props/        # 道具、可交互物(crystal.glb…)
+  audio/
+    bgm/          # 场景背景音乐
+    sfx/          # 音效(点击、拾取、完成…)
+  images/         # UI 图、头像、贴图
+```
+
+GLB 压缩:上线前跑一遍 draco 或 meshopt(如 `gltf-transform optimize`),
+角色/建筑模型通常能小 5–10 倍;drei 的 `useGLTF` 原生支持两者。
+
+## 资产清单:声明、拆分、组合、预热
+
+用 `@overworld/loading` 的清单 API 把每个场景的资产声明成数据,**按场景一份 manifest**:
+
+```ts
+// game/assets.ts
+import { defineAssetManifest, mergeManifests, preloadManifest } from '@overworld/loading'
+
+export const VILLAGE_ASSETS = defineAssetManifest({
+  models: ['/models/characters/guide.glb', '/models/props/crystal.glb'],
+  audio: ['/audio/bgm/village.mp3'],
+})
+
+export const DUNGEON_ASSETS = defineAssetManifest({
+  models: ['/models/buildings/dungeon-gate.glb'],
+  audio: ['/audio/bgm/dungeon.mp3', '/audio/sfx/door.mp3'],
+})
+
+// 启动时预热首个场景;相邻场景可在靠近传送门时再预热
+preloadManifest(VILLAGE_ASSETS)
+// 或一次性组合(按类别去重):
+preloadManifest(mergeManifests(VILLAGE_ASSETS, DUNGEON_ASSETS))
+```
+
+`defineAssetManifest` 是恒等函数,只提供类型推断——它的价值在于把"这个场景用哪些资产"
+固化成一处可检查、可组合的数据,而不是散落在组件里的字符串。
+
+## 三个工具的分工
+
+| 工具 | 包 | 职责 |
+|---|---|---|
+| `preloadManifest(manifest)` | loading | 全类别预热(models/images/audio),游戏级/场景级,尽早调用 |
+| `preloadSceneModels(config)` | scene | 便捷函数:直接吃 `NPCConfig[]`/`BuildingConfig[]`,只预热模型 |
+| `useSceneLoadProgress()` | loading | Canvas 内桥接 drei `useProgress` → loadingStore,**真实进度来源** |
+
+关键设计:**预热不上报进度**。`preloadManifest` / `preloadSceneModels` 只是提前触发
+下载并填充 GLTF 缓存,不写 loading store(预加载 API 没有细粒度进度,造假任务只会骗
+加载条)。真实的模型加载进度由 three.js 加载管理器产生,场景挂载后经
+`useSceneLoadProgress` 写入 store,加载界面读 `useLoadingStore` 的 `progress` /
+`isLoading` 即可。`fonts` 类别仅作清单记录,预热时跳过(drei `<Text>` 自行加载字体)。
+
+## 加载失败回退:开发期可以零资产跑通
+
+scene 包的模型加载(`useModelLoader`)捕获加载失败并返回空结果,各组件渲染主题色
+几何体兜底:
+
+- `BaseNPC` → 胶囊体(`theme.fallbackColor`);
+- `BaseBuilding` → 盒体(`theme.fallbackBoxColor`);
+- `Player` → 胶囊体(无模型路径或加载失败时)。
+
+所以内容文件里可以先写好 `modelPath: '/models/characters/guide.glb'` 而文件根本不存在——
+游戏照常运行、碰撞与交互正常,美术资产后补,替换文件即可,不改代码。
+starter 示例正是以这种"全回退"形态发布的。

@@ -1,0 +1,24 @@
+{
+  "title": "包参考",
+  "pages": [
+    "index",
+    "core",
+    "scene",
+    "environment",
+    "minimap",
+    "dialogue",
+    "quest",
+    "inventory",
+    "achievements",
+    "tutorial",
+    "ai",
+    "input",
+    "audio",
+    "notifications",
+    "loading",
+    "analytics",
+    "net",
+    "devtools",
+    "editor"
+  ]
+}

@@ -1,0 +1,85 @@
+---
+title: '@overworld/achievements'
+description: 由事件总线驱动的无头成就引擎:声明式触发器自动累计进度
+---
+
+无头(headless)成就引擎。订阅 `@overworld/core` 事件总线,按声明式触发器自动累计进度、
+达标解锁,解锁时经效果注册表发放奖励并广播 `achievement:unlocked`。UI(弹 Toast、成就面板)
+由游戏自己实现。
+
+## 定位
+
+- 用**声明式 trigger** 取代散落在各处的硬编码成就检查:内容只描述"监听哪个事件、
+  匹配什么载荷、累计到多少",不写任何代码;
+- 游戏自定义事件通过 declaration merging 扩展 `OverworldEventMap` 后同样可以触发成就;
+- 底层是 zustand vanilla store(`achievements.store`),React 端用 `useStore` 订阅即可。
+
+## Schema:AchievementDefinition
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 唯一标识 |
+| `title` / `description` | 对框架不透明的字符串(纯文本或 i18n key) |
+| `icon` | UI 图标提示 |
+| `hidden` | 提示 UI 在解锁前隐藏(隐藏成就) |
+| `trigger` | 触发器,或 `null`(仅可手动 `unlock`) |
+| `rewards` | `EffectRef[]`,解锁时经效果注册表执行 |
+
+### trigger
+
+| 字段 | 说明 |
+| --- | --- |
+| `event` | 事件名(含游戏扩展事件) |
+| `filter` | 浅层载荷匹配:每个键必须与载荷严格相等 |
+| `count` | 解锁所需进度,默认 `1` |
+| `amountFrom` | 从载荷的该键取数值累计进度(如 `player:moved` 的 `distance`);省略时每次匹配 +1 |
+
+## API
+
+```ts
+const achievements = createAchievements({
+  definitions, // AchievementDefinition[]
+  effects,     // EffectRegistry,解析 rewards
+  context,     // 传给奖励效果处理器的上下文
+  events,      // 事件总线,默认全局 gameEvents
+  persist,     // { name?, version?, prefix?, storage? },传入即开启持久化
+})
+```
+
+- `unlock(id)` → `boolean`:手动解锁(`trigger: null` 的唯一解锁方式),幂等
+- `progress(id)` → `{ current, target, unlocked, unlockedAt? }`
+- `isUnlocked(id)` / `unlockedIds()`
+- `registerAchievements(defs)`:运行期增量注册(替换同 id 定义会重接触发器,进度保留)
+- `getDefinition(id)` / `definitions()`
+- `dispose()`:取消全部总线订阅
+- `store`:zustand vanilla store,可直接 `subscribe` 或配合 React `useStore`
+
+持久化内容为 `progress` + `unlocked`;订阅与持久化状态相互独立,重载存档后触发器继续从
+已保存的进度累计。
+
+## 示例
+
+```ts
+import { createEffectRegistry, gameEvents } from '@overworld/core'
+import { createAchievements } from '@overworld/achievements'
+
+const effects = createEffectRegistry<GameCtx>()
+effects.register('wallet.addGold', ({ amount }, ctx) => ctx.wallet.add(Number(amount)))
+
+const achievements = createAchievements({
+  definitions: [
+    { id: 'marathon', trigger: { event: 'player:moved', amountFrom: 'distance', count: 1000 } },
+    { id: 'collector', trigger: { event: 'item:added', filter: { itemId: 'gem' }, count: 10 } },
+    { id: 'secret-ending', hidden: true, trigger: null, rewards: [{ type: 'wallet.addGold', params: { amount: 500 } }] },
+  ],
+  effects,
+  context: gameCtx,
+  persist: { name: 'achievements' },
+})
+
+gameEvents.on('achievement:unlocked', ({ achievementId }) => {
+  // 游戏 UI 在这里弹 Toast
+})
+
+achievements.unlock('secret-ending') // 剧情杀:手动解锁
+```

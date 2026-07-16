@@ -58,6 +58,11 @@ pnpm --filter starter dev   # 运行示例游戏
 
 ## 文档
 
+**文档站**(Fumadocs):`pnpm docs:dev` 本地启动 —— 快速开始、架构、指南、18 个包的
+参考页、中文全文搜索、`llms.txt`。源码在 [`apps/docs`](apps/docs)。
+
+仓库内 Markdown 原文:
+
 - [架构说明](docs/architecture.md)
 - [设计文档](docs/specs/2026-07-16-overworld-framework-design.md)
 - [从 degener-city 迁移](docs/migration-from-degener-city.md)

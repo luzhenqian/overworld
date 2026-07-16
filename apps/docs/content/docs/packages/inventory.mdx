@@ -1,0 +1,87 @@
+---
+title: '@overworld/inventory'
+description: 无头物品/背包引擎:堆叠、容量、使用效果与事件广播
+---
+
+无头(headless)物品/背包引擎。不含任何 UI、不含任何游戏内容:物品定义通过配置注入,
+使用物品的副作用走 `@overworld/core` 的效果注册表,所有变更通过事件总线广播
+(`item:added` / `item:removed` / `item:used`),供任务、成就等系统消费。
+
+## 定位
+
+- 堆叠、容量、增删查、使用物品等**机制**由框架实现;
+- 物品表、效果处理器、UI 渲染等**内容**由游戏提供;
+- 底层是 zustand vanilla store(`inventory.store`),React 端用 `useStore` 订阅即可。
+
+## Schema:ItemDefinition
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 唯一标识 |
+| `name` / `description` | 对框架不透明的字符串(纯文本或 i18n key) |
+| `icon` | UI 图标提示(emoji / 精灵 id / URL) |
+| `category` | 自由分组键,用于筛选与排序 |
+| `stackable` | 是否可堆叠,默认 `true` |
+| `maxStack` | 每格上限;可堆叠时默认无限,不可堆叠时恒为 1 |
+| `useEffects` | `EffectRef[]`,`use()` 时经效果注册表执行 |
+| `consumable` | `use()` 后是否扣除 1 个,默认 `false` |
+| `metadata` | 任意游戏自定义数据 |
+
+## API
+
+```ts
+const inventory = createInventory({
+  items,       // ItemDefinition[]
+  capacity,    // 格子数上限,省略 = 无限
+  effects,     // EffectRegistry,解析 useEffects
+  context,     // 传给效果处理器的上下文
+  events,      // 事件总线,默认全局 gameEvents
+  persist,     // { name?, version?, prefix?, storage? },传入即开启持久化
+})
+```
+
+- `add(itemId, qty?)` → `{ success, added, overflow, reason? }`:先填满已有堆叠,再按容量开新格
+- `remove(itemId, qty?)` → `boolean`(数量不足时整体失败,不做部分移除)
+- `has(itemId, qty?)` / `count(itemId)`
+- `use(itemId)` → `{ success, consumed, reason? }`:执行 `useEffects`,`consumable` 扣 1
+- `slots()` / `entries()` / `entriesByCategory(category)`:格子视图 / 按物品聚合视图
+- `sortSlots(comparator?)`:默认按 category、再按 itemId 排序
+- `registerItems(items)` / `getDefinition(id)` / `definitions()`:运行期增量注册物品表
+- `isFull()` / `clear()`
+- `store`:zustand vanilla store,可直接 `subscribe` 或配合 React `useStore`
+
+仅持久化 `slots`(物品定义始终来自代码注入)。
+
+## 示例
+
+```ts
+import { createEffectRegistry, gameEvents } from '@overworld/core'
+import { createInventory } from '@overworld/inventory'
+
+const effects = createEffectRegistry<GameCtx>()
+effects.register('player.heal', ({ amount }, ctx) => ctx.heal(Number(amount)))
+
+const inventory = createInventory({
+  items: [
+    {
+      id: 'potion',
+      name: 'item.potion.name',
+      category: 'consumable',
+      maxStack: 99,
+      consumable: true,
+      useEffects: [{ type: 'player.heal', params: { amount: 25 } }],
+    },
+  ],
+  capacity: 20,
+  effects,
+  context: gameCtx,
+  persist: { name: 'inventory' },
+})
+
+inventory.add('potion', 3)   // { success: true, added: 3, overflow: 0 }
+inventory.use('potion')      // 执行 player.heal 效果并扣除 1 个
+
+gameEvents.on('item:added', ({ itemId, total }) => {
+  // 任务系统在这里推进"收集 N 个 X"目标
+})
+```

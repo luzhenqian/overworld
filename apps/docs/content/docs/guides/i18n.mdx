@@ -1,0 +1,133 @@
+---
+title: i18n 内容组织
+description: 内容字段存 key、渲染层翻译的多语言约定
+---
+
+## 原则:所有文案字段都是"不透明字符串"
+
+框架里一切 `text` / `title` / `description` / `name` / `message` 字段,引擎都**从不解释、
+从不翻译**——只原样存储、原样透传。这意味着游戏有两种等价用法:
+
+- **小项目**:直接存字面量(`title: '初来乍到'`),零成本,starter 示例就是这么做的。
+- **多语言项目**:存 i18n key(`title: 'quest.welcome.title'`),UI 渲染时用 i18next 的
+  `t()` 翻译。
+
+引擎逻辑(触发器匹配、进度累计、持久化)只认 id,不认文案,所以两种用法可以随时切换,
+甚至混用——不需要改任何框架代码。
+
+## 推荐 key 约定
+
+按"内容类型 + 内容 id + 字段"组织,与内容数据的结构一一对应:
+
+| 内容 | key 模式 | 例子 |
+|---|---|---|
+| 任务 | `quest.<id>.title` / `.description` / `.objectives.<objId>` | `quest.welcome.title` |
+| 对话 | `dialogue.<tree>.<node>.text` / `.responses.<id>` | `dialogue.guide-intro.hello.text` |
+| 物品 | `item.<id>.name` / `.description` | `item.crystal.name` |
+| NPC | `npc.<id>.name` | `npc.guide.name` |
+| 成就 | `achievement.<id>.title` / `.description` | `achievement.first-steps.title` |
+| UI | `ui.<area>.<key>` | `ui.hud.interact-hint` |
+
+## 最小示例(starter 风格)
+
+内容文件存 key,行为定义(trigger/rewards)完全不变:
+
+```ts
+// game/content.ts —— 文案字段从字面量换成 key,其余不动
+export const QUESTS: QuestDefinition[] = [
+  {
+    id: 'welcome',
+    category: 'tutorial',
+    title: 'quest.welcome.title',
+    description: 'quest.welcome.description',
+    autoStart: true,
+    objectives: [
+      {
+        id: 'walk',
+        description: 'quest.welcome.objectives.walk',
+        target: 20,
+        trigger: { event: 'player:moved', amountFrom: 'distance' },
+      },
+    ],
+    rewards: [{ type: 'gold.add', params: { amount: 50 } }],
+  },
+]
+```
+
+UI 组件在**渲染时**翻译(对比 starter 的 `QuestTracker`,只多了 `t()`):
+
+```tsx
+// ui/HUD.tsx
+import { useTranslation } from 'react-i18next'
+
+function QuestTracker() {
+  const { t } = useTranslation()
+  const active = useStore(quests, (s) => s.active)
+  const definitions = useStore(quests, (s) => s.definitions)
+
+  return (
+    <div>
+      {Object.values(active).map((quest) => {
+        const def = definitions[quest.questId]
+        if (!def) return null
+        return (
+          <div key={quest.questId}>
+            <div>{t(def.title)}</div>
+            {def.objectives.map((obj) => (
+              <div key={obj.id}>
+                {t(obj.description)}({Math.floor(quest.objectives[obj.id]?.current ?? 0)}/{obj.target})
+              </div>
+            ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+```
+
+语言切换就是 `i18n.changeLanguage('en')`——react-i18next 自己触发重渲染,
+**zustand 完全不参与**:store 里存的是 key,key 不随语言变,所以不需要任何存档迁移、
+不需要在语言切换时改写状态。
+
+## 注意事项:不要在 emit 时翻译
+
+Toast、事件载荷、任何会被**存下来**的消息里,只放 key 或结构化数据,翻译永远留在渲染层:
+
+```ts
+// ❌ 错:emit 时翻译 —— 切语言后,历史 Toast/消息还停留在旧语言
+toasts.push({ message: t('quest.welcome.completed-toast') })
+
+// ✅ 对:载荷放 key(或结构化数据),渲染 Toast 列表的组件里再 t()
+toasts.push({ message: 'quest.welcome.completed-toast' })
+// 渲染处:{t(String(toast.message))}
+```
+
+同理,`quest:completed` 等事件的订阅者如果要展示文案,应携带 `questId`,
+由 UI 侧查定义、取 key、再翻译。框架的 notifications 包把 `message` 定义为
+不透明值,正是为了支持这条链路。
+
+## 目录组织(参考 degener-city)
+
+degener-city 用单一 `translation` 命名空间 + 顶层前缀划分模块
+(`quests.*`、`dialogues.*`、`npcs.*`、`ui.*`、`achievements.*`……每个前缀一个 JSON 文件,
+在 `i18n/config.ts` 合并)。这个模式可以直接沿用,规模更小时可以合并文件:
+
+```
+src/i18n/
+  config.ts            # i18next 初始化 + resources 合并
+  locales/
+    zh/
+      quests.json      # { "welcome": { "title": "初来乍到", ... } }
+      dialogues.json
+      items.json
+      ui.json
+    en/
+      quests.json
+      ...
+```
+
+要点:locale 文件的嵌套结构与 key 约定对齐(`quest.welcome.title` ↔
+`quests.json` 里的 `welcome.title`,配置时挂到 `quest` 前缀下);
+新增内容时先写内容文件里的 key,再补齐各语言 JSON,缺失 key 用
+i18next 的 `fallbackLng` 兜底,不会崩游戏。

@@ -7,7 +7,10 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "docs:dev": "pnpm --filter docs dev",
+    "docs:build": "pnpm --filter docs build",
+    "docs:start": "pnpm --filter docs start"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {

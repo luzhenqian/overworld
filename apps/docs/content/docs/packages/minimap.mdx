@@ -1,0 +1,75 @@
+---
+title: '@overworld/minimap'
+description: 通用俯视小地图:标记注册表 + DOM canvas 组件,不依赖 three.js
+---
+
+通用俯视小地图:无头标记(marker)注册表 + 基于 DOM `<canvas>` 的 `<MiniMap>` 组件。
+不依赖 three.js —— 玩家位置通过结构化的 ref(`{ current: [x, y, z] }`)传入,可直接
+使用 `@overworld/scene` 的 `playerPositionRef` / `playerRotationRef`,也可以传任何
+形状相同的对象。
+
+## 标记注册表(无头)
+
+```ts
+import { useMinimapStore } from '@overworld/minimap'
+
+const { registerMarker, unregisterMarker, setMarkerPosition, clearMarkers } =
+  useMinimapStore.getState()
+
+registerMarker({
+  id: 'npc:yi-he',
+  kind: 'npc',              // 自由分类,用于 markerColors 配色
+  position: [4, 0, -2],     // 世界坐标,仅投影 X/Z
+  color: '#60a5fa',         // 可选:直接指定颜色,优先于 kind 配色
+  label: '易禾',            // 可选:默认渲染器不绘制,供自定义 UI 使用
+})
+
+setMarkerPosition('npc:yi-he', [6, 0, 1])   // 移动实体(巡逻 NPC 等)
+unregisterMarker('npc:yi-he')
+clearMarkers()                              // 场景卸载时清空
+```
+
+相同 `id` 重复注册会整体替换;对不存在的 id 调用后两者是 no-op。
+
+## `<MiniMap>` 组件
+
+```tsx
+import { MiniMap } from '@overworld/minimap'
+import { playerPositionRef, playerRotationRef } from '@overworld/scene'
+
+<MiniMap
+  worldBounds={{ minX: -50, maxX: 50, minZ: -50, maxZ: 50 }}
+  size={160}                                   // 画布边长 px,默认 160
+  playerPosition={playerPositionRef}           // { current: [x, y, z] }
+  playerRotation={playerRotationRef}           // 可选,{ current: 弧度 }
+  markerColors={{ npc: '#60a5fa', shop: '#f472b6' }}
+  background="rgba(15, 20, 30, 0.8)"
+  borderRadius={12}
+  refreshMs={100}                              // 轮询重绘间隔,默认 100ms
+/>
+```
+
+行为:
+
+- **朝北固定**:地图本身不旋转;世界 X → 画布右,世界 −Z(北)→ 画布上。
+- 玩家绘制为按 `playerRotation` 旋转的三角形(three.js 约定:0 = 朝 −Z)。
+- 标记绘制为圆点,颜色取 `marker.color ?? markerColors[kind] ?? 默认黄色`。
+- 按 `refreshMs` 用 `setInterval` 轮询玩家 ref 重绘;标记 store 变化时立即重绘;
+  卸载时清理定时器与订阅。
+- 组件在 three.js Canvas **之外**渲染(普通 DOM 覆盖层),支持 `style` / `className`。
+
+## 投影辅助(纯函数)
+
+```ts
+import { projectToCanvas, projectionScale } from '@overworld/minimap'
+
+projectToCanvas(x, z, { worldBounds, size })   // → [px, py]
+projectionScale({ worldBounds, size })         // → 每世界单位像素数
+```
+
+非正方形世界按等比缩放并居中(letterbox,不拉伸);越界坐标钳制在 `[0, size]`
+(钉在地图边缘);退化边界(零面积)投影到画布中心。
+
+## 依赖
+
+依赖 `@overworld/core`(仅类型);peer:`react`、`zustand`。不依赖 three.js。

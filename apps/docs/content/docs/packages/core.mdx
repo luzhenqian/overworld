@@ -1,0 +1,214 @@
+---
+title: '@overworld/core'
+description: 框架核心:类型化事件总线、条件/效果注册表、持久化辅助、存档槽位与公共类型
+---
+
+Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协作全部经由这里提供的机制完成:
+**类型化事件总线**(系统间通信)、**条件/效果注册表**(数据驱动内容与代码解耦)、
+**统一的持久化约定**(`persistOptions` + 存档槽位)。本包零 UI、零渲染依赖,
+可在纯 Node 环境中使用与测试。
+
+## 事件总线(EventBus)
+
+最小化的类型化发布/订阅总线。Overworld 中所有跨系统通信都走总线而不是直接 import
+对方的 store,系统因此保持独立,游戏也可以响应(或合成)任何事件。
+
+### 框架事件表(OverworldEventMap)
+
+| 事件 | 载荷 |
+| --- | --- |
+| `player:moved` | `{ position: Vec3; distance: number }` |
+| `scene:changed` | `{ from: string \| null; to: string }` |
+| `proximity:enter` / `proximity:leave` | `{ kind: EntityKind; id: string }` |
+| `interact` | `{ kind: EntityKind; id: string }` |
+| `dialogue:started` | `{ npcId: string; dialogueId: string }` |
+| `dialogue:ended` | `{ npcId: string; dialogueId: string; nodeId: string }` |
+| `quest:started` / `quest:completed` | `{ questId: string }` |
+| `quest:objective-progress` | `{ questId; objectiveId; current: number; target: number }` |
+| `quest:objective-completed` | `{ questId: string; objectiveId: string }` |
+| `item:added` / `item:removed` | `{ itemId: string; quantity: number; total: number }` |
+| `item:used` | `{ itemId: string }` |
+| `achievement:unlocked` | `{ achievementId: string }` |
+| `tutorial:step-changed` | `{ tutorialId: string; stepId: string; stepIndex: number }` |
+| `tutorial:completed` | `{ tutorialId: string }` |
+
+游戏通过 declaration merging 扩展事件表,扩展后的事件同样获得完整类型:
+
+```ts
+declare module '@overworld/core' {
+  interface OverworldEventMap {
+    'market:trade': { symbol: string; amount: number }
+  }
+}
+```
+
+### API
+
+```ts
+import { EventBus, gameEvents, type OverworldEventMap } from '@overworld/core'
+
+// 全局单例:所有系统的零配置默认总线
+const off = gameEvents.on('quest:completed', ({ questId }) => {
+  console.log('任务完成', questId)
+})
+gameEvents.emit('quest:started', { questId: 'welcome' })
+off() // on/once/onAny 都返回退订函数
+
+// 测试或多实例场景:自建总线,经各引擎的 events 配置注入
+const bus = new EventBus<OverworldEventMap>()
+```
+
+| 成员 | 说明 |
+| --- | --- |
+| `on(event, fn)` | 订阅,返回退订函数 |
+| `once(event, fn)` | 单次订阅(触发一次后自动退订),返回退订函数 |
+| `off(event, fn)` | 取消订阅 |
+| `onAny(fn)` | 订阅**全部**事件(调试面板、埋点、录制回放),返回退订函数 |
+| `emit(event, payload)` | 发布事件 |
+| `listenerCount(event)` | 某事件当前监听器数量 |
+| `clear(event?)` | 移除某事件的全部监听器;省略参数时清空所有监听(含 onAny) |
+
+行为细节:
+
+- 监听器抛出的异常会被捕获并打日志,**不影响**同一事件的其他监听器,更不会中断 emit。
+- emit 过程中订阅/退订不影响本次分发(分发前会拷贝监听器集合)。
+- `gameEvents` 是全局单例;各引擎都接受自定义总线(`events` 配置),**测试时必须自建实例**。
+
+## 条件/效果注册表(Registry)
+
+注册表把数据驱动的内容与代码解耦:对话选项、任务奖励、物品使用效果等在内容里只写
+**声明式引用**,游戏启动时注册对应的处理函数——框架引擎永不 import 游戏代码。
+
+```ts
+interface EffectRef {
+  type: string
+  params?: Record<string, unknown>
+}
+
+interface ConditionRef {
+  type: string
+  params?: Record<string, unknown>
+  negate?: boolean   // 取反条件结果
+}
+```
+
+```ts
+import {
+  createConditionRegistry, createEffectRegistry,
+  runEffects, evaluateConditions,
+} from '@overworld/core'
+
+const conditions = createConditionRegistry<GameCtx>()
+const effects = createEffectRegistry<GameCtx>()
+
+// 游戏启动时注册处理器
+conditions.register('minLevel', (params, ctx) => ctx.player.level >= (params.level as number))
+effects.register('wallet.addGold', (params, ctx) => ctx.wallet.add(params.amount as number))
+
+// 内容数据里只写声明式引用
+runEffects(effects, [{ type: 'wallet.addGold', params: { amount: 100 } }], gameCtx)
+evaluateConditions(conditions, [{ type: 'minLevel', params: { level: 3 } }], gameCtx) // boolean
+```
+
+| 成员 | 说明 |
+| --- | --- |
+| `register(type, fn, options?)` | 注册处理器;重复注册同名 type 会警告并跳过,传 `{ override: true }` 才替换 |
+| `registerAll(entries, options?)` | 批量注册(`Record<string, Fn>`) |
+| `get(type)` / `has(type)` | 查询处理器 |
+| `unregister(type)` | 注销 |
+| `types()` | 已注册的全部 type(可交给 `@overworld/devtools` 做内容校验) |
+
+两个求值辅助函数的语义(全部引擎都遵循):
+
+- `runEffects(registry, refs, ctx)` — 按序执行;**未注册的 type 打 warning 跳过**,
+  处理器抛错也只记录日志——内容错误不崩游戏。
+- `evaluateConditions(registry, refs, ctx)` — **AND 语义**;空数组/省略为 `true`;
+  未注册的条件 **fail closed**(返回 `false`);`negate: true` 对单条结果取反;
+  处理器抛错视为 `false`。
+
+## 持久化(persistOptions)
+
+引擎的存档统一走 zustand 的 `persist` 中间件;`persistOptions` 把 key 命名、
+版本化迁移与可替换的存储后端标准化:
+
+```ts
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { persistOptions } from '@overworld/core'
+
+const useStore = create<State>()(
+  persist(initializer, persistOptions({ name: 'inventory', version: 1 }))
+)
+// 实际存储 key:overworld:inventory
+```
+
+`OverworldPersistConfig` 字段:
+
+| 字段 | 说明 | 默认 |
+| --- | --- | --- |
+| `name` | 存储 key,最终为 `<prefix>:<name>` | 必填 |
+| `version` | 持久化形状变化时递增,配合 `migrate` | `0` |
+| `prefix` | key 前缀 | `'overworld'` |
+| `storage` | 存储后端工厂(`() => StateStorage`) | `localStorage` |
+| `partialize` | 挑选值得保存的状态子集 | — |
+| `migrate` | 版本迁移函数 | — |
+| `onRehydrateStorage` | 透传 zustand 的水合回调 | — |
+
+`createMemoryStorage()` 返回内存存储,用于测试与非浏览器环境;它同时满足 zustand 的
+`StateStorage`(供 `persistOptions`)与 `EnumerableStorage`(供 `createSaveSlots`),
+一个实例可以两处共用。
+
+全框架统一约定:各引擎的 `persist` 配置**省略或 `false` = 不持久化;`true` = 默认配置
+开启;传对象 = 自定义 `name` / `version` / `storage`**。
+
+## 存档槽位(createSaveSlots)
+
+所有经 `persistOptions` 持久化的 store 都落在 `<prefix>:<name>` 键下,这组键的整体就是
+**live 存档**(当前进行中的游戏)。`createSaveSlots` 在其上提供命名槽位管理:
+
+```ts
+import { createSaveSlots } from '@overworld/core'
+
+const slots = createSaveSlots()   // 默认 localStorage,前缀 overworld
+slots.saveTo('slot-1')            // 把 live 存档复制进槽位
+slots.clearCurrent()              // 新游戏:清空 live 存档(槽位不受影响)
+slots.loadFrom('slot-1')          // 把槽位恢复为 live 存档
+slots.listSlots()                 // [{ slot: 'slot-1', savedAt: 1710000000000 }]
+```
+
+| 成员 | 说明 |
+| --- | --- |
+| `snapshot()` | 复制当前 live 存档(槽位命名空间之外的全部 `<prefix>:` 键) |
+| `restore(snapshot)` | 用快照替换 live 存档:先删现有 live 键,再写回快照条目 |
+| `saveTo(slot)` | 把 live 存档存入命名槽位(覆盖同名槽位),键为 `<prefix>:slots:<slot>` |
+| `loadFrom(slot)` | 恢复槽位到 live 存档;槽位不存在或损坏时返回 `false` 且不动 live 存档 |
+| `deleteSlot(slot)` | 删除槽位(不存在时为 no-op) |
+| `listSlots()` | 全部槽位,按保存时间倒序 |
+| `clearCurrent()` | 清空 live 存档("新游戏"),槽位不受影响 |
+
+注意事项:
+
+- **水合警告**:`restore` / `loadFrom` 只改写存储;已完成 hydration 的 zustand store
+  仍持有内存中的旧状态,需要刷新页面或逐个调用该 store 的 `persist.rehydrate()`
+  才会反映恢复的数据。
+- `SaveSlotsConfig`:`storage`(默认 `localStorage`,非浏览器环境必须显式传入)、
+  `prefix`(默认 `'overworld'`,与 `persistOptions` 共用;前缀之外的键永不读写删)。
+- `EnumerableStorage` 是能枚举键的最小同步存储接口(`getItem` / `setItem` /
+  `removeItem` / `keys`),与 zustand `StateStorage` 结构兼容;
+  `fromWebStorage(storage)` 可把 DOM `Storage`(localStorage / sessionStorage)包装成它。
+
+## 公共类型
+
+```ts
+/** X/Y/Z 三轴的位置或旋转元组 */
+type Vec3 = [number, number, number]
+
+/** 框架已知的世界实体种类 */
+type EntityKind = 'npc' | 'building' | 'item' | 'decoration'
+
+/** 世界实体引用 */
+interface EntityRef {
+  kind: EntityKind
+  id: string
+}
+```

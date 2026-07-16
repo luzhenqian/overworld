@@ -1,0 +1,11 @@
+{
+  "pages": [
+    "index",
+    "architecture",
+    "starter",
+    "guides",
+    "packages",
+    "migration",
+    "changelog"
+  ]
+}

@@ -1,0 +1,90 @@
+---
+title: '@overworld/tutorial'
+description: 无头教程步骤引擎:手动推进或声明式事件触发器自动推进
+---
+
+无头(headless)教程步骤引擎。管理线性教程的启动、推进、跳过与完成状态,步骤可以
+手动 `next()` 推进,也可以通过声明式 `advanceOn` 事件触发器自动推进。步骤变化与完成
+通过事件总线广播(`tutorial:step-changed` / `tutorial:completed`),渲染(高亮、气泡、
+遮罩)由游戏 UI 自己实现。
+
+## 定位
+
+- 框架只管**步骤状态机**;`content`(文案 / i18n key)与 `target`(DOM/UI 锚点 id)
+  对框架完全不透明,由游戏解释;
+- 自动推进按需订阅:只有当前步骤带 `advanceOn` 时才在总线上挂一个监听,步骤切换、
+  跳过、完成或 `dispose()` 时立即释放;
+- 底层是 zustand vanilla store(`tutorial.store`),React 端用 `useStore` 订阅即可。
+
+## Schema
+
+```ts
+interface TutorialDefinition {
+  id: string
+  steps: TutorialStep[]
+}
+
+interface TutorialStep {
+  id: string
+  content?: string                 // 文案(不透明:纯文本或 i18n key)
+  target?: string                  // UI 锚点提示(不透明:选择器 / 元素 id / 3D 实体 id)
+  advanceOn?: {                    // 自动推进触发器;省略 = 手动 next()
+    event: string                  // 事件名(含游戏扩展事件)
+    filter?: Record<string, unknown> // 浅层载荷匹配(严格相等)
+  }
+}
+```
+
+## API
+
+```ts
+const tutorial = createTutorial({
+  tutorials, // TutorialDefinition[]
+  events,    // 事件总线,默认全局 gameEvents
+  persist,   // { name?, version?, prefix?, storage? },传入即开启持久化
+})
+```
+
+- `start(tutorialId)` → `boolean`:从第一步开始(可重新开始);空步骤教程立即完成
+- `next()`:推进一步;在最后一步调用则完成教程并广播 `tutorial:completed`
+- `skip()`:中止当前教程并标记为 `skipped`(不广播 completed)
+- `activeTutorial()` / `currentStep()` / `stepIndex()`:当前运行状态
+- `isCompleted(id)`:是否正常完成(skipped 返回 `false`);`getStatus(id)` 返回
+  `'completed' | 'skipped' | undefined`
+- `registerTutorials(defs)` / `getDefinition(id)`:运行期增量注册
+- `dispose()`:释放自动推进订阅
+- `store`:zustand vanilla store,可直接 `subscribe` 或配合 React `useStore`
+
+仅持久化终态 `statuses`(completed/skipped);进行中的会话不持久化,刷新后重新 `start`。
+
+## 示例
+
+```ts
+import { gameEvents } from '@overworld/core'
+import { createTutorial } from '@overworld/tutorial'
+
+const tutorial = createTutorial({
+  tutorials: [
+    {
+      id: 'basics',
+      steps: [
+        { id: 'welcome', content: 'tutorial.welcome' },                    // 手动 next()
+        { id: 'move', content: 'tutorial.move', advanceOn: { event: 'player:moved' } },
+        {
+          id: 'talk',
+          content: 'tutorial.talk',
+          target: '#npc-guide',
+          advanceOn: { event: 'dialogue:started', filter: { npcId: 'guide' } },
+        },
+      ],
+    },
+  ],
+  persist: { name: 'tutorial' },
+})
+
+gameEvents.on('tutorial:step-changed', ({ stepId }) => {
+  // 游戏 UI 在这里渲染当前步骤(读取 tutorial.currentStep())
+})
+
+if (!tutorial.isCompleted('basics')) tutorial.start('basics')
+```

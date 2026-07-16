@@ -1,0 +1,35 @@
+---
+title: 版本历史
+description: 各版本演进轨迹
+---
+
+## v0.5
+
+- **`@overworld/net`**:多人同步接口抽象 —— Transport 接口(内存 / BroadcastChannel / WebSocket)、presence 复制、事件中继、`<RemotePlayers>` 组件
+- 编辑器撤销/重做(transient 突发合并)、复制、吸附可调、网格可视化
+- 层级化寻路 HPA*(200×200 基准:访问格数 3,393 vs 普通 A* 35,873)
+- 行为树(记忆式 sequence/selector、parallel、blackboard、agent 动作节点)
+
+## v0.4
+
+- **`@overworld/editor`**:游戏内场景编辑器雏形(放置/拖拽/属性面板/导出 JSON)
+- NPC 日程系统(昼夜相位驱动行为切换)与动态避障
+- 内容 JSON Schema(draft 2020-12,ajv 可用)
+
+## v0.3
+
+- **`@overworld/ai`**:网格 A* 寻路 + 巡逻/游荡/跟随行为 + `<NPCWalker>`
+- **`@overworld/devtools`**:内容校验(引用完整性/前置循环/效果条件核对)+ 事件日志
+- 资产清单(`defineAssetManifest`/`preloadManifest`)、i18n 内容组织约定
+
+## v0.2
+
+- **`@overworld/environment`**(昼夜循环+天气)、**`@overworld/minimap`**
+- 虚拟摇杆 + Player 外部输入源、存档槽位管理
+- persist 配置全框架统一(省略/false=关,true=默认,对象=自定义)
+
+## v0.1
+
+- 从 degener-city 提取 12 个基础包:core / scene / input / dialogue / quest /
+  inventory / achievements / tutorial / audio / notifications / loading / analytics
+- 确立三大解耦机制:类型化事件总线、条件/效果注册表、内容注入
