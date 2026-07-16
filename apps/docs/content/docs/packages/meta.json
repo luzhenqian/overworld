@@ -21,6 +21,8 @@
     "platform",
     "adapters-weapp",
     "devtools",
-    "editor"
+    "content",
+    "editor",
+    "inspector"
   ]
 }

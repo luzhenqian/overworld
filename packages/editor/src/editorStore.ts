@@ -113,6 +113,43 @@ export interface EditorSceneJSON {
   decorations: Record<string, EditorDecorationGroupJSON>
 }
 
+/**
+ * One named scene ("level") held in the editor's multi-scene project — an id,
+ * a human-readable display name, and its own {@link EditorEntity} working set.
+ *
+ * The **active** scene's live edits live in {@link EditorState.entities}; the
+ * matching entry's `entities` are refreshed lazily (on `switchScene`,
+ * `exportProject`, …), so a scene entry's `entities` is the *last persisted*
+ * snapshot, never a second live copy.
+ */
+export interface EditorSceneEntry {
+  id: string
+  name: string
+  entities: EditorEntity[]
+}
+
+/** One scene inside an exported {@link SceneProjectJson}: id/name + its {@link EditorSceneJSON}. */
+export interface SceneProjectSceneJSON {
+  id: string
+  name: string
+  scene: EditorSceneJSON
+}
+
+/**
+ * A multi-scene project document — the output of
+ * {@link EditorState.exportProject} and the input of
+ * {@link EditorState.importProject}. Each scene wraps a self-contained
+ * {@link EditorSceneJSON}, so a game can hand a single level to
+ * `<SceneFromJson>` (see `pickScene` in `@overworld-engine/scene`).
+ */
+export interface SceneProjectJson {
+  /** Document version; {@link SCENE_PROJECT_VERSION} at time of export. */
+  version?: number
+  scenes: SceneProjectSceneJSON[]
+  /** Id of the scene that was active at export time (a member of `scenes`). */
+  activeSceneId?: string
+}
+
 /** Default collider radius for buildings and decoration groups. */
 export const DEFAULT_COLLISION_RADIUS = 2
 
@@ -121,6 +158,13 @@ export const HISTORY_LIMIT = 100
 
 /** Default grid snapping step. */
 export const DEFAULT_SNAP = 0.5
+
+/** Current version stamped onto {@link SceneProjectJson} documents. */
+export const SCENE_PROJECT_VERSION = 1
+
+/** Id/name of the single default scene the store starts with. */
+const DEFAULT_SCENE_ID = 'scene-1'
+const DEFAULT_SCENE_NAME = 'Scene 1'
 
 /** Group key used for decorations that have no `name`. */
 const DEFAULT_DECORATION_GROUP = 'decoration'
@@ -410,6 +454,166 @@ export function sceneConfigToEditorEntities(config: SceneConfigInput): EditorEnt
   })
 }
 
+// ---------------------------------------------------------------------------
+// Multi-scene / project helpers (pure)
+// ---------------------------------------------------------------------------
+
+/** Next free `scene-N` id given the current scene entries (skips collisions). */
+function nextSceneId(scenes: readonly EditorSceneEntry[]): string {
+  const used = new Set(scenes.map((scene) => scene.id))
+  let max = 0
+  for (const scene of scenes) {
+    const num = /^scene-(\d+)$/.exec(scene.id)?.[1]
+    if (num !== undefined) {
+      const n = Number(num)
+      if (n > max) max = n
+    }
+  }
+  let n = max + 1
+  let id = `scene-${n}`
+  while (used.has(id)) {
+    n += 1
+    id = `scene-${n}`
+  }
+  return id
+}
+
+/** `base`, or `base 2` / `base 3` / … when already `taken`. Keeps names unique. */
+function uniqueSceneName(base: string, taken: readonly string[]): string {
+  const set = new Set(taken)
+  if (!set.has(base)) return base
+  let n = 2
+  let name = `${base} ${n}`
+  while (set.has(name)) {
+    n += 1
+    name = `${base} ${n}`
+  }
+  return name
+}
+
+/** Return `scenes` with the active scene's entities refreshed from the live working set. */
+function persistActiveScenes(
+  scenes: readonly EditorSceneEntry[],
+  activeSceneId: string,
+  entities: readonly EditorEntity[]
+): EditorSceneEntry[] {
+  return scenes.map((scene) =>
+    scene.id === activeSceneId ? { ...scene, entities: cloneEntities(entities) } : scene
+  )
+}
+
+/**
+ * State patch that loads a scene entry into the live working set: fresh
+ * entities clone, re-seeded id counters, empty selection, and a **cleared
+ * history** — switching scenes is a history boundary (undo never crosses it).
+ */
+function activateSceneEntry(
+  entry: EditorSceneEntry
+): Pick<
+  EditorState,
+  | 'entities'
+  | 'counters'
+  | 'selectedIds'
+  | 'selectedId'
+  | 'past'
+  | 'future'
+  | 'canUndo'
+  | 'canRedo'
+  | 'pendingSnapshot'
+> {
+  const entities = cloneEntities(entry.entities)
+  return {
+    entities,
+    counters: countersFrom(entities),
+    ...selectionFrom([]),
+    past: [],
+    future: [],
+    canUndo: false,
+    canRedo: false,
+    pendingSnapshot: null,
+  }
+}
+
+/**
+ * Assemble a {@link SceneProjectJson} from named scene entries. Pure; each
+ * scene's entities are converted with {@link exportEntities}. Stamps
+ * {@link SCENE_PROJECT_VERSION}.
+ */
+export function sceneProjectFromEntries(
+  scenes: readonly EditorSceneEntry[],
+  activeSceneId?: string
+): SceneProjectJson {
+  const project: SceneProjectJson = {
+    version: SCENE_PROJECT_VERSION,
+    scenes: scenes.map((scene) => ({
+      id: scene.id,
+      name: scene.name,
+      scene: exportEntities(scene.entities),
+    })),
+  }
+  if (activeSceneId !== undefined) project.activeSceneId = activeSceneId
+  return project
+}
+
+/**
+ * Best-effort inverse of {@link sceneProjectFromEntries}: parse a project
+ * document into named scene entries. Tolerant — a non-object root, a
+ * missing/empty `scenes` array, malformed entries and malformed inner scene
+ * documents all degrade gracefully (never throws, never yields zero scenes).
+ * Scene ids are de-duplicated (`scene-N` fallback) and names kept unique;
+ * `activeSceneId` falls back to the first scene when missing/unknown. Pure.
+ */
+export function parseSceneProject(json: unknown): {
+  scenes: EditorSceneEntry[]
+  activeSceneId: string
+} {
+  const fallback = (): { scenes: EditorSceneEntry[]; activeSceneId: string } => ({
+    scenes: [{ id: DEFAULT_SCENE_ID, name: DEFAULT_SCENE_NAME, entities: [] }],
+    activeSceneId: DEFAULT_SCENE_ID,
+  })
+
+  if (!isRecord(json) || !Array.isArray(json.scenes) || json.scenes.length === 0) {
+    return fallback()
+  }
+
+  const scenes: EditorSceneEntry[] = []
+  const usedIds = new Set<string>()
+  let counter = 0
+  const claimId = (requested: unknown): string => {
+    if (typeof requested === 'string' && requested !== '' && !usedIds.has(requested)) {
+      usedIds.add(requested)
+      return requested
+    }
+    let id: string
+    do {
+      counter += 1
+      id = `scene-${counter}`
+    } while (usedIds.has(id))
+    usedIds.add(id)
+    return id
+  }
+
+  for (const raw of json.scenes) {
+    if (!isRecord(raw)) continue
+    const id = claimId(raw.id)
+    const entities = isRecord(raw.scene) ? importEntities(raw.scene) : []
+    const takenNames = scenes.map((s) => s.name)
+    const name =
+      typeof raw.name === 'string' && raw.name.trim() !== ''
+        ? uniqueSceneName(raw.name.trim(), takenNames)
+        : uniqueSceneName(`Scene ${scenes.length + 1}`, takenNames)
+    scenes.push({ id, name, entities })
+  }
+
+  if (scenes.length === 0) return fallback()
+  const first = scenes[0]!
+  const activeSceneId =
+    typeof json.activeSceneId === 'string' && scenes.some((s) => s.id === json.activeSceneId)
+      ? json.activeSceneId
+      : first.id
+  return { scenes, activeSceneId }
+}
+
 /** Options for {@link EditorState.updateEntity}. */
 export interface UpdateEntityOptions {
   /**
@@ -463,6 +667,18 @@ export interface EditorState {
   future: EditorEntity[][]
   /** @internal Pre-burst snapshot while a transient burst is in flight. */
   pendingSnapshot: EditorEntity[] | null
+  /**
+   * Every named scene ("level") in the project. The **active** scene's live
+   * edits live in {@link EditorState.entities}; each entry's `entities` is the
+   * last *persisted* snapshot (refreshed on `switchScene` / `exportProject` /
+   * `duplicateScene` / …). Always holds at least one scene.
+   */
+  scenes: EditorSceneEntry[]
+  /**
+   * Id of the scene currently loaded into {@link EditorState.entities}. Always
+   * a member of {@link EditorState.scenes}.
+   */
+  activeSceneId: string
 
   setEnabled: (enabled: boolean) => void
   setMode: (mode: EditorMode) => void
@@ -593,6 +809,58 @@ export interface EditorState {
    * root is not an object. See {@link importEntities}.
    */
   importScene: (json: unknown) => void
+
+  // --- Multi-scene / level management (all additive; single-scene behaviour
+  //     is preserved on the active scene) ---
+  /**
+   * Create a new empty scene and switch to it (persisting the current scene's
+   * live entities first). `name` defaults to a unique `Scene N`; a provided
+   * name is trimmed and de-duplicated. Switching is a history boundary — the
+   * new scene starts with an empty undo/redo history. Returns the new entry.
+   */
+  newScene: (name?: string) => EditorSceneEntry
+  /**
+   * Rename a scene. Unknown ids, empty (whitespace-only) names, and no-op
+   * renames are ignored. Not history-tracked (metadata, like `setSnap`). The
+   * name is stored as typed — uniqueness is only *enforced* by
+   * `validateSceneProject`, not here.
+   */
+  renameScene: (id: string, name: string) => void
+  /**
+   * Delete a scene. Never leaves zero scenes (a no-op when only one remains).
+   * Deleting the **active** scene loads a neighbour (its live entities are
+   * discarded) and is a history boundary; deleting an inactive scene leaves
+   * the active working set (and its history) untouched. Unknown ids are a
+   * no-op.
+   */
+  deleteScene: (id: string) => void
+  /**
+   * Switch the active scene: persists the current working entities into the
+   * active scene, then loads the target scene's entities. **Switching is a
+   * history boundary** — the undo/redo stacks are cleared, so undo never
+   * crosses between scenes. Unknown ids and switching to the active scene are
+   * no-ops.
+   */
+  switchScene: (id: string) => void
+  /**
+   * Clone a scene (deep-copied entities, name `"<name> copy"`, fresh id,
+   * inserted right after the source) and switch to the copy. History boundary,
+   * like {@link EditorState.switchScene}. Returns the new entry, or `undefined`
+   * for unknown ids.
+   */
+  duplicateScene: (id: string) => EditorSceneEntry | undefined
+  /**
+   * Snapshot the whole project as {@link SceneProjectJson} (all scenes, each
+   * via {@link exportEntities}, plus `activeSceneId`). Pure read — the live
+   * active scene's entities are folded in without mutating store state.
+   */
+  exportProject: () => SceneProjectJson
+  /**
+   * Replace **all** scenes from a project document (best effort, tolerant; see
+   * {@link parseSceneProject}) and load its active scene. History boundary.
+   * Never throws and never leaves zero scenes.
+   */
+  importProject: (json: unknown) => void
 }
 
 /**
@@ -623,6 +891,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   past: [],
   future: [],
   pendingSnapshot: null,
+  scenes: [{ id: DEFAULT_SCENE_ID, name: DEFAULT_SCENE_NAME, entities: [] }],
+  activeSceneId: DEFAULT_SCENE_ID,
 
   setEnabled: (enabled) => set({ enabled }),
   setMode: (mode) => set({ mode }),
@@ -950,5 +1220,84 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
 
   importScene: (json) => {
     get().loadEntities(importEntities(json))
+  },
+
+  newScene: (name) => {
+    const state = get()
+    const persisted = persistActiveScenes(state.scenes, state.activeSceneId, state.entities)
+    const id = nextSceneId(persisted)
+    const trimmed = typeof name === 'string' ? name.trim() : ''
+    const finalName = uniqueSceneName(
+      trimmed !== '' ? trimmed : `Scene ${persisted.length + 1}`,
+      persisted.map((s) => s.name)
+    )
+    const entry: EditorSceneEntry = { id, name: finalName, entities: [] }
+    set({ scenes: [...persisted, entry], activeSceneId: id, ...activateSceneEntry(entry) })
+    return entry
+  },
+
+  renameScene: (id, name) =>
+    set((state) => {
+      const index = state.scenes.findIndex((s) => s.id === id)
+      const current = state.scenes[index]
+      if (!current) return state
+      const trimmed = name.trim()
+      if (trimmed === '' || trimmed === current.name) return state
+      const scenes = [...state.scenes]
+      scenes[index] = { ...current, name: trimmed }
+      return { scenes }
+    }),
+
+  deleteScene: (id) => {
+    const state = get()
+    if (state.scenes.length <= 1) return
+    const index = state.scenes.findIndex((s) => s.id === id)
+    if (index === -1) return
+    if (id !== state.activeSceneId) {
+      // Inactive scene: the active working set and its history are untouched.
+      set({ scenes: state.scenes.filter((s) => s.id !== id) })
+      return
+    }
+    // Active scene: its live entities are discarded; load a neighbour.
+    const remaining = state.scenes.filter((s) => s.id !== id)
+    const neighbour = remaining[Math.min(index, remaining.length - 1)]!
+    set({ scenes: remaining, activeSceneId: neighbour.id, ...activateSceneEntry(neighbour) })
+  },
+
+  switchScene: (id) => {
+    const state = get()
+    if (id === state.activeSceneId) return
+    if (!state.scenes.some((s) => s.id === id)) return
+    const persisted = persistActiveScenes(state.scenes, state.activeSceneId, state.entities)
+    const target = persisted.find((s) => s.id === id)!
+    set({ scenes: persisted, activeSceneId: id, ...activateSceneEntry(target) })
+  },
+
+  duplicateScene: (id) => {
+    const state = get()
+    const index = state.scenes.findIndex((s) => s.id === id)
+    if (index === -1) return undefined
+    const persisted = persistActiveScenes(state.scenes, state.activeSceneId, state.entities)
+    const source = persisted[index]!
+    const entry: EditorSceneEntry = {
+      id: nextSceneId(persisted),
+      name: uniqueSceneName(`${source.name} copy`, persisted.map((s) => s.name)),
+      entities: cloneEntities(source.entities),
+    }
+    const scenes = [...persisted.slice(0, index + 1), entry, ...persisted.slice(index + 1)]
+    set({ scenes, activeSceneId: entry.id, ...activateSceneEntry(entry) })
+    return entry
+  },
+
+  exportProject: () => {
+    const state = get()
+    const persisted = persistActiveScenes(state.scenes, state.activeSceneId, state.entities)
+    return sceneProjectFromEntries(persisted, state.activeSceneId)
+  },
+
+  importProject: (json) => {
+    const { scenes, activeSceneId } = parseSceneProject(json)
+    const active = scenes.find((s) => s.id === activeSceneId) ?? scenes[0]!
+    set({ scenes, activeSceneId: active.id, ...activateSceneEntry(active) })
   },
 }))

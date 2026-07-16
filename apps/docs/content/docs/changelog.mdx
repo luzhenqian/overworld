@@ -3,6 +3,13 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v1.5 规模化授权与实时调试
+
+- **编辑器多场景/关卡管理**:命名场景(新建/切换/改名/删除/复制)、`exportProject`/`importProject` 多关卡项目;devtools `sceneProjectSchema` + `validateSceneProject`;scene `pickScene` 按名渲染指定关卡。scene-authoring 示例升级为多关卡授权闭环
+- **新包 `@overworld-engine/inspector`**:`createEventStream` 环形缓冲(确定性、可测)+ `<EventBusInspector>` 实时事件流/计数面板 + `<StoreInspector>` zustand store 实时快照;dungeon 示例接入(反引号开关),E2E 验证真实事件与 store 字段
+- **新包 `@overworld-engine/content`**:`defineContentPack`/`validateContentPack`/`applyContentPack` —— 校验门控后把对话/任务/物品/成就热更新注入引擎;`examples/content-packs` 演示 v2 包热更新
+- **core `defineMigrations`**:顺序版本迁移辅助,配合 `persistOptions({ version, migrate })` 演进存档结构
+
 ## v1.4 授权闭环与出包硬化
 
 - **编辑器↔SceneShell 场景往返(授权闭环)**:scene `<SceneFromJson>` + 纯映射器(`sceneJsonToShellProps`/`sceneConfigToSceneJson`);devtools `sceneConfigSchema` + `validateScene`;editor `sceneConfigToEditorEntities`/`loadSceneConfig`。新示例 `examples/scene-authoring` 端到端演示 **编辑 → 导出 → 校验 → 从 JSON 出图 → 重新导入**(E2E:导出校验 0 错、SceneFromJson 渲染 5 网格、往返实体数一致)

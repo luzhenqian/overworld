@@ -1,0 +1,119 @@
+---
+title: '@overworld-engine/content'
+description: 内容包:校验后再应用的版本化对话/任务/物品/成就分发,含存档迁移配套
+---
+
+内容包把纯数据内容(对话 / 任务 / 物品 / 成就)打成**带版本的一个单元**,
+**先校验、通过才注册**进运行中的引擎——这正是
+[content-hmr 指南](/docs/guides/content-hmr)里手写 `registerX` 门禁的封装形态。
+
+只依赖 `@overworld-engine/core` 与 `@overworld-engine/devtools`。**不 import 引擎包**:
+目标引擎作为结构化参数传入,所以本包不进入你的引擎依赖图,也能用普通假对象测试。
+
+## ContentPack
+
+一个 `ContentPack` 是纯数据:`id`、数字 `version`,加上四个内容段的任意子集。
+段类型复用 devtools 的结构化 `*Like` 子集,因此你真实的 `DialogueTree` /
+`QuestDefinition` / `ItemDefinition` / `AchievementDefinition` 数组可直接赋值。
+
+```ts
+interface ContentPack {
+  id: string
+  version: number
+  dialogues?: DialogueTreeLike[]
+  quests?: QuestLike[]
+  items?: ItemLike[]
+  achievements?: AchievementLike[]
+}
+```
+
+`defineContentPack(pack)` 是恒等函数——原样返回传入对象,只为字面量锚定类型推断
+(编辑器补全与类型检查),零运行时开销。
+
+```ts
+import { defineContentPack } from '@overworld-engine/content'
+
+export const townPack = defineContentPack({
+  id: 'town',
+  version: 1,
+  quests: [{ id: 'welcome', objectives: [{ id: 'talk', target: 1 }] }],
+})
+```
+
+## validateContentPack
+
+```ts
+import { validateContentPack } from '@overworld-engine/content'
+
+const report = validateContentPack(townPack, {
+  effectTypes: effects.types(),       // 可选:标记未注册的效果引用(warning)
+  conditionTypes: conditions.types(),
+})
+report.ok // 仅当有 error 时为 false;warning 不判失败
+```
+
+做两件事并合并为一份报告:
+
+1. **包元数据**——`id` 必须是非空字符串、`version` 必须是有限数字(缺失即 error)。
+2. **内容段**——把 `dialogues` / `quests` / `items` / `achievements` 委托给 devtools 的
+   `validateContent`,继承其全部逐段检查与跨段规则(如对话 `quest.start` 效果必须
+   引用同包内的任务)。
+
+纯函数、不抛异常。
+
+## applyContentPack
+
+```ts
+import { applyContentPack } from '@overworld-engine/content'
+
+const result = applyContentPack(townPack, {
+  dialogue,       // 来自 createDialogueEngine
+  quest: quests,  // 来自 createQuestEngine
+  inventory,      // 来自 createInventory
+  achievements,   // 来自 createAchievements
+}, { effectTypes: effects.types(), conditionTypes: conditions.types() })
+
+result.ok      // 校验失败时为 false(此时什么都不注册)
+result.applied // 实际注册的段名,如 ['dialogues', 'quests', 'items', 'achievements']
+result.report  // 校验报告(可继续展示 warning)
+```
+
+默认**先校验**(除非 `{ validate: false }`),报告有 error 就**拒绝**——一个段都不注册,
+返回 `{ applied: [], report, ok: false }`。校验通过时,把每个存在的段注册到对应目标,
+沿用引擎自身两种调用约定:
+
+| 段 | 目标 | 调用 |
+| --- | --- | --- |
+| `dialogues` | `dialogue` | `registerDialogues(...trees)` — rest 参数 |
+| `quests` | `quest` | `registerQuests(...quests)` — rest 参数 |
+| `items` | `inventory` | `registerItems(items)` — 数组 |
+| `achievements` | `achievements` | `registerAchievements(defs)` — 数组 |
+
+某段只有在「包里带 + 目标提供了对应引擎」时才应用;缺目标的段静默跳过。注册是
+**按 id 增改、从不删除**,所以应用更新版内容包会热替换定义,而**不丢进行中的
+运行时状态**(见 [content-hmr](/docs/guides/content-hmr))。
+
+## createContentPackTracker(MVP)
+
+```ts
+import { createContentPackTracker } from '@overworld-engine/content'
+
+const tracker = createContentPackTracker()
+tracker.record(townPack)                    // 记录 town@1
+tracker.record({ id: 'town', version: 2 })  // 升级 → 静默
+tracker.record({ id: 'town', version: 1 })  // 告警:降级 2 → 1
+tracker.applied                             // { town: 1 }
+```
+
+极简内存记账:按 id 记录最近应用的版本,当以**更低版本**重放同 id 时告警(疑似
+陈旧/乱序推送)。它不持久化、不去重、不拦截应用——若要据此动作,在你的更新处
+与 `applyContentPack` 搭配使用。
+
+## 与存档迁移的关系
+
+内容包演进的是**定义**;**存档**持久化的是进度。当内容改动影响持久化状态的含义
+(重命名 id、重构字段),用 `@overworld-engine/core` 的 `defineMigrations` +
+`persistOptions` 迁移旧存档——见 core 包文档的「存档迁移」。
+
+完整可跑示例见 `examples/content-packs`(启动应用基础包 → 「热更新 v2」拉取并注册
+新任务/对话 → 「应用非法内容」演示门禁拒绝)。

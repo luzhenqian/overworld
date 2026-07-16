@@ -388,6 +388,40 @@ const sceneConfigStructure: JsonSchema = {
   additionalProperties: true,
 }
 
+/**
+ * `SceneProjectJson` from `@overworld-engine/editor` — a multi-scene project
+ * document: named scenes each embedding a `SceneJson` (structurally the
+ * `sceneConfig` shape above).
+ */
+const sceneProjectStructure: JsonSchema = {
+  type: 'object',
+  description: 'A multi-scene project: named scenes each wrapping a SceneJson document.',
+  properties: {
+    version: { type: 'number', description: 'Document version; 1 at time of writing.' },
+    scenes: {
+      type: 'array',
+      description: 'Every named scene ("level") in the project.',
+      items: {
+        type: 'object',
+        description: 'One named scene: id + display name + its SceneJson document.',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string', description: 'Human-readable scene/level name.' },
+          scene: { $ref: '#/$defs/sceneConfig' },
+        },
+        required: ['id', 'name', 'scene'],
+        additionalProperties: true,
+      },
+    },
+    activeSceneId: {
+      type: 'string',
+      description: 'Id of the scene that was active at export time (a member of scenes).',
+    },
+  },
+  required: ['scenes'],
+  additionalProperties: true,
+}
+
 // $defs subsets each schema needs to be self-contained.
 const refDefs = { effectRef: effectRefDef, conditionRef: conditionRefDef }
 const sceneDefs = {
@@ -483,6 +517,22 @@ export const sceneConfigSchema: JsonSchema = {
   $defs: sceneDefs,
 }
 
+/**
+ * JSON Schema for a `SceneProjectJson` document (`@overworld-engine/editor`) —
+ * the multi-scene project produced by the in-game editor's `exportProject()`.
+ * Self-contained (`$defs` embed the inner `sceneConfig` shape plus the NPC /
+ * building / decoration shapes). Cross-object rules (duplicate scene ids /
+ * names, empty project, bad `activeSceneId`, malformed inner scenes) are beyond
+ * JSON Schema — run `validateSceneProject` on the parsed data for those.
+ */
+export const sceneProjectSchema: JsonSchema = {
+  $id: `${BASE}scene-project.json`,
+  $schema: DRAFT,
+  title: 'Overworld SceneProject',
+  ...sceneProjectStructure,
+  $defs: { ...sceneDefs, sceneConfig: sceneConfigStructure },
+}
+
 // ---------------------------------------------------------------------------
 // Array-wrapper schemas — the shape of a whole content .json file
 // ---------------------------------------------------------------------------
@@ -576,15 +626,23 @@ export const allContentSchemas: Record<string, JsonSchema> = {
   achievementDefinition: achievementDefinitionSchema,
   achievementDefinitions: achievementDefinitionsSchema,
   sceneConfig: sceneConfigSchema,
+  sceneProject: sceneProjectSchema,
   contentBundle: contentBundleSchema,
 }
 
 /**
  * Content-file kinds. The first four match the `ContentBundle` section names;
- * `'scene'` is a standalone document (a `SceneJson`, not a bundle section)
- * whose schema `schemaFor` also resolves.
+ * `'scene'` is a standalone `SceneJson` document and `'scene-project'` a
+ * multi-scene `SceneProjectJson` document (neither a bundle section) whose
+ * schemas `schemaFor` also resolves.
  */
-export type ContentKind = 'dialogues' | 'quests' | 'items' | 'achievements' | 'scene'
+export type ContentKind =
+  | 'dialogues'
+  | 'quests'
+  | 'items'
+  | 'achievements'
+  | 'scene'
+  | 'scene-project'
 
 const schemasByKind: Record<ContentKind, JsonSchema> = {
   dialogues: dialogueTreesSchema,
@@ -592,13 +650,15 @@ const schemasByKind: Record<ContentKind, JsonSchema> = {
   items: itemDefinitionsSchema,
   achievements: achievementDefinitionsSchema,
   scene: sceneConfigSchema,
+  'scene-project': sceneProjectSchema,
 }
 
 /**
  * The schema for one content-file kind — the array-wrapper schema for
- * `dialogues` / `quests` / `items` / `achievements`, or the single-document
- * `sceneConfigSchema` for `'scene'`. Handy when validating a directory of
- * content files in a loop.
+ * `dialogues` / `quests` / `items` / `achievements`, the single-document
+ * `sceneConfigSchema` for `'scene'`, or `sceneProjectSchema` for
+ * `'scene-project'`. Handy when validating a directory of content files in a
+ * loop.
  */
 export function schemaFor(kind: ContentKind): JsonSchema {
   return schemasByKind[kind]

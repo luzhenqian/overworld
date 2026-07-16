@@ -4,6 +4,7 @@ import { EditorPanel, EditorScene, EditorToggle } from '@overworld-engine/editor
 import { World } from './World'
 import { HUD } from './ui/HUD'
 import { DialogueBox } from './ui/DialogueBox'
+import { DevInspector } from './ui/DevInspector'
 // 引擎与事件接线(副作用模块,应用启动时装配一次)
 import './game/engines'
 
@@ -21,6 +22,8 @@ export default function App() {
       <DialogueBox />
       <EditorPanel />
       <EditorToggle />
+      {/* 开发调试:按 ` 切换事件总线检查器(默认隐藏) */}
+      <DevInspector />
     </div>
   )
 }

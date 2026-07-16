@@ -1,6 +1,6 @@
 {
   "name": "authority-server",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Reference authoritative movement server for @overworld-engine/net client-side prediction",
   "type": "module",

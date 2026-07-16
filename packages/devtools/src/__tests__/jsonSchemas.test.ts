@@ -13,6 +13,7 @@ import {
   questDefinitionSchema,
   questDefinitionsSchema,
   sceneConfigSchema,
+  sceneProjectSchema,
   schemaFor,
 } from '../jsonSchemas'
 import type { JsonSchema } from '../jsonSchemas'
@@ -233,6 +234,19 @@ describe('jsonSchemas: valid starter-shaped content passes', () => {
     expect(check(sceneConfigSchema, starterScene)).toEqual([])
     expect(check(sceneConfigSchema, { npcs: [] })).toEqual([])
   })
+
+  it('accepts a multi-scene project embedding starter-shaped scenes', () => {
+    const project = {
+      version: 1,
+      activeSceneId: 'level-1',
+      scenes: [
+        { id: 'level-1', name: '起始关', scene: starterScene },
+        { id: 'level-2', name: 'Boss 关', scene: { npcs: [] } },
+      ],
+    }
+    expect(check(sceneProjectSchema, project)).toEqual([])
+    expect(check(sceneProjectSchema, { scenes: [] })).toEqual([])
+  })
 })
 
 describe('jsonSchemas: invalid content fails', () => {
@@ -291,6 +305,16 @@ describe('jsonSchemas: invalid content fails', () => {
     const scene = { npcs: [{ id: 'a', position: [0, 0, 0], rotation: [0, 0, 0] }] }
     expect(check(sceneConfigSchema, scene)).toEqual(['npcs: [0] missing required "modelPath"'])
   })
+
+  it('rejects a project missing scenes, and a scene entry missing id/name/scene', () => {
+    expect(check(sceneProjectSchema, { version: 1 })).toEqual(['missing required "scenes"'])
+    expect(check(sceneProjectSchema, { scenes: [{ name: 'x', scene: { npcs: [] } }] })).toEqual([
+      'scenes: [0] missing required "id"',
+    ])
+    expect(check(sceneProjectSchema, { scenes: [{ id: 'a', name: 'x' }] })).toEqual([
+      'scenes: [0] missing required "scene"',
+    ])
+  })
 })
 
 describe('jsonSchemas: registry and metadata', () => {
@@ -308,6 +332,7 @@ describe('jsonSchemas: registry and metadata', () => {
       'questDefinition',
       'questDefinitions',
       'sceneConfig',
+      'sceneProject',
     ])
   })
 
@@ -333,5 +358,6 @@ describe('jsonSchemas: registry and metadata', () => {
     expect(schemaFor('items')).toBe(itemDefinitionsSchema)
     expect(schemaFor('achievements')).toBe(achievementDefinitionsSchema)
     expect(schemaFor('scene')).toBe(sceneConfigSchema)
+    expect(schemaFor('scene-project')).toBe(sceneProjectSchema)
   })
 })

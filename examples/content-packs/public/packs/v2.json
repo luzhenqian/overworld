@@ -1,0 +1,90 @@
+{
+  "id": "town",
+  "version": 2,
+  "dialogues": [
+    {
+      "id": "elder-intro",
+      "startNodeId": "hello",
+      "nodes": [
+        {
+          "id": "hello",
+          "speaker": "村长",
+          "text": "丰收节到了!去找市场的商人接活儿吧。",
+          "responses": [
+            { "id": "ok", "text": "好的!", "next": "bye" },
+            { "id": "leave", "text": "先走了。" }
+          ]
+        },
+        { "id": "bye", "speaker": "村长", "text": "节日快乐!", "endsDialogue": true }
+      ]
+    },
+    {
+      "id": "merchant-intro",
+      "startNodeId": "greet",
+      "nodes": [
+        {
+          "id": "greet",
+          "speaker": "商人",
+          "text": "帮我采集 5 个南瓜,报酬丰厚。",
+          "responses": [
+            {
+              "id": "accept",
+              "text": "接下委托。",
+              "effects": [{ "type": "quest.start", "params": { "questId": "harvest-festival" } }]
+            },
+            { "id": "decline", "text": "改天吧。" }
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "welcome",
+      "category": "tutorial",
+      "title": "初来乍到",
+      "description": "和村长打个招呼。",
+      "autoStart": true,
+      "objectives": [
+        {
+          "id": "talk",
+          "description": "与村长对话",
+          "target": 1,
+          "trigger": { "event": "dialogue:ended", "filter": { "dialogueId": "elder-intro" } }
+        }
+      ]
+    },
+    {
+      "id": "harvest-festival",
+      "category": "side",
+      "title": "丰收节委托",
+      "description": "为丰收节采集南瓜。",
+      "objectives": [
+        {
+          "id": "gather",
+          "description": "采集南瓜",
+          "target": 5,
+          "trigger": { "event": "item:added", "filter": { "itemId": "pumpkin" }, "amountFrom": "quantity" }
+        }
+      ]
+    }
+  ],
+  "items": [
+    { "id": "coin", "name": "金币", "description": "通用货币", "stackable": true, "maxStack": 999 },
+    { "id": "pumpkin", "name": "南瓜", "description": "丰收节的时令作物", "stackable": true, "maxStack": 99 }
+  ],
+  "achievements": [
+    {
+      "id": "first-talk",
+      "title": "第一次对话",
+      "description": "与任意 NPC 交谈一次",
+      "trigger": { "event": "dialogue:ended", "count": 1 }
+    },
+    {
+      "id": "festival-hero",
+      "title": "丰收英雄",
+      "description": "完成丰收节委托",
+      "trigger": { "event": "quest:completed", "filter": { "questId": "harvest-festival" }, "count": 1 }
+    }
+  ]
+}

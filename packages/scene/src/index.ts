@@ -56,8 +56,14 @@ export { SceneShell, preloadSceneModels } from './SceneShell'
 export type { SceneShellProps } from './SceneShell'
 
 // Scene JSON (editor↔scene authoring loop)
-export { SceneFromJson, sceneJsonToShellProps, sceneConfigToSceneJson } from './sceneJson'
-export type { SceneJson, SceneContentProps, SceneFromJsonProps } from './sceneJson'
+export { SceneFromJson, sceneJsonToShellProps, sceneConfigToSceneJson, pickScene } from './sceneJson'
+export type {
+  SceneJson,
+  SceneContentProps,
+  SceneFromJsonProps,
+  SceneProjectLike,
+  SceneProjectSceneLike,
+} from './sceneJson'
 export { BaseNPC } from './BaseNPC'
 export type { BaseNPCProps } from './BaseNPC'
 export { BaseBuilding } from './BaseBuilding'

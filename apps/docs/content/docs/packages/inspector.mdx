@@ -1,0 +1,101 @@
+---
+title: '@overworld-engine/inspector'
+description: 开发期调试覆盖层:实时事件总线检查器 + zustand store 检查器
+---
+
+**开发期调试覆盖层**:把 Overworld 的事件总线与 zustand store 直接搬到屏幕上
+观察。纯 DOM 覆盖层(不依赖 three.js),挂在 `<Canvas>` 之外即可,与
+`@overworld-engine/editor` / `@overworld-engine/minimap` 同一套内联样式风格。
+
+运行时依赖只有 `@overworld-engine/core` 与 `@overworld-engine/devtools`
+(复用其 `profileBus` 做每事件耗时统计);`react`、`zustand` 是 peer。
+
+> **仅供开发期。** 请用 `import.meta.env.DEV` 或按键开关把覆盖层挡在生产构建
+> 之外——它只读、从不 emit,常驻挂着也安全,但没必要进正式包体。
+
+## 无头层:`createEventStream`
+
+覆盖层背后的数据层,也可单独使用。订阅 `bus.onAny`(默认全局 `gameEvents`),
+维护一个最近 `max` 条(默认 200)的**环形缓冲**与**每事件累计计数**。
+
+`seq` / `at` 都用**单调计数器**(不是 `Date.now()`)——因此在假时钟、同毫秒
+连发、SSR 等任何环境下,顺序断言都是确定的、可测的(与 devtools 的
+`createEventRecorder` 同一套纪律)。
+
+```ts
+import { createEventStream } from '@overworld-engine/inspector'
+import { gameEvents } from '@overworld-engine/core'
+
+const stream = createEventStream(gameEvents, { max: 100 })
+gameEvents.emit('quest:started', { questId: 'welcome' })
+
+stream.entries() // [{ seq: 0, event: 'quest:started', payload: {…}, at: 0 }]
+stream.counts()  // { 'quest:started': 1 }
+stream.clear()   // 清空缓冲与计数(seq 计数器仍单调递增)
+stream.stop()    // 取消订阅(幂等),返回 unsubscribe 函数
+```
+
+| 成员 | 说明 |
+| --- | --- |
+| `entries()` | 环形缓冲内的条目(最旧在前,返回副本) |
+| `counts()` | 每事件累计计数快照(含已被淘汰出缓冲的事件) |
+| `clear()` | 清空缓冲与计数;`seq` 不重置 |
+| `stop()` | 取消 `onAny` 订阅(幂等),返回 unsubscribe 函数 |
+
+计数是**累计的**:即便条目被环形缓冲淘汰,`counts()` 仍反映从创建(或上次
+`clear()`)以来的全部发射次数。
+
+## 事件总线覆盖层:`<EventBusInspector>`
+
+固定面板,展示:实时**事件流**(事件名 + 精简 payload + `seq`,最新在上)、
+每事件**计数表**、以及**暂停 / 清空**控件。开启 `profile`(默认)时用
+`profileBus` 在计数表里附带每事件 `totalMs`。
+
+```tsx
+import { EventBusInspector } from '@overworld-engine/inspector'
+
+// 挂在 <Canvas> 之外,用 DEV 与按键开关双重收口
+{import.meta.env.DEV && showInspector && <EventBusInspector position="top-left" />}
+```
+
+| Prop | 默认 | 说明 |
+| --- | --- | --- |
+| `bus` | `gameEvents` | 要观察的事件总线 |
+| `max` | `200` | 传给 `createEventStream` 的环形缓冲容量 |
+| `position` | `'top-right'` | `top-left` / `top-right` / `bottom-left` / `bottom-right` |
+| `paused` | `false` | 初始是否暂停(冻结实时视图) |
+| `profile` | `true` | 附加 `profileBus`;挂载期间包裹 `bus.emit`,卸载时还原 |
+| `refreshMs` | `250` | 视图刷新间隔 |
+| `style` / `className` | — | 覆盖面板样式 |
+| `testId` | `'ow-inspector'` | 面板根的稳定 `data-testid`(供 E2E) |
+
+面板**只读**、从不 emit;`profile` 打开时通过 `profileBus` 临时 monkey-patch
+`bus.emit`,卸载时自动还原,不影响正常游戏。
+
+## Store 覆盖层:`<StoreInspector>`
+
+订阅一个 zustand store(裸 `StoreApi` 或 `create(...)` 绑定 hook 都行——两者都
+带 `getState` / `subscribe`),渲染可折叠的**实时 JSON 快照**。函数值显示为
+`[fn]`、循环引用显示为 `[circular]`,不会因 store 里挂着 action 而崩。
+
+```tsx
+import { StoreInspector } from '@overworld-engine/inspector'
+import { useGameStore } from './game/state'
+
+<StoreInspector store={useGameStore} label="game" collapsed />
+```
+
+| Prop | 默认 | 说明 |
+| --- | --- | --- |
+| `store` | — | 要观察的 store(`StoreApi` 或绑定 hook) |
+| `label` | `'store'` | 快照上方标题 |
+| `collapsed` | `false` | 初始是否折叠 |
+| `style` / `className` | — | 覆盖面板样式 |
+| `testId` | `'ow-store-inspector'` | 面板根的稳定 `data-testid` |
+
+## 在 dungeon 示例里
+
+`examples/dungeon` 用按 `` ` ``(反引号)切换的方式挂了 `<EventBusInspector>`
+(默认隐藏),开启后即观察地牢的真实事件(`item:added` / `quest:*` /
+`dungeon:player-hit` / `entity:interact` …),并有一个提交入库的 E2E
+(`e2e/inspector.mjs`)驱动真实玩法、断言覆盖层出图且事件流含真实事件名。

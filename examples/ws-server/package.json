@@ -1,6 +1,6 @@
 {
   "name": "ws-server",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Reference relay server for @overworld-engine/net WebSocket transport (thin wrapper around @overworld-engine/relay)",
   "type": "module",

@@ -74,6 +74,51 @@ export function sceneConfigToSceneJson(props: SceneContentProps): SceneJson {
   return json
 }
 
+/**
+ * One named scene inside a {@link SceneProjectLike} — a structural mirror of
+ * `@overworld-engine/editor`'s `SceneProjectSceneJSON` (`{ id, name, scene }`).
+ * Defined locally so the scene package never imports the editor.
+ */
+export interface SceneProjectSceneLike {
+  id: string
+  name: string
+  scene: SceneJson
+}
+
+/**
+ * A multi-scene project document — the structural shape of the editor's
+ * `SceneProjectJson` (`exportProject()` output). Only the `scenes` array is
+ * needed to pick a level; `version` / `activeSceneId` are accepted but ignored
+ * by {@link pickScene}. Defined structurally so a game can pass a parsed
+ * project straight in with no import of the editor package.
+ */
+export interface SceneProjectLike {
+  scenes: SceneProjectSceneLike[]
+  activeSceneId?: string
+  version?: number
+}
+
+/**
+ * Pick a single level's {@link SceneJson} out of a multi-scene project by its
+ * `id` (preferred) or, failing that, its display `name`. Returns `undefined`
+ * when nothing matches (or the project has no `scenes`). Pure and tolerant of
+ * loosely-typed input — a game can render a specific level with:
+ *
+ * ```tsx
+ * <SceneFromJson json={pickScene(project, 'level-1')} />
+ * ```
+ *
+ * (Guard against `undefined` before rendering — e.g. show a fallback when the
+ * level id is unknown.)
+ */
+export function pickScene(project: SceneProjectLike, nameOrId: string): SceneJson | undefined {
+  const scenes = project?.scenes
+  if (!Array.isArray(scenes)) return undefined
+  const byId = scenes.find((entry) => entry?.id === nameOrId)
+  if (byId) return byId.scene
+  return scenes.find((entry) => entry?.name === nameOrId)?.scene
+}
+
 /** Props for {@link SceneFromJson}: a {@link SceneJson} plus any other `<SceneShell>` prop. */
 export interface SceneFromJsonProps
   extends Omit<SceneShellProps, 'npcs' | 'buildings' | 'decorationCollisions'> {

@@ -105,6 +105,11 @@ jobs:
           pnpm --filter scene-authoring build
           pnpm --filter scene-authoring typecheck
 
+      - name: content-packs — build & typecheck
+        run: |
+          pnpm --filter content-packs build
+          pnpm --filter content-packs typecheck
+
   docs:
     name: Build docs (optional)
     runs-on: ubuntu-latest

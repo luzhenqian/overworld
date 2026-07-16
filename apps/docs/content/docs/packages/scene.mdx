@@ -124,6 +124,31 @@ export function Game() {
 }
 ```
 
+## 从多场景项目取关(pickScene)
+
+`@overworld-engine/editor` 的 `exportProject()` 产出一份**多场景项目**
+`SceneProjectJson`(`{ version?, scenes: [{ id, name, scene }], activeSceneId? }`)。
+本包提供 `pickScene(project, nameOrId)` 从中取出**单个关卡**的 `SceneJson`,交给
+`<SceneFromJson>` 渲染 —— 游戏据此按关卡切换世界,而**无需 import 编辑器包**
+(项目类型 `SceneProjectLike` 是结构化定义,直接传入解析后的 JSON 即可):
+
+```tsx
+import { SceneFromJson, pickScene } from '@overworld-engine/scene'
+
+const level = pickScene(project, 'level-1')   // 先按 id 匹配,再回退按 name 匹配
+return level ? <SceneFromJson json={level} player={null} /> : <Fallback />
+```
+
+- 先按 `id` 匹配、匹配不到再按显示 `name` 匹配;都没有时返回 `undefined`
+  (渲染前请判空)。
+- 纯函数,且对松散输入容错(`project` 缺 `scenes` 数组时返回 `undefined`)。
+- `version` / `activeSceneId` 会被接受但被 `pickScene` 忽略。
+
+`<SceneFromJson json={...}>` 把 `SceneJson`(NPC / 建筑 / 装饰放置)映射为
+`<SceneShell>` 的内容 props,其余 prop(`player`、`children` 灯光/地面/传送门、
+`theme`……)原样透传;`SceneJson` 与编辑器 `exportScene()` 的 `EditorSceneJSON`
+结构等价,可直接互通。
+
 ## 性能预设
 
 面向移动端 / 低端设备的渲染质量分档:一个 zustand 单例存当前

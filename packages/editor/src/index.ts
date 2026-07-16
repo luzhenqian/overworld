@@ -18,9 +18,12 @@ export {
   exportEntities,
   importEntities,
   sceneConfigToEditorEntities,
+  sceneProjectFromEntries,
+  parseSceneProject,
   DEFAULT_COLLISION_RADIUS,
   DEFAULT_SNAP,
   HISTORY_LIMIT,
+  SCENE_PROJECT_VERSION,
 } from './editorStore'
 export type {
   AlignAxis,
@@ -38,6 +41,9 @@ export type {
   EditorDecorationInstanceJSON,
   EditorDecorationGroupJSON,
   SceneConfigInput,
+  EditorSceneEntry,
+  SceneProjectSceneJSON,
+  SceneProjectJson,
 } from './editorStore'
 
 export { EditorScene } from './EditorScene'

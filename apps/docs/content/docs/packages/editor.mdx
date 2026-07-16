@@ -206,6 +206,75 @@ store.importScene(json)            // 逆操作(尽力解析,跳过坏条目;根
 面板的「导出 JSON」按钮会同时复制到剪贴板并下载 `.json` 文件;
 「导入 JSON」从文本框解析,结果(含错误)显示在面板内的状态行上。
 
+## 多场景 / 关卡管理(v1.5)
+
+store 同时管理一组**命名场景(关卡)**:`scenes: EditorSceneEntry[]`
+(每项 `{ id, name, entities }`)与 `activeSceneId`。**当前**关卡的实时编辑
+就是既有的 `entities` 工作集,单场景的一切用法(`entities` / `exportScene`
+/ `importScene` / 撤销重做 / 模板 / 多选……)**原封不动地作用于当前关卡** ——
+store 初始就带一个默认关卡 `{ id: 'scene-1', name: 'Scene 1' }` 包住原有行为。
+每个关卡条目里的 `entities` 是**上次持久化的快照**(在切换 / 导出项目时刷新),
+不是第二份实时副本。
+
+```ts
+const store = useEditorStore.getState()
+store.newScene('关卡二')          // 新建空关卡并切过去(返回 EditorSceneEntry)
+store.renameScene('scene-1', '起始关') // 重命名(空白名 / 未知 id 忽略)
+store.switchScene('scene-1')       // 切换关卡(先把当前实体持久化进当前关卡)
+store.duplicateScene('scene-1')    // 深拷贝关卡(名为「<原名> copy」)并切到副本
+store.deleteScene('scene-2')       // 删除关卡(绝不清空到 0 个)
+```
+
+- **`newScene(name?)`**:新建空关卡并切过去(先持久化当前关卡)。`name` 缺省为
+  唯一的 `Scene N`,传入的名字会被 `trim` 并去重。返回新建的 `EditorSceneEntry`。
+- **`renameScene(id, name)`**:仅改显示名(元数据,**不进撤销历史**,类似
+  `setSnap`)。空白名、无效 id、原地重命名都忽略。名字**按输入原样**存,唯一性
+  只由 `validateSceneProject` 校验、这里不强制。
+- **`switchScene(id)`**:把当前工作实体持久化进当前关卡,再载入目标关卡的实体。
+  **切换是一次历史边界** —— 撤销/重做栈会被清空,undo 永不跨关卡。切到当前关卡或
+  未知 id 均为无操作。
+- **`duplicateScene(id)`**:深拷贝关卡实体、命名 `"<原名> copy"`、插在源关卡之后,
+  并切到副本(同样是历史边界)。未知 id 返回 `undefined`。
+- **`deleteScene(id)`**:**绝不清空到 0 个关卡**(只剩一个时无操作)。删除**当前**
+  关卡会载入相邻关卡(其实时实体被丢弃)并作为历史边界;删除非当前关卡则不影响
+  当前工作集与其历史。未知 id 无操作。
+
+> **历史边界**:撤销/重做历史是**逐关卡、切换即清空**的 —— v1.5 不跨关卡保留
+> undo 栈。`switchScene` / `newScene` / `duplicateScene` / `importProject` 以及删除
+> **当前**关卡都会把 `past` / `future` 清空,给新载入的关卡一个干净的历史起点。
+
+## 导出 / 导入项目(多场景)
+
+`exportProject()` 把**全部关卡**汇总成一份 `SceneProjectJson`;`importProject(json)`
+**整体替换**所有关卡(尽力解析、容错,绝不抛错也绝不清空到 0 个关卡):
+
+```ts
+const project = store.exportProject()   // { version, scenes: [{ id, name, scene }], activeSceneId }
+store.importProject(project)            // 逆操作:替换全部关卡并载入其 activeSceneId
+```
+
+`exportProject()` 是**纯读取** —— 会把当前关卡的实时实体折叠进结果而不改动 store。
+每个 `scenes[i].scene` 就是该关卡的 `EditorSceneJSON`(等价于 scene 的
+`SceneJson`),因此可以用 `@overworld-engine/scene` 的 `pickScene(project, 'scene-1')`
+取出单个关卡交给 `<SceneFromJson>` 渲染。项目形状:
+
+```jsonc
+{
+  "version": 1,
+  "scenes": [
+    { "id": "scene-1", "name": "起始关", "scene": { "npcs": [], "buildings": [], "decorations": {} } }
+  ],
+  "activeSceneId": "scene-1"
+}
+```
+
+纯函数 `sceneProjectFromEntries(scenes, activeSceneId?)` 与 `parseSceneProject(json)`
+分别是 `exportProject` / `importProject` 的无头实现(可脱离 store 单测);
+`parseSceneProject` 容错:根不是对象、`scenes` 缺失/为空、条目损坏、内嵌场景损坏
+都会优雅降级(去重 id/名字,`activeSceneId` 缺失/未知回退到第一个关卡)。
+用 `@overworld-engine/devtools` 的 `validateSceneProject` 对导出的项目做静态校验
+(非空、id/名字唯一、`activeSceneId` 有效,并逐场景跑 `validateScene`)。
+
 ## 可测性:稳定 `data-testid`
 
 `<EditorPanel>` / `<EditorToggle>` 的关键交互元素带稳定的 `data-testid`,

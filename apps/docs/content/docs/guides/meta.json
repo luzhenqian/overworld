@@ -8,6 +8,7 @@
     "authoritative-multiplayer",
     "assets",
     "content-hmr",
+    "content-packs",
     "releasing",
     "signing-and-store"
   ]

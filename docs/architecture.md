@@ -278,7 +278,23 @@ GitHub luzhenqian/overworld。
   Google Play internal、TestFlight),用 `steps.detect.outputs` 布尔守卫——secrets
   缺失时跳过而非失败,无签名构件照常产出;docs/guides/signing-and-store.md 四端手册。
 
-## 版本路线(v1.5+)
+## v1.5 已落地:规模化授权与实时调试
 
-微信 useGLTF 官方适配器 vendor 化、编辑器多场景/关卡管理、内容包热更新分发、
-存档迁移工具(version/migrate 辅助)、可视化事件总线调试面板。
+- 编辑器多场景/关卡管理:命名场景(`scenes` + `activeSceneId`,新建/切换/改名/删除/复制,
+  切换为历史边界)、`exportProject`/`importProject`(多关卡项目 JSON);devtools
+  `sceneProjectSchema` + `validateSceneProject`(唯一 id/名、合法 activeSceneId、内层
+  逐场景校验);scene `pickScene(project, nameOrId)` 结构化取关卡喂 `<SceneFromJson>`。
+  单场景 `exportScene`/`importScene` 仍作用于活动场景,非破坏。
+- `@overworld-engine/inspector`(新):`createEventStream`(单调计数环形缓冲,确定性、
+  不用 Date.now)+ `<EventBusInspector>`(实时事件流 + 每事件计数,复用 devtools
+  profileBus)+ `<StoreInspector>`(任意 zustand store 实时 JSON 快照)。dungeon 接入,
+  E2E 证明面板显示真实事件与 store 字段。
+- `@overworld-engine/content`(新):`defineContentPack`/`validateContentPack`/
+  `applyContentPack` —— 校验门控(report 有 error 则拒绝、零注册)后按段调用 registerX
+  注入引擎(引擎结构化传入,不 import);配合 core `defineMigrations`(顺序版本迁移,
+  喂 `persistOptions.migrate`)做内容/存档演进。examples/content-packs 演示 v2 热更新。
+
+## 版本路线(v1.6+)
+
+微信 useGLTF 官方适配器 vendor 化、编辑器可视化关卡跳转/门户连线、内容包签名与
+CDN 分发、多语言内容包工作流、性能预算 CI 门禁、录制回放(事件流 → 确定性重放)。

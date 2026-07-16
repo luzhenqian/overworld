@@ -63,6 +63,36 @@ if (import.meta.env.DEV) assertValidContent({ dialogues, quests }) // 有 error 
 `endsDialogue` 节点上的 `next` 永远不会被走到(`advance()` 先判
 `endsDialogue`),会得到 warning,且不算作可达性的边。
 
+## 场景与多场景项目校验(validateScene / validateSceneProject)
+
+`validateScene(json, options?)` 静态校验单份 `SceneJson`(编辑器 `exportScene()`
+的产物 / `<SceneFromJson>` 的输入):id 唯一、必填字段齐全、`scale`/`collisionRadius`
+非负、装饰组结构合法等为 error,空场景与未知 `modelPath`(仅当传入
+`knownModelPaths`)为 warning。
+
+`validateSceneProject(json, options?)` 校验编辑器 `exportProject()` 产出的
+**多场景项目** `SceneProjectJson`(`{ version?, scenes: [{ id, name, scene }], activeSceneId? }`):
+
+- **项目结构(error)**:根不是对象;`scenes` 不是数组;空项目(`scenes: []`);
+  条目不是对象或缺 `id` / `name` / `scene`;**scene id 重复**;**scene 名字重复**;
+  `activeSceneId` 不是字符串或指向不存在的 scene id。
+- **逐场景**:对每个 `scenes[i].scene` 跑上面的 `validateScene`,把结果**归并到
+  该关卡** —— issue 的 `source` 置为该 scene 的 id,原来的实体级来源(如
+  `npc:guide`)折进 `path`,不丢定位信息。
+
+```ts
+import { validateSceneProject, formatReport } from '@overworld-engine/devtools'
+
+const report = validateSceneProject(useEditorStore.getState().exportProject(), {
+  knownModelPaths: ['/models/guide.glb'],   // 可选:转发给每个内嵌场景的 validateScene
+})
+if (!report.ok) console.error(formatReport(report))
+```
+
+返回与其它校验器同样的 `ValidationReport`(`{ issues, errors, warnings, ok }`),
+纯函数、从不抛出。选项 `SceneProjectValidationOptions` 继承 `SceneValidationOptions`
+(即 `knownModelPaths`),会施加到项目里的每一个场景。
+
 ## JSON Schema(外部内容文件)
 
 面向把内容写成 **`.json` 文件**的游戏,devtools 导出一组手写的
@@ -74,10 +104,13 @@ if (import.meta.env.DEV) assertValidContent({ dialogues, quests }) // 有 error 
   `achievementDefinitionSchema`、`effectRefSchema`、`conditionRefSchema`
 - 数组(整份内容文件的形状,`$id` 带 `-list` 后缀):`dialogueTreesSchema`、
   `questDefinitionsSchema`、`itemDefinitionsSchema`、`achievementDefinitionsSchema`
+- 场景:`sceneConfigSchema`(单份 `SceneJson`)与 `sceneProjectSchema`
+  (多场景 `SceneProjectJson`,内嵌 `sceneConfig` 形状);两者自包含、可配合
+  `validateScene` / `validateSceneProject` 使用
 - `contentBundleSchema`:`{ dialogues?, quests?, items?, achievements? }`
   整包(与 `validateContent` 的输入同形)
-- `allContentSchemas`:按名字迭代所有 schema;`schemaFor('quests')` 等
-  直接取某一分区的数组 schema
+- `allContentSchemas`:按名字迭代所有 schema;`schemaFor('quests')` /
+  `schemaFor('scene')` / `schemaFor('scene-project')` 直接取某一类的 schema
 
 每个 schema 都**自包含**(共享形状内嵌在各自的 `$defs` 里)、带唯一
 `$id`(如 `https://overworld.dev/schemas/dialogue-tree.json`),可以单独交给

@@ -22,6 +22,8 @@ export { validateAchievements } from './validateAchievements'
 export type { AchievementValidationOptions } from './validateAchievements'
 export { validateScene } from './validateScene'
 export type { SceneValidationOptions } from './validateScene'
+export { validateSceneProject } from './validateSceneProject'
+export type { SceneProjectValidationOptions } from './validateSceneProject'
 export { validateContent, assertValidContent } from './validateContent'
 export type { ContentBundle, ContentValidationOptions } from './validateContent'
 export { bindEventLogger, createEventRecorder } from './eventLogger'
@@ -42,6 +44,7 @@ export {
   questDefinitionSchema,
   questDefinitionsSchema,
   sceneConfigSchema,
+  sceneProjectSchema,
   schemaFor,
 } from './jsonSchemas'
 export type { ContentKind, JsonSchema } from './jsonSchemas'

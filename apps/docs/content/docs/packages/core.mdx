@@ -162,6 +162,38 @@ const useStore = create<State>()(
 全框架统一约定:各引擎的 `persist` 配置**省略或 `false` = 不持久化;`true` = 默认配置
 开启;传对象 = 自定义 `name` / `version` / `storage`**。
 
+## 存档迁移(defineMigrations)
+
+持久化形状随版本演进时,旧存档需要迁移。zustand 的 `persist` 在水合时调用一次
+`migrate(persistedState, fromVersion)`——`fromVersion` 是存档里记录的版本。
+`defineMigrations` 把「每版一个升级步骤」的映射编译成这个 `migrate` 函数:
+**按 key 升序**执行所有 key 大于 `fromVersion` 的步骤,把 state 逐级串起来。
+
+```ts
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { defineMigrations, persistOptions } from '@overworld-engine/core'
+
+const migrate = defineMigrations({
+  1: (state) => ({ ...state, gold: state.coins ?? 0 }), // v0 → v1:coins 改名 gold
+  2: (state) => ({ ...state, gold: Number(state.gold) }), // v1 → v2:强制数值
+})
+
+const useStore = create<State>()(
+  persist(initializer, persistOptions({ name: 'wallet', version: 2, migrate }))
+)
+```
+
+- key 是每步**产出的目标版本**(key 为 `2` 的步骤把 v1 升到 v2),与
+  `persistOptions` 的 `version` 保持一致。
+- 已应用的步骤自动跳过:v0 存档跑 `1`、`2`;v1 存档只跑 `2`;v2 存档原样返回。
+- key 不必连续(`{ 2, 5 }` 对 v0 存档依次跑 `2`、`5`),始终按数值升序。
+- 纯函数、不抛异常、不改动入参;是否复制由每步自行决定。
+
+> 内容与存档是两件事:内容包(`@overworld-engine/content`)热更的是**定义**,
+> 不写坏存档;但当改动影响持久化状态的含义(重命名 quest id、改 objective id),
+> 用 `defineMigrations` 迁移旧存档。
+
 ## 云存档 REST 适配器(createRestStorage)
 
 `createRestStorage(config)` 返回一个**异步**的 zustand 兼容存储(zustand 的

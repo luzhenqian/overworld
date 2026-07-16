@@ -1,6 +1,6 @@
 {
   "name": "dungeon",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,6 +18,7 @@
     "@overworld-engine/editor": "workspace:*",
     "@overworld-engine/environment": "workspace:*",
     "@overworld-engine/input": "workspace:*",
+    "@overworld-engine/inspector": "workspace:*",
     "@overworld-engine/inventory": "workspace:*",
     "@overworld-engine/minimap": "workspace:*",
     "@overworld-engine/notifications": "workspace:*",

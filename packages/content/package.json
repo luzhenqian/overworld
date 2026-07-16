@@ -1,0 +1,44 @@
+{
+  "name": "@overworld-engine/content",
+  "version": "1.5.0",
+  "description": "Content packs for Overworld: validate-then-apply versioned dialogue/quest/item/achievement bundles into engines",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@overworld-engine/core": "workspace:*",
+    "@overworld-engine/devtools": "workspace:*"
+  },
+  "peerDependencies": {},
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg"
+  ],
+  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luzhenqian/overworld.git",
+    "directory": "packages/content"
+  }
+}
