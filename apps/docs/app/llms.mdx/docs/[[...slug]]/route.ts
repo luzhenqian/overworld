@@ -10,7 +10,8 @@ export async function GET(_req: Request, { params }: RouteContext<'/llms.mdx/doc
 
   return new Response(await getLLMText(page), {
     headers: {
-      'Content-Type': 'text/markdown',
+      // charset 必带:内容为中文,缺省会被浏览器按 latin-1 解码成乱码
+      'Content-Type': 'text/markdown; charset=utf-8',
     },
   });
 }

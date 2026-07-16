@@ -1,6 +1,13 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+
+export const metadata: Metadata = {
+  title: { default: 'Overworld — Web 3D RPG 游戏开发框架', template: '%s | Overworld' },
+  description:
+    '模块化 Web 3D RPG 游戏开发框架:React + three.js + zustand,18 个可组合的 @overworld-engine/* 包。',
+};
 
 const inter = Inter({
   subsets: ['latin'],
