@@ -5,19 +5,20 @@
  *   2. setLabelCanvasFactory            —— SpriteLabel 的离屏 canvas 改走 wx.createCanvas
  *   3. createWeappCanvasRoot()          —— 首个 wx.createCanvas() 即屏幕主画布,R3F 根
  *   4. createWeappTouchJoystick         —— 左半屏浮动摇杆 → movementInput → Player
- *   5. 右半屏点按 → handleActionTap      —— 无射线拾取(适配层不接 R3F pointer 事件),
- *                                          交互 = 邻近检测 + interact()
- *   6. root.render(<World/>)
+ *   5. root.render(<World/>)
+ *   6. createWeappPointerBridge         —— 由 wx 触摸驱动 R3F 指针事件:点中 NPC
+ *                                          网格 → onClick → 打开/推进对话(真射线拾取)
  *
  * 注意:setLabelCanvasFactory 只登记工厂不建 canvas,真正的 wx.createCanvas()
  * 首调发生在 createWeappCanvasRoot 内 —— 保证主画布语义(小游戏首个 canvas
- * 上屏)不被标签画布抢占。
+ * 上屏)不被标签画布抢占。指针桥必须在 render() 之后挂载(需要 R3F store)。
  */
 import { createElement } from 'react'
 import * as THREE from 'three'
 import { extend } from '@react-three/fiber'
 import {
   createWeappCanvasRoot,
+  createWeappPointerBridge,
   createWeappTouchJoystick,
   getWx,
   registerWeappBridge,
@@ -30,14 +31,7 @@ import {
   type LabelCanvas,
 } from '@overworld-engine/scene'
 import { World } from './World'
-import {
-  dialogue,
-  gold,
-  handleActionTap,
-  inventory,
-  movementInput,
-  quests,
-} from './engines'
+import { dialogue, gold, inventory, movementInput, quests } from './engines'
 
 const wx = getWx()
 if (typeof wx.createCanvas !== 'function') {
@@ -60,6 +54,12 @@ interface DebugHandle {
   gl: unknown
   canvas: unknown
   size: unknown
+  /** R3F 场景图(e2e 断言 GLB 模型已进入场景 / 计算 NPC 屏幕坐标)。 */
+  scene: THREE.Scene | null
+  /** R3F 相机(e2e 把 NPC 世界坐标投影到屏幕以合成点按)。 */
+  camera: THREE.Camera | null
+  /** THREE 命名空间(e2e 在页面内做 Box3/Vector3 投影)。 */
+  three: typeof THREE
   gameEvents: typeof gameEvents
   quests: typeof quests
   dialogue: typeof dialogue
@@ -68,7 +68,6 @@ interface DebugHandle {
   playerPositionRef: typeof playerPositionRef
   sceneStore: typeof useSceneStore
   gold: typeof gold
-  actionTap: typeof handleActionTap
 }
 let debugHandle: DebugHandle | null = null
 if (__DEBUG__) {
@@ -77,6 +76,9 @@ if (__DEBUG__) {
     gl: null,
     canvas: null,
     size: null,
+    scene: null,
+    camera: null,
+    three: THREE,
     gameEvents,
     quests,
     dialogue,
@@ -85,7 +87,6 @@ if (__DEBUG__) {
     playerPositionRef,
     sceneStore: useSceneStore,
     gold,
-    actionTap: handleActionTap,
   }
   ;(globalThis as Record<string, unknown>).__game = debugHandle
 }
@@ -102,7 +103,11 @@ const canvasRoot = createWeappCanvasRoot({
       preserveDrawingBuffer: __DEBUG__,
     },
     onCreated: (state) => {
-      if (debugHandle) debugHandle.gl = state.gl
+      if (debugHandle) {
+        debugHandle.gl = state.gl
+        debugHandle.scene = state.scene
+        debugHandle.camera = state.camera
+      }
     },
   },
 })
@@ -114,12 +119,11 @@ if (debugHandle) {
 // 4. 左半屏浮动摇杆(锚点 = 落指点),写入 movementInput
 createWeappTouchJoystick(movementInput, { region: 'left-half' })
 
-// 5. 右半屏点按 → 对话推进 / 邻近交互
-const halfWidth = canvasRoot.size.width / 2
-wx.onTouchStart?.((event) => {
-  const tap = event.changedTouches.find((t) => t.clientX >= halfWidth)
-  if (tap) handleActionTap()
-})
-
-// 6. 渲染场景
+// 5. 渲染场景
 canvasRoot.render(createElement(World))
+
+// 6. R3F 指针桥(必须在 render 之后:需要 R3F store)。由 wx 触摸驱动,tap(短按
+//    不拖动)→ 射线拾取 → 点中的 NPC group onClick → 打开/推进对话。region:'full'
+//    让全屏皆可拾取;摇杆仍独占左半屏移动 —— 二者靠「拖动 vs 轻点」自然共存
+//    (拖动摇杆不会被当作拾取点按)。
+createWeappPointerBridge(canvasRoot, { region: 'full' })

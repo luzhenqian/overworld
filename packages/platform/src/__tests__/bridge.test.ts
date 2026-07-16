@@ -6,9 +6,13 @@ import {
   createTauriBridge,
   createTauriFileStorage,
   createTelegramBridge,
+  createTelegramCloudStorage,
+  encodeCloudKey,
+  decodeCloudKey,
   createWebBridge,
   registerBridge,
   type PlatformBridge,
+  type TelegramBridge,
 } from '../bridge'
 import { configurePlatform, resetPlatform } from '../detection'
 
@@ -334,6 +338,237 @@ describe('telegramBridge', () => {
     doc.visibilityState = 'hidden'
     doc.fire('visibilitychange')
     expect(events).toEqual(['app:paused'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Telegram CloudStorage
+// ---------------------------------------------------------------------------
+
+interface CloudStorageStub {
+  data: Map<string, string>
+  sets: Array<{ key: string; value: string }>
+  removes: string[]
+  webApp: Record<string, unknown>
+}
+
+/**
+ * In-memory Telegram CloudStorage stub: the real API is entirely
+ * callback-async, so every method here invokes its `callback(error, result)`
+ * (synchronously — good enough to exercise the serialized write-through queue).
+ */
+function stubCloudStorage(initial?: Record<string, string>): CloudStorageStub {
+  const data = new Map<string, string>(Object.entries(initial ?? {}))
+  const sets: Array<{ key: string; value: string }> = []
+  const removes: string[] = []
+  const CloudStorage = {
+    getKeys(cb: (error: string | null, keys?: string[]) => void) {
+      cb(null, [...data.keys()])
+    },
+    getItems(keys: string[], cb: (error: string | null, values?: Record<string, string>) => void) {
+      const out: Record<string, string> = {}
+      for (const key of keys) out[key] = data.get(key) ?? ''
+      cb(null, out)
+    },
+    getItem(key: string, cb: (error: string | null, value?: string) => void) {
+      cb(null, data.get(key) ?? '')
+    },
+    setItem(key: string, value: string, cb?: (error: string | null, success?: boolean) => void) {
+      // Model real Telegram: reject keys outside [A-Za-z0-9_] (1-128) so the
+      // suite proves the adapter only ever sends legal (encoded) keys.
+      if (!/^[A-Za-z0-9_]{1,128}$/.test(key)) {
+        cb?.('WEBAPP_CLOUD_STORAGE_INVALID_KEY')
+        return
+      }
+      data.set(key, value)
+      sets.push({ key, value })
+      cb?.(null, true)
+    },
+    removeItem(key: string, cb?: (error: string | null, success?: boolean) => void) {
+      data.delete(key)
+      removes.push(key)
+      cb?.(null, true)
+    },
+    removeItems(keys: string[], cb?: (error: string | null, success?: boolean) => void) {
+      for (const key of keys) data.delete(key)
+      cb?.(null, true)
+    },
+  }
+  const webApp = { initData: 'query_id=abc', CloudStorage }
+  vi.stubGlobal('window', { Telegram: { WebApp: webApp } })
+  return { data, sets, removes, webApp }
+}
+
+// Real setTimeout(0) crosses a macrotask boundary, after the whole serialized
+// microtask write-through chain has settled — robust regardless of its length.
+const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
+
+describe('encodeCloudKey / decodeCloudKey', () => {
+  it('round-trips arbitrary keys within Telegram\'s [A-Za-z0-9_] charset', () => {
+    for (const key of [
+      'overworld:quest',
+      'overworld:save-slot',
+      'plain',
+      'has_underscore',
+      'a:b/c.d e',
+      'symbols!@#$%^&*()',
+      'unicode_名前',
+    ]) {
+      const enc = encodeCloudKey(key)
+      expect(enc).toMatch(/^[A-Za-z0-9_]*$/) // legal Telegram key charset
+      expect(decodeCloudKey(enc)).toBe(key) // exact reversibility
+    }
+  })
+
+  it('escapes the colon and the underscore itself unambiguously', () => {
+    expect(encodeCloudKey('overworld:quest')).toBe('overworld_003Aquest')
+    // A literal '_' must be escaped so it is not mistaken for an escape start.
+    expect(encodeCloudKey('a_b')).toBe('a_005Fb')
+    expect(decodeCloudKey('a_005Fb')).toBe('a_b')
+  })
+})
+
+/** Seed a CloudStorage stub as Telegram really holds it: under *encoded* keys. */
+function seedEncoded(original: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(original)) out[encodeCloudKey(key)] = value
+  return out
+}
+
+describe('createTelegramCloudStorage', () => {
+  it('loads keys+values into a synchronous mirror, decoding to original keys', async () => {
+    stubCloudStorage(seedEncoded({ 'overworld:quest': '1', 'overworld:ach': '2' }))
+    const storage = await createTelegramCloudStorage()
+    expect(storage.getItem('overworld:quest')).toBe('1')
+    expect(storage.getItem('overworld:ach')).toBe('2')
+    expect(storage.getItem('missing')).toBeNull()
+    expect(storage.keys().sort()).toEqual(['overworld:ach', 'overworld:quest'])
+  })
+
+  it('setItem mirrors synchronously and writes a legal, decodable key through', async () => {
+    const stub = stubCloudStorage()
+    const storage = await createTelegramCloudStorage()
+
+    storage.setItem('overworld:quest', '42')
+    // Mirror speaks the ORIGINAL key and reflects the write immediately.
+    expect(storage.getItem('overworld:quest')).toBe('42')
+    expect(storage.keys()).toEqual(['overworld:quest'])
+
+    await settle()
+    // The wire key Telegram received is legal and decodes back to the original.
+    expect(stub.sets).toHaveLength(1)
+    const wireKey = stub.sets[0]?.key ?? ''
+    expect(wireKey).toMatch(/^[A-Za-z0-9_]+$/)
+    expect(wireKey).not.toContain(':')
+    expect(decodeCloudKey(wireKey)).toBe('overworld:quest')
+    expect(stub.data.get(wireKey)).toBe('42')
+  })
+
+  it('the colon key that broke a naive pass-through now persists end-to-end', async () => {
+    // With a charset-enforcing stub, a naive pass-through would have its
+    // `overworld:quest` write rejected and swallowed → nothing persisted.
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const stub = stubCloudStorage()
+    const first = await createTelegramCloudStorage()
+    first.setItem('overworld:quest', '{"active":{"gather":1}}')
+    await settle()
+    // No write was rejected (no swallowed error), and something was stored.
+    expect(error).not.toHaveBeenCalled()
+    expect(stub.sets).toHaveLength(1)
+    // A fresh adapter (simulated reload) rehydrates the original key + value.
+    const reloaded = await createTelegramCloudStorage()
+    expect(reloaded.getItem('overworld:quest')).toBe('{"active":{"gather":1}}')
+    error.mockRestore()
+  })
+
+  it('round-trips an empty-string value (getKeys membership, not truthiness)', async () => {
+    const stub = stubCloudStorage()
+    const first = await createTelegramCloudStorage()
+    first.setItem('overworld:flag', '')
+    await settle()
+    expect(stub.sets).toHaveLength(1)
+    const reloaded = await createTelegramCloudStorage()
+    // A stored '' must survive reload as '' — not be dropped as "absent".
+    expect(reloaded.getItem('overworld:flag')).toBe('')
+    expect(reloaded.keys()).toEqual(['overworld:flag'])
+  })
+
+  it('removeItem updates the mirror and writes through; absent keys are a no-op', async () => {
+    const stub = stubCloudStorage(seedEncoded({ 'overworld:quest': '1' }))
+    const storage = await createTelegramCloudStorage()
+
+    storage.removeItem('overworld:quest')
+    expect(storage.getItem('overworld:quest')).toBeNull()
+    storage.removeItem('missing') // not in the mirror → no write-through
+
+    await settle()
+    expect(stub.removes).toHaveLength(1)
+    expect(decodeCloudKey(stub.removes[0] ?? '')).toBe('overworld:quest')
+    expect(stub.data.size).toBe(0)
+  })
+
+  it('serializes concurrent writes so CloudStorage sees them in order', async () => {
+    const stub = stubCloudStorage()
+    const storage = await createTelegramCloudStorage()
+
+    storage.setItem('k', '1')
+    storage.setItem('k', '2')
+    storage.setItem('k', '3')
+
+    await settle()
+    expect(stub.sets.map((entry) => entry.value)).toEqual(['1', '2', '3'])
+    expect(stub.data.get('k')).toBe('3') // 'k' is charset-legal → unencoded
+  })
+
+  it('swallows write failures (console.error) so a failed save never throws', async () => {
+    const stub = stubCloudStorage()
+    ;(stub.webApp['CloudStorage'] as { setItem: unknown }).setItem = (
+      _key: string,
+      _value: string,
+      cb?: (error: string | null) => void
+    ) => cb?.('CLOUD_STORAGE_QUOTA_EXCEEDED')
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const storage = await createTelegramCloudStorage()
+
+    expect(() => storage.setItem('k', 'v')).not.toThrow()
+    await settle()
+    expect(error).toHaveBeenCalledOnce()
+    expect(String(error.mock.calls[0]?.[1])).toContain('CLOUD_STORAGE_QUOTA_EXCEEDED')
+    error.mockRestore()
+  })
+
+  it('logs and skips (keeps in mirror) a write whose encoded key exceeds 128 chars', async () => {
+    const stub = stubCloudStorage()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const storage = await createTelegramCloudStorage()
+    const longKey = 'overworld:' + ':'.repeat(60) // each ':' → 5 chars encoded → >128
+    storage.setItem(longKey, 'v')
+    expect(storage.getItem(longKey)).toBe('v') // mirror keeps it
+    await settle()
+    expect(stub.sets).toHaveLength(0) // nothing written to the cloud
+    expect(error).toHaveBeenCalledOnce()
+    error.mockRestore()
+  })
+
+  it('rejects with an actionable error when CloudStorage is unavailable', async () => {
+    vi.stubGlobal('window', { Telegram: { WebApp: { initData: 'x' } } })
+    await expect(createTelegramCloudStorage()).rejects.toThrow(/CloudStorage is unavailable/)
+    vi.stubGlobal('window', {})
+    await expect(createTelegramCloudStorage()).rejects.toThrow(/Bot API >= 6\.9/)
+  })
+
+  it('filters the mirror to the given (original-key) prefix', async () => {
+    stubCloudStorage(seedEncoded({ 'game:a': '1', 'game:b': '2', 'other:c': '3' }))
+    const storage = await createTelegramCloudStorage({ prefix: 'game:' })
+    expect(storage.keys().sort()).toEqual(['game:a', 'game:b'])
+    expect(storage.getItem('other:c')).toBeNull()
+  })
+
+  it('bridge.cloudStorage() delegates to createTelegramCloudStorage', async () => {
+    stubCloudStorage(seedEncoded({ 'overworld:x': '9' }))
+    const bridge = createTelegramBridge() as TelegramBridge
+    const storage = await bridge.cloudStorage()
+    expect(storage.getItem('overworld:x')).toBe('9')
   })
 })
 

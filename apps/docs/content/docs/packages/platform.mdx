@@ -71,7 +71,7 @@ bridge.quit?.()                             // 桌面壳可用
 | 桥 | 存档 | 生命周期 | 特有能力 |
 | --- | --- | --- | --- |
 | `web` | localStorage(缺席时 memory 兜底) | `visibilitychange` → `app:paused/resumed` | — |
-| `telegram` | localStorage | `activated/deactivated`(Bot API ≥ 8.0)否则 `visibilitychange`;`BackButton` → `app:back` | 创建即 `ready()+expand()`;`getTheme()` 暴露 `themeParams`;Haptic 震动 |
+| `telegram` | localStorage(可选升级 CloudStorage 云存档) | `activated/deactivated`(Bot API ≥ 8.0)否则 `visibilitychange`;`BackButton` → `app:back` | 创建即 `ready()+expand()`;`getTheme()` 暴露 `themeParams`;`cloudStorage()` 云存档(见下);Haptic 震动 |
 | `tauri` | localStorage(可升级文件存档) | `visibilitychange` + `beforeunload`(关窗)→ `app:paused` | 外链走 shell/opener 插件;`quit()` 关窗 |
 | `capacitor` | localStorage | App 插件 `pause/resume/backButton` → 总线(插件缺席回退 `visibilitychange`) | safe-area 读 CSS `env()`;Haptics 震动 |
 
@@ -101,6 +101,61 @@ createSaveSlots({ storage })
 ```
 
 插件缺失时以带安装指引的错误 reject。
+
+### 云存档(Telegram CloudStorage,可选升级)
+
+`createTelegramCloudStorage(options?)` 返回 `Promise<EnumerableStorage>`,
+后端是 `window.Telegram.WebApp.CloudStorage`(Bot API ≥ 6.9)——
+**按用户存储、由 Telegram 跨该用户多设备同步**的 key/value 云存档。
+`TelegramBridge` 上等价暴露 `cloudStorage(options?)`。
+
+#### 异步 API × 同步镜像
+
+Telegram 的 CloudStorage **全部是回调异步**的
+(`setItem` / `getItem` / `getItems` / `getKeys` / `removeItem` / `removeItems`,
+签名都是 `callback(error, result)`),而 core 的 `EnumerableStorage`
+(以及 zustand persist)要的是**同步** `getItem` / `setItem` / `keys`。
+
+所以它与 `createTauriFileStorage` 走完全一样的模式:**创建时一次性
+`getKeys` → `getItems` 把云端 key 拉进内存 `Map` 镜像**,之后返回的存储
+
+- `getItem` / `keys` **同步读镜像**;
+- `setItem` / `removeItem` **同步更新镜像 + 串行队列异步写回云端**;
+- 写回失败只 `console.error` 吞掉,**云写入失败绝不崩游戏**。
+
+因此必须 `await` 出 storage **再**创建持久化 store(与 Tauri 文件存档一致)。
+
+#### Telegram-only 与回退
+
+在 Telegram 之外、或 `Bot API < 6.9` 的老客户端上,返回的 Promise
+**以带指引的错误 reject**。用 `bridge.storage()` 兜底:
+
+```ts
+const storage =
+  bridge.kind === 'telegram' && 'cloudStorage' in bridge
+    ? await bridge.cloudStorage().catch(() => bridge.storage())
+    : bridge.storage()
+persistOptions({ name: 'quest', storage: () => storage })
+```
+
+`options.prefix` 只在**加载时过滤**要镜像的 key(`keys()` 也只反映这批),
+写入仍落在你传入的完整 key 上;省略则镜像该用户的全部 CloudStorage key。
+
+#### 限制(Telegram 强制,需据此设计)
+
+- 单个 value ≤ 4096 字节(≈ 4 KB);
+- 每个用户至多 1024 个 key;
+- key 只允许 `[A-Za-z0-9_]`、长度 1–128。**键名无需你操心**:框架默认 persist key
+  带冒号(`persistOptions` 产出 `overworld:quest` 这种),该适配器会**透明编码**
+  为合法 wire key(`overworld:quest` ⇄ `overworld_003Aquest`,导出的 `encodeCloudKey`
+  / `decodeCloudKey` 可复用),`keys()` / `getItem` 始终讲原始冒号键 —— 框架 store
+  可直接接入,无需改键名。编码后超过 128 字符(极长键名)的写入会记日志并跳过云端
+  (仍留在本地镜像),不会崩游戏。
+
+因为云存档跨设备同步,建议只放"存档级"的小体量状态(任务进度、设置),
+大体量缓存仍走 localStorage。参见 `examples/telegram-mini-app`:
+`detectPlatform() === 'telegram'` 且客户端支持 CloudStorage 时用云存档,
+否则回退 localStorage,同一份代码两种介质。
 
 ## app:* 事件(经 declaration merging 并入框架事件表)
 

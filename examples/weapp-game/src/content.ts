@@ -8,16 +8,27 @@ import type { DialogueTree } from '@overworld-engine/dialogue'
 import type { ItemDefinition } from '@overworld-engine/inventory'
 import type { QuestDefinition } from '@overworld-engine/quest'
 
-/** 本模板的 NPC 描述(无 modelPath —— 小游戏内一律用胶囊体占位)。 */
+/**
+ * 本模板的 NPC 描述。`modelPath` 存在时走 useGLTF 加载包内 GLB(向导艾拉演示
+ * 真机 GLB 加载 —— 依赖 vendor 里 wx.request 支撑的 XHR/fetch polyfill);省略
+ * 时 BaseNPC 回退为主题色胶囊体(长者松)。
+ */
 export interface WeappNPC {
   id: string
   name: string
   position: Vec3
   rotation?: Vec3
+  modelPath?: string
 }
 
 export const NPCS: WeappNPC[] = [
-  { id: 'guide', name: '向导艾拉', position: [6, 0, 6], rotation: [0, -Math.PI / 4, 0] },
+  {
+    id: 'guide',
+    name: '向导艾拉',
+    position: [6, 0, 6],
+    rotation: [0, -Math.PI / 4, 0],
+    modelPath: '/models/ghost.glb',
+  },
   { id: 'elder', name: '长者松', position: [-6, 0, 3] },
 ]
 

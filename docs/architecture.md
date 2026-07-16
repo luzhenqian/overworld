@@ -248,7 +248,23 @@ GitHub luzhenqian/overworld。
 - editor `configureEditorLabels` 文案全量覆写(全家桶唯一有内置可见文案的包);
   持久化互操作指南(权威数据不进 persist 守则);npm workspaces 兼容确认。
 
-## 版本路线(v1.3+)
+## v1.3 已落地:原生交互与出包
 
-R3F pointer 事件桥(微信射线拾取)、weapp 官方适配器 vendor 与 useGLTF 支持、
-Tauri/Capacitor CI 出包矩阵、TG CloudStorage 存档适配器。
+- 微信小游戏交互闭环(adapters-weapp):`createWeappPointerBridge` 用 fiber v8 的
+  EventManager 复用其 raycast 管线,但**只由 wx.onTouch* 驱动**(不碰真实 DOM),
+  故 wx-shim harness(真浏览器)与真机行为一致;vendor 适配器补 XMLHttpRequest
+  (over wx.request)+ fetch shim,`useGLTF` 可加载真实 GLB。
+- Telegram CloudStorage 云存档(platform):`createTelegramCloudStorage` 复刻
+  Tauri 文件存储的「异步加载一次→同步镜像→异步写穿」模式;**透明键编码**
+  (导出 `encodeCloudKey`/`decodeCloudKey`)解决 Telegram `[A-Za-z0-9_]` 键约束
+  与框架冒号键的冲突——冒号 store 直接接入,`keys()`/`getItem` 仍讲原始键。
+- CI 出包矩阵:examples 编译 job + build-artifacts.yml(Tauri macOS/Windows、
+  Capacitor Android debug/iOS 模拟器,均无签名可绿);修复 pnpm action-setup 冲突。
+
+（工程质量:本轮用带对抗验证的 workflow 编排——独立验证 agent 抓出了 CloudStorage
+「冒号键在真机被静默拒收」的 hollow-green 缺陷,修复后以字符集强校验的 stub 端到端复验。）
+
+## 版本路线(v1.4+)
+
+微信 useGLTF 官方适配器 vendor 化、Tauri/Capacitor CI 签名与商店上传、
+TG CloudStorage 与 saveSlots 的枚举桥、编辑器场景 JSON 与 SceneShell 的往返工具。

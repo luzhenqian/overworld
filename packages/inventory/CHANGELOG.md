@@ -1,5 +1,16 @@
 # @overworld-engine/inventory
 
+## 1.3.0
+
+### Minor Changes
+
+- v1.3 原生交互与出包:微信小游戏 R3F 指针/raycast 拾取 + useGLTF(wx.request XHR polyfill);Telegram CloudStorage 云存档适配器(透明键编码,冒号键可直接接入);Tauri/Capacitor CI 出包矩阵;pnpm action-setup 与 packageManager 冲突修复。
+
+### Patch Changes
+
+- Updated dependencies
+  - @overworld-engine/core@1.3.0
+
 ## 1.2.0
 
 ### Minor Changes

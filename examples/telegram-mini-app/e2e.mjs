@@ -46,7 +46,52 @@ async function loadPlaywright() {
 const TELEGRAM_MOCK = `(() => {
   const calls = { ready: 0, expand: 0 }
   const backHandlers = []
-  window.__tgMock = { calls, backHandlers }
+  // CloudStorage 写入轨迹(断言云存档往返用);数据本身落在下面命名空间化的 localStorage,
+  // 因此跨 page.reload() 仍然保留,能模拟"换设备/重开后镜像重建"。
+  const cloudSets = []
+  const cloudRemoves = []
+  window.__tgMock = { calls, backHandlers, cloudSets, cloudRemoves }
+
+  // 全回调异步的 CloudStorage 内存桩(以 localStorage 命名空间为后端持久化)。
+  const CLOUD_NS = '__tgcloud__:'
+  const CloudStorage = {
+    getKeys(cb) {
+      const keys = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && k.startsWith(CLOUD_NS)) keys.push(k.slice(CLOUD_NS.length))
+      }
+      cb(null, keys)
+    },
+    getItems(keys, cb) {
+      const out = {}
+      for (const k of keys) out[k] = localStorage.getItem(CLOUD_NS + k) ?? ''
+      cb(null, out)
+    },
+    getItem(key, cb) { cb(null, localStorage.getItem(CLOUD_NS + key) ?? '') },
+    setItem(key, value, cb) {
+      // Real Telegram rejects keys outside [A-Za-z0-9_] (1-128) — enforce it
+      // here so the colon-namespaced overworld:quest only round-trips because
+      // the adapter transparently encodes the key.
+      if (!/^[A-Za-z0-9_]{1,128}$/.test(key)) {
+        if (cb) cb('WEBAPP_CLOUD_STORAGE_INVALID_KEY')
+        return
+      }
+      localStorage.setItem(CLOUD_NS + key, value)
+      cloudSets.push({ key, value })
+      if (cb) cb(null, true)
+    },
+    removeItem(key, cb) {
+      localStorage.removeItem(CLOUD_NS + key)
+      cloudRemoves.push(key)
+      if (cb) cb(null, true)
+    },
+    removeItems(keys, cb) {
+      for (const k of keys) localStorage.removeItem(CLOUD_NS + k)
+      if (cb) cb(null, true)
+    },
+  }
+
   window.Telegram = {
     WebApp: {
       initData: 'query_id=e2e&user=%7B%22id%22%3A1%7D&auth_date=0&hash=e2e',
@@ -73,6 +118,7 @@ const TELEGRAM_MOCK = `(() => {
       openLink() {},
       onEvent() {},
       offEvent() {},
+      CloudStorage,
       HapticFeedback: {
         impactOccurred() {},
         notificationOccurred() {},
@@ -178,6 +224,61 @@ async function main() {
       () => window.__overworld.dialogue.getState().activeDialogue
     )
     check('app:back 关闭了打开中的对话', activeAfterBack === null)
+
+    // ---- CloudStorage 云存档往返 -------------------------------------------
+    // Telegram 端存档走 CloudStorage(而非 localStorage):启动 gather-crystals
+    // 任务 → 持久化异步写回 CloudStorage.setItem → 重载后镜像重建、进度仍在。
+    const cloudInjected = await page.evaluate(
+      () => typeof window.Telegram.WebApp.CloudStorage?.setItem === 'function'
+    )
+    check('CloudStorage mock 已注入', cloudInjected === true)
+
+    await page.evaluate(() => {
+      window.__overworld.quests.getState().startQuest('gather-crystals')
+    })
+    // 写回是异步串行的,等 CloudStorage.setItem 收到一个「合法编码键 → 解码为
+    // overworld:quest」且含该任务的写入(证明键编码在真实字符集约束下可用)。
+    const decodeCloudKeyInPage = `(enc) => { let o=''; for(let i=0;i<enc.length;i++){ if(enc[i]==='_'){o+=String.fromCharCode(parseInt(enc.slice(i+1,i+5),16));i+=4}else{o+=enc[i]} } return o }`
+    await page
+      .waitForFunction(
+        (decodeSrc) => {
+          const decode = eval(decodeSrc)
+          return window.__tgMock.cloudSets.some(
+            (s) =>
+              /^[A-Za-z0-9_]+$/.test(s.key) &&
+              decode(s.key) === 'overworld:quest' &&
+              s.value.includes('gather-crystals')
+          )
+        },
+        decodeCloudKeyInPage,
+        { timeout: 5_000 }
+      )
+      .catch(() => {})
+    const cloudSet = await page.evaluate((decodeSrc) => {
+      const decode = eval(decodeSrc)
+      return (
+        window.__tgMock.cloudSets.find(
+          (s) =>
+            /^[A-Za-z0-9_]+$/.test(s.key) &&
+            decode(s.key) === 'overworld:quest' &&
+            s.value.includes('gather-crystals')
+        ) ?? null
+      )
+    }, decodeCloudKeyInPage)
+    check(
+      '任务进度经键编码写回 CloudStorage(合法键→解码 overworld:quest)',
+      cloudSet !== null,
+      cloudSet ? `wire key ${cloudSet.key}(${cloudSet.value.length} 字节)` : '未捕获合法写入'
+    )
+
+    // 模拟重载:CloudStorage(以命名空间化 localStorage 为后端)跨刷新保留,
+    // 引导时 getKeys → getItems 重建内存镜像,任务引擎同步 hydrate 回进度。
+    await page.reload()
+    await page.waitForFunction(() => Boolean(window.__overworld), null, { timeout: 15_000 })
+    const restored = await page.evaluate(() =>
+      Boolean(window.__overworld.quests.getState().active['gather-crystals'])
+    )
+    check('重载后 gather-crystals 进度从 CloudStorage 恢复', restored === true)
 
     if (failures > 0) throw new Error(`${failures} 项断言失败`)
     console.log('全部通过 ✔')

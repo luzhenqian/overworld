@@ -28,7 +28,15 @@ import {
   type NPCIndicator,
 } from '@overworld-engine/scene'
 import { CRYSTAL_SPOTS, NPCS, WORLD_BOUNDS } from './content'
-import { dialogue, gold, inventory, isDialogueActive, movementInput, quests } from './engines'
+import {
+  dialogue,
+  gold,
+  handleNpcTap,
+  inventory,
+  isDialogueActive,
+  movementInput,
+  quests,
+} from './engines'
 
 const PICKUP_DISTANCE = 1.8
 
@@ -170,7 +178,7 @@ export function World() {
       NPCS.map((npc) => ({
         id: npc.id,
         name: npc.name,
-        modelPath: '',
+        modelPath: npc.modelPath ?? '',
         position: npc.position,
         rotation: npc.rotation ?? [0, 0, 0],
       })),
@@ -208,19 +216,26 @@ export function World() {
 
       <CollisionRegistration npcs={npcConfigs} />
 
+      {/*
+        每个 NPC 裹一层带 onClick 的 group(命名为 npc.id,e2e 便于取):R3F 的
+        指针事件从被拾取的子网格冒泡到祖先 group,故点中 NPC 的模型/胶囊体/名牌
+        任意网格都会触发这里的 onClick —— 射线拾取由 createWeappPointerBridge 驱动。
+      */}
       {NPCS.map((npc) => (
-        <BaseNPC
-          key={npc.id}
-          npcId={npc.id}
-          name={npc.name}
-          position={npc.position}
-          rotation={npc.rotation}
-          scale={1.2}
-          theme={defaultSceneTheme.npc}
-          labelMode="sprite"
-          interactLabel="点击"
-          indicator={npcIndicators[npc.id]}
-        />
+        <group key={npc.id} name={npc.id} onClick={() => handleNpcTap(npc.id)}>
+          <BaseNPC
+            npcId={npc.id}
+            modelPath={npc.modelPath}
+            name={npc.name}
+            position={npc.position}
+            rotation={npc.rotation}
+            scale={1.2}
+            theme={defaultSceneTheme.npc}
+            labelMode="sprite"
+            interactLabel="点击"
+            indicator={npcIndicators[npc.id]}
+          />
+        </group>
       ))}
 
       <Crystals />

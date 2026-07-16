@@ -29,11 +29,26 @@ export type {
   WeappCanvasRootOptions,
   CanvasRootSize,
   CreateRootFn,
+  R3FStore,
 } from './canvasRoot'
 
 // Mini-game touch joystick (writes a MovementInputRef)
 export { createWeappTouchJoystick } from './joystick'
 export type { WeappTouchJoystick, WeappTouchJoystickOptions } from './joystick'
+
+// Mini-game R3F pointer / raycast bridge (fed by wx touch events)
+export {
+  createWeappPointerBridge,
+  touchToOffset,
+  offsetToNdc,
+  touchToNdc,
+} from './pointerEvents'
+export type {
+  WeappPointerBridge,
+  WeappPointerBridgeOptions,
+  PointerSize,
+  CanvasOrigin,
+} from './pointerEvents'
 
 // Platform bridge registration
 export { registerWeappBridge, createWeappBridge } from './bridge'

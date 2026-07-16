@@ -3,10 +3,13 @@
  *
  * 断言清单:
  *   1. 渲染循环在跑(__game.frames 递增)且 WebGL 真在出图(读像素非空白)
+ *   1b. useGLTF 加载包内 ghost.glb(vendor 的 wx.request → XHR/fetch polyfill 路径),
+ *       模型网格进入场景图 ★新增
  *   2. 左半屏真实指针拖拽(→ wx 触摸 → createWeappTouchJoystick)驱动玩家移动,
  *      「步行」任务目标随之推进;松手后摇杆归零
- *   3. 走近 NPC → 邻近检测命中;右半屏点按 → 对话开启
- *   4. 连续点按走完对话(自动选第一回应)→ gather-crystals 任务被对话效果启动
+ *   3. 走近 NPC → 邻近检测命中;合成点按落在 NPC 模型网格上 → 射线拾取 →
+ *      onClick → 对话开启(createWeappPointerBridge,取代旧的右半屏 hack)★新增
+ *   4. 连续点按 NPC 走完对话(自动选第一回应)→ gather-crystals 任务被对话效果启动
  *   5. 依次走到 3 颗水晶 → 背包 +3 → 任务链(welcome + gather-crystals)全部完成
  *   6. 金币奖励到账(50 + 200)
  *   7. 任务进度持久化到存储(wx 存储 → localStorage 的 overworld:quest)
@@ -166,6 +169,59 @@ try {
   )
   await page.screenshot({ path: path.join(shotsDir, '01-boot.png') })
 
+  console.log('[1b] useGLTF 加载包内 GLB(wx.request → XHR/fetch polyfill → GLTFLoader)')
+  // 等 ghost 节点(GLB 的根节点名)进入场景图 —— 证明整条加载链走通了。
+  await page.waitForFunction(
+    () => {
+      const g = window.__game
+      if (!g || !g.scene) return false
+      let found = false
+      g.scene.traverse((o) => {
+        if (o.name === 'ghost') found = true
+      })
+      return found
+    },
+    null,
+    { timeout: 15000 }
+  )
+  const glb = await page.evaluate(() => {
+    const g = window.__game
+    const THREE = g.three
+    let ghost = null
+    g.scene.traverse((o) => {
+      if (o.name === 'ghost') ghost = o
+    })
+    let meshCount = 0
+    ghost.traverse((o) => {
+      if (o.isMesh && o.geometry && o.geometry.getAttribute && o.geometry.getAttribute('position')) {
+        meshCount += 1
+      }
+    })
+    const box = new THREE.Box3().setFromObject(ghost)
+    const size = box.getSize(new THREE.Vector3())
+    return { meshCount, empty: box.isEmpty(), size: [size.x, size.y, size.z] }
+  })
+  assert(
+    glb.meshCount >= 1 && !glb.empty,
+    `ghost.glb 已加载:场景图含 ${glb.meshCount} 个模型网格(世界包围盒 ${glb.size
+      .map((n) => n.toFixed(2))
+      .join('×')})`
+  )
+  // 证明走的是「真机同款」链路,而非被浏览器原生 fetch/XHR 绕过:
+  const xhrPath = await page.evaluate(() => ({
+    fetchName: window.fetch && window.fetch.name,
+    xhrName: window.XMLHttpRequest && window.XMLHttpRequest.name,
+    glbRequests: (window.__wxShim.requests || []).filter((u) => /ghost\.glb/.test(u)),
+  }))
+  assert(
+    xhrPath.fetchName === 'fetchPolyfill' && xhrPath.xhrName === 'XHR',
+    `vendor polyfill 已强制覆盖宿主 fetch/XMLHttpRequest(fetch=${xhrPath.fetchName}, XHR=${xhrPath.xhrName})`
+  )
+  assert(
+    xhrPath.glbRequests.length >= 1,
+    `GLB 经 wx.request 传输(而非原生 fetch 绕过):${JSON.stringify(xhrPath.glbRequests)}`
+  )
+
   console.log('[2] 摇杆(左半屏真实指针拖拽 → wx 触摸 → Player 移动)')
   const before = await page.evaluate(() => window.__game.playerPositionRef.current.slice())
   await page.mouse.move(97, 550)
@@ -195,7 +251,7 @@ try {
   )
   assert(walkProgress > 0, `「步行」任务目标已推进(${walkProgress.toFixed(1)}/20)`)
 
-  console.log('[3] 邻近交互与对话(右半屏点按)')
+  console.log('[3] 邻近交互与射线拾取(合成点按落在 NPC 模型网格上 → onClick → 对话)')
   await navigateTo(page, 6, 6, 2.4)
   await page.waitForFunction(
     () => window.__game.sceneStore.getState().nearbyNpcId === 'guide',
@@ -205,20 +261,44 @@ try {
   assert(true, '走近向导 → nearbyNpcId = guide')
   await page.screenshot({ path: path.join(shotsDir, '02-near-npc.png') })
 
-  await page.mouse.click(300, 420) // 右半屏点按
+  // ghost 是一个实心盒网格:把它的世界包围盒中心投影到屏幕,从该点合成点按 —— 透视
+  // 投影保证从该屏幕点发出的射线正穿过盒心,必命中,从而验证真射线拾取。玩家在对话
+  // 期间被 isInputBlocked 冻结,相机静止,该屏幕坐标全程有效。
+  const npcScreen = await page.evaluate(() => {
+    const g = window.__game
+    const THREE = g.three
+    let ghost = null
+    g.scene.traverse((o) => {
+      if (o.name === 'ghost') ghost = o
+    })
+    const center = new THREE.Box3().setFromObject(ghost).getCenter(new THREE.Vector3())
+    const ndc = center.clone().project(g.camera)
+    return {
+      x: (ndc.x * 0.5 + 0.5) * g.size.width,
+      y: (-ndc.y * 0.5 + 0.5) * g.size.height,
+      inFront: ndc.z < 1,
+    }
+  })
+  assert(
+    npcScreen.inFront && npcScreen.x >= 0 && npcScreen.y >= 0,
+    `NPC 模型在相机前方,屏幕坐标 (${npcScreen.x.toFixed(0)}, ${npcScreen.y.toFixed(0)})`
+  )
+
+  await page.mouse.click(npcScreen.x, npcScreen.y) // tap 落在 ghost 网格 → 射线拾取
   await page.waitForFunction(
     () => window.__game.dialogue.getState().activeDialogue?.dialogueId === 'guide-intro',
     null,
     { timeout: 5000 }
   )
-  assert(true, '右半屏点按 → 对话 guide-intro 开启')
+  assert(true, '射线拾取:点中 NPC 模型网格 → onClick → 对话 guide-intro 开启')
   await page.screenshot({ path: path.join(shotsDir, '03-dialogue.png') })
 
-  // 连续点按走完对话:hello →(自动选「问水晶」)→ explain →(自动选「接任务」)→ 结束
+  // 连续点按 NPC 走完对话:hello →(自动选「问水晶」)→ explain →(自动选「接任务」)→ 结束。
+  // 每次都点在同一 NPC 屏幕点上,onClick 按当下对话状态推进(单入口,不会关闭后又重开)。
   for (let i = 0; i < 8; i += 1) {
     const open = await page.evaluate(() => !!window.__game.dialogue.getState().activeDialogue)
     if (!open) break
-    await page.mouse.click(300, 420)
+    await page.mouse.click(npcScreen.x, npcScreen.y)
     await sleep(250)
   }
   const afterDialogue = await page.evaluate(() => {

@@ -20,8 +20,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,6 +39,67 @@ jobs:
       - name: Test packages
         run: pnpm -r --filter './packages/*' test
 
+  examples:
+    name: Build & Typecheck example templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build @overworld packages
+        run: pnpm -r --filter './packages/*' build
+
+      # Every example below ships a web/bundle build. This job gates every push
+      # and PR on the templates still compiling. No native toolchains here — the
+      # real desktop/mobile artifact builds live in build-artifacts.yml.
+      - name: starter — build & typecheck
+        run: |
+          pnpm --filter starter build
+          pnpm --filter starter typecheck
+
+      - name: dungeon — build & typecheck
+        run: |
+          pnpm --filter dungeon build
+          pnpm --filter dungeon typecheck
+
+      - name: telegram-mini-app — build & typecheck
+        run: |
+          pnpm --filter telegram-mini-app build
+          pnpm --filter telegram-mini-app typecheck
+
+      # desktop-tauri: web build only (`build` = tsc --noEmit && vite build).
+      # The native `tauri:build` runs in build-artifacts.yml, not here.
+      - name: desktop-tauri (web) — build & typecheck
+        run: |
+          pnpm --filter desktop-tauri build
+          pnpm --filter desktop-tauri typecheck
+
+      # mobile-capacitor: web build only. The native android/iOS builds run in
+      # build-artifacts.yml.
+      - name: mobile-capacitor (web) — build & typecheck
+        run: |
+          pnpm --filter mobile-capacitor build
+          pnpm --filter mobile-capacitor typecheck
+
+      # weapp-game: `build` = node build.mjs (esbuild, which does NOT
+      # type-check), so the separate typecheck step is load-bearing here.
+      - name: weapp-game — build & typecheck
+        run: |
+          pnpm --filter weapp-game build
+          pnpm --filter weapp-game typecheck
+
   docs:
     name: Build docs (optional)
     runs-on: ubuntu-latest
@@ -51,8 +110,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

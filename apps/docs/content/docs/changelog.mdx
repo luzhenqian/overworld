@@ -3,6 +3,13 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v1.3 原生交互与出包
+
+- **微信小游戏完整交互**:R3F 指针桥(`createWeappPointerBridge`,wx 触摸驱动的 raycast 拾取,点 NPC 网格→onClick)+ vendor `XMLHttpRequest`-over-`wx.request` polyfill 使 `useGLTF` 可加载真实 GLB;wx-shim harness 新增两条真断言
+- **Telegram CloudStorage 云存档**:`createTelegramCloudStorage`(异步加载→同步 Map 镜像→异步写穿);**透明键编码**(`overworld:quest` ⇄ `overworld_003Aquest`)让冒号命名的框架 store 直接接入 Telegram 的 `[A-Za-z0-9_]` 键约束
+- **CI 出包矩阵**:`ci.yml` 新增 examples 编译 job;`build-artifacts.yml` 产出无签名的 Tauri(macOS/Windows)+ Capacitor(Android debug / iOS 模拟器)构件;修复 `pnpm/action-setup` 与 `packageManager` 的冲突
+- scene `SceneShell` 透传 `labelMode`;`createWeappCanvasRoot` 内置 `extend(THREE)`
+
 ## v1.2 确定性与联机基建
 
 响应首个生产消费方(投资模拟游戏)的需求反馈:

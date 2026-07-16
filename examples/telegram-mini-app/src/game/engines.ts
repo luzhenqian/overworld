@@ -10,12 +10,15 @@ import { useToastStore } from '@overworld-engine/notifications'
 import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld-engine/input'
 import { DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
-import { bridge } from './platform'
+import { getSaveStorage } from './save-storage'
+import './platform'
 
 /**
  * 引擎装配(starter 裁剪版)—— 内容、注册表与引擎唯一的交汇处。
  * 相比 starter 去掉了 i18n / 编辑器 / 联机 / AI 村民 / 成就 / 昼夜循环 / 小地图,
  * 保留:场景 + 玩家 + 任务 + 对话 + 背包 + HUD。
+ *
+ * 注意:本模块必须在 setSaveStorage() 之后才能被 import(见 main.tsx 的异步引导)。
  */
 
 export const conditions = createConditionRegistry()
@@ -29,15 +32,16 @@ export const dialogue = createDialogueEngine({
 })
 
 /**
- * 任务引擎开启持久化,存储后端来自平台桥:
- * web/telegram → localStorage,Tauri → 可换文件存储,微信 → wx storage。
- * 这是"每个端一份存档"的最小演示 —— 刷新页面后任务进度仍在。
+ * 任务引擎开启持久化,存储后端由 main.tsx 异步解析后注入:
+ * Telegram 端 → CloudStorage(跨设备云存档),浏览器直开 → localStorage。
+ * 这是"每个端一份存档"的最小演示 —— 刷新页面后任务进度仍在,
+ * 在 Telegram 里换台设备登录同一账号也能读回进度。
  */
 export const quests = createQuestEngine({
   quests: QUESTS,
   conditions,
   effects,
-  persist: { name: 'quest', storage: () => bridge.storage() },
+  persist: { name: 'quest', storage: () => getSaveStorage() },
 })
 
 export const inventory = createInventory({

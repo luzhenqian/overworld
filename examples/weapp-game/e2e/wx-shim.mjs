@@ -11,6 +11,10 @@
 export const wxShimSource = String.raw`(() => {
   if (window.wx) return
 
+  // 抓住原生 fetch/Headers —— vendor/weapp-adapter.js 之后会用 wx.request 支撑的
+  // polyfill 覆盖全局 fetch,wx.request 必须用这份原生实现,否则自我递归。
+  const pageFetch = window.fetch.bind(window)
+
   const touchListeners = { touchstart: [], touchmove: [], touchend: [], touchcancel: [] }
   const remove = (list, fn) => {
     const i = list.indexOf(fn)
@@ -18,7 +22,9 @@ export const wxShimSource = String.raw`(() => {
   }
 
   let mainCanvas = null
-  const shim = { canvases: [] }
+  // requests: 每次 wx.request 的 URL —— e2e 据此断言 GLB 走的是
+  // wx.request(→ adapter 的 XHR/fetch polyfill)而非被原生 fetch 绕过。
+  const shim = { canvases: [], requests: [] }
   window.__wxShim = shim
 
   const appendMain = (canvas) => {
@@ -112,6 +118,39 @@ export const wxShimSource = String.raw`(() => {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) cb()
       })
+    },
+
+    // --- 网络请求 → 原生 fetch(支撑 adapter 的 XMLHttpRequest/fetch polyfill)---
+    // GLTFLoader → FileLoader → fetch(polyfill)→ XMLHttpRequest(polyfill)→
+    // 这里的 wx.request → pageFetch。真机同路,只是最底层换成 wx 自己的网络栈。
+    request({ url, method = 'GET', header = {}, data, responseType = 'text', success, fail }) {
+      shim.requests.push(url)
+      let aborted = false
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+      const upper = String(method).toUpperCase()
+      pageFetch(url, {
+        method: upper,
+        headers: header,
+        body: upper === 'GET' || upper === 'HEAD' ? undefined : data,
+        signal: controller ? controller.signal : undefined,
+      })
+        .then(async (res) => {
+          const respHeader = {}
+          res.headers.forEach((v, k) => {
+            respHeader[k] = v
+          })
+          const payload = responseType === 'arraybuffer' ? await res.arrayBuffer() : await res.text()
+          if (!aborted && success) success({ data: payload, statusCode: res.status, header: respHeader })
+        })
+        .catch((err) => {
+          if (!aborted && fail) fail({ errMsg: String(err && err.message ? err.message : err) })
+        })
+      return {
+        abort() {
+          aborted = true
+          if (controller) controller.abort()
+        },
+      }
     },
 
     // --- socket → 真 WebSocket ---

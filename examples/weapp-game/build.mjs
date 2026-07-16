@@ -10,7 +10,7 @@
  * 产物格式 iife:小游戏的 require() 与浏览器 <script> 都能直接执行。
  */
 import { build } from 'esbuild'
-import { cpSync, mkdirSync, rmSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -60,6 +60,12 @@ cpSync(path.join(dir, 'game.js'), path.join(outDir, 'game.js'))
 cpSync(path.join(dir, 'game.json'), path.join(outDir, 'game.json'))
 cpSync(path.join(dir, 'project.config.json'), path.join(outDir, 'project.config.json'))
 cpSync(path.join(dir, 'vendor'), path.join(outDir, 'vendor'), { recursive: true })
+
+// 静态资源(public/ → dist/):useGLTF 从包内 /models/*.glb 加载模型。
+const publicDir = path.join(dir, 'public')
+if (existsSync(publicDir)) {
+  cpSync(publicDir, outDir, { recursive: true })
+}
 
 const mb = (bytes) => (bytes / 1024 / 1024).toFixed(2)
 const bundleSize = statSync(path.join(outDir, 'bundle.js')).size

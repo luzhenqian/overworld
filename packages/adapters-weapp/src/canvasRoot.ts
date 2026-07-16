@@ -7,13 +7,14 @@
  * provides the `window`/`document`/RAF/XHR shims three.js and React's
  * scheduler rely on) — see the weapp-game template.
  *
- * **v1.1 limitation (by design):** R3F **pointer events are not wired**
- * (`events: undefined`) — `onClick`/`onPointerOver` etc. on meshes never
- * fire, raycast picking is unavailable. Overworld games interact through
- * proximity detection + `interact()` and move via
- * `createWeappTouchJoystick`, which consume `wx` touch events directly, so
- * no scene graph events are needed. A custom EventManager bridge may come
- * in a later release.
+ * **Pointer events:** the root is configured with `events: undefined`, so out
+ * of the box no scene-graph pointer events fire (byte-identical to v1.1) —
+ * games that only move via `createWeappTouchJoystick` and interact via
+ * proximity + `interact()` need nothing more. To enable `onClick` /
+ * `onPointerOver` / raycast picking on meshes, attach
+ * `createWeappPointerBridge(canvasRoot)` after `render()`; it drives fiber's
+ * pointer pipeline from `wx` touches (see `pointerEvents.ts`). The bridge
+ * reads {@link WeappCanvasRoot.store}, which `render()` populates.
  */
 import type { ReactNode } from 'react'
 import * as THREE_NS from 'three'
@@ -65,6 +66,9 @@ export interface WeappCanvasRootOptions {
   createRootImpl?: CreateRootFn
 }
 
+/** The R3F store `root.render()` returns (the seam `createWeappPointerBridge` reads). */
+export type R3FStore = ReturnType<ReconcilerRoot<HTMLCanvasElement>['render']>
+
 /** Handle returned by {@link createWeappCanvasRoot}. */
 export interface WeappCanvasRoot {
   /** The configured R3F root (call `root.configure(...)` again to reconfigure). */
@@ -73,6 +77,12 @@ export interface WeappCanvasRoot {
   canvas: WxCanvas
   /** Resolved size/dpr the root was configured with. */
   size: CanvasRootSize
+  /**
+   * The R3F store, available after the first {@link WeappCanvasRoot.render}
+   * (null before). `createWeappPointerBridge` uses it to install the pointer
+   * event layer.
+   */
+  store: R3FStore | null
   /** Render a React element tree into the root (re-render by calling again). */
   render(node: ReactNode): void
   /** Unmount the tree and release the root. Idempotent. */
@@ -90,8 +100,9 @@ export interface WeappCanvasRoot {
  * ```
  *
  * Internally: `createRoot(canvas).configure({ size, dpr, gl: { antialias,
- * alpha: false }, frameloop: 'always', events: undefined })`. Pointer
- * events are intentionally not wired — see the module JSDoc.
+ * alpha: false }, frameloop: 'always', events: undefined })`. Pointer events
+ * stay off by default (v1.1 behavior); opt in with `createWeappPointerBridge`
+ * — see the module JSDoc.
  *
  * @throws outside a WeChat mini-game (no `wx.createCanvas`) when no
  * `canvas` is provided.
@@ -138,15 +149,21 @@ export function createWeappCanvasRoot(options: WeappCanvasRootOptions = {}): Wea
   })
 
   let disposed = false
-  return {
+  let storeApi: R3FStore | null = null
+  const handle: WeappCanvasRoot = {
     root,
     canvas,
     size,
+    get store() {
+      return storeApi
+    },
     render(node) {
       if (disposed) {
         throw new Error('[overworld/adapters-weapp] this canvas root was disposed')
       }
-      root.render(node)
+      // fiber's render() returns the root's zustand store; capture it so the
+      // pointer bridge can attach its event layer.
+      storeApi = root.render(node) as R3FStore
     },
     dispose() {
       if (disposed) return
@@ -154,4 +171,5 @@ export function createWeappCanvasRoot(options: WeappCanvasRootOptions = {}): Wea
       root.unmount()
     },
   }
+  return handle
 }

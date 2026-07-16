@@ -16,6 +16,9 @@ export {
   registerBridge,
   createWebBridge,
   createTelegramBridge,
+  createTelegramCloudStorage,
+  encodeCloudKey,
+  decodeCloudKey,
   createTauriBridge,
   createCapacitorBridge,
   createTauriFileStorage,
@@ -25,6 +28,7 @@ export type {
   TelegramBridge,
   SafeAreaInsets,
   TauriFileStorageOptions,
+  TelegramCloudStorageOptions,
 } from './bridge'
 
 // app:* lifecycle events (declaration merging into OverworldEventMap)

@@ -142,6 +142,28 @@ interface TelegramBackButton {
   offClick?: (cb: () => void) => void
 }
 
+/**
+ * Node-style `callback(error, result)` used by every Telegram `CloudStorage`
+ * method. `error` is a non-empty string on failure, `null`/empty on success.
+ */
+type CloudStorageCallback<T> = (error: string | null, result?: T) => void
+
+/**
+ * Telegram `WebApp.CloudStorage` (Bot API ≥ 6.9): per-user cloud key/value
+ * store synced across the user's devices. Every method is asynchronous and
+ * reports via a `callback(error, result)`. Constraints enforced by Telegram:
+ * keys match `[A-Za-z0-9_]` (length 1-128), values are ≤ 4096 bytes, and a
+ * user may keep at most 1024 keys.
+ */
+interface TelegramCloudStorage {
+  setItem: (key: string, value: string, callback?: CloudStorageCallback<boolean>) => void
+  getItem: (key: string, callback: CloudStorageCallback<string>) => void
+  getItems: (keys: string[], callback: CloudStorageCallback<Record<string, string>>) => void
+  removeItem: (key: string, callback?: CloudStorageCallback<boolean>) => void
+  removeItems: (keys: string[], callback?: CloudStorageCallback<boolean>) => void
+  getKeys: (callback: CloudStorageCallback<string[]>) => void
+}
+
 interface TelegramWebApp {
   initData?: string
   isActive?: boolean
@@ -154,6 +176,8 @@ interface TelegramWebApp {
   offEvent?: (event: string, cb: () => void) => void
   BackButton?: TelegramBackButton
   HapticFeedback?: { impactOccurred?: (style: string) => void }
+  /** Cloud key/value store (Bot API ≥ 6.9); absent outside Telegram / on older clients. */
+  CloudStorage?: TelegramCloudStorage
 }
 
 function getTelegramWebApp(): TelegramWebApp | undefined {
@@ -166,6 +190,17 @@ function getTelegramWebApp(): TelegramWebApp | undefined {
 export interface TelegramBridge extends PlatformBridge {
   /** Telegram's `themeParams` (empty object outside Telegram) — map onto your HUD. */
   getTheme(): Record<string, string>
+  /**
+   * Telegram `CloudStorage`-backed {@link EnumerableStorage} — a per-user
+   * cloud save that follows the player across devices. Delegates to
+   * {@link createTelegramCloudStorage}: the returned promise resolves to a
+   * synchronous mirror (built by loading every key up front) and **rejects**
+   * outside Telegram or on clients below Bot API 6.9. Resolve it *before*
+   * creating your persisted stores; fall back to {@link PlatformBridge.storage}
+   * (localStorage) when it rejects. See {@link createTelegramCloudStorage} for
+   * the size limits.
+   */
+  cloudStorage(options?: TelegramCloudStorageOptions): Promise<EnumerableStorage>
 }
 
 /**
@@ -215,6 +250,10 @@ export function createTelegramBridge(): TelegramBridge {
       return { ...(getTelegramWebApp()?.themeParams ?? {}) }
     },
 
+    cloudStorage(options) {
+      return createTelegramCloudStorage(options)
+    },
+
     bindLifecycle(bus) {
       const wa = getTelegramWebApp()
       const unbinders: Array<() => void> = []
@@ -247,6 +286,202 @@ export function createTelegramBridge(): TelegramBridge {
         for (const unbind of unbinders) unbind()
       }
     },
+  }
+}
+
+/** Telegram CloudStorage limits (Bot API): key charset/length and value size. */
+const MAX_CLOUD_KEY_LENGTH = 128
+const MAX_CLOUD_VALUE_BYTES = 4096
+
+/** UTF-8 byte length of a string, guarded for environments without TextEncoder. */
+function byteLength(value: string): number {
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(value).length
+  // Fallback estimate (over-counts nothing that matters for a soft warning).
+  return value.length
+}
+
+/**
+ * Encode an arbitrary storage key into Telegram CloudStorage's `[A-Za-z0-9_]`
+ * charset. Every character outside `[A-Za-z0-9]` — including `_` itself — is
+ * replaced with `_` followed by its 4-hex UTF-16 code unit, which
+ * {@link decodeCloudKey} reverses exactly (`overworld:quest` ⇄
+ * `overworld_003Aquest`). Because every emitted `_` starts a 5-char escape and
+ * a literal `_` is itself escaped, decoding is unambiguous.
+ */
+export function encodeCloudKey(key: string): string {
+  let out = ''
+  for (let i = 0; i < key.length; i++) {
+    const ch = key.charAt(i)
+    out += /[A-Za-z0-9]/.test(ch)
+      ? ch
+      : '_' + key.charCodeAt(i).toString(16).padStart(4, '0').toUpperCase()
+  }
+  return out
+}
+
+/** Inverse of {@link encodeCloudKey}. */
+export function decodeCloudKey(encoded: string): string {
+  let out = ''
+  for (let i = 0; i < encoded.length; i++) {
+    if (encoded.charAt(i) === '_') {
+      out += String.fromCharCode(Number.parseInt(encoded.slice(i + 1, i + 5), 16))
+      i += 4
+    } else {
+      out += encoded.charAt(i)
+    }
+  }
+  return out
+}
+
+/** Options for {@link createTelegramCloudStorage}. */
+export interface TelegramCloudStorageOptions {
+  /**
+   * When set, only keys starting with this prefix are mirrored on load (and
+   * `keys()` reflects just those). Writes are still stored under the full key
+   * you pass; the prefix only scopes which existing keys are hydrated. Omit to
+   * mirror every key in the user's CloudStorage.
+   */
+  prefix?: string
+}
+
+/**
+ * Optional cloud-save storage for Telegram Mini Apps, backed by
+ * `window.Telegram.WebApp.CloudStorage` (Bot API ≥ 6.9): a per-user key/value
+ * store that Telegram syncs across the user's devices.
+ *
+ * Telegram's CloudStorage API is entirely **callback-async**, but core's
+ * {@link EnumerableStorage} (and zustand's persist) needs synchronous
+ * `getItem`/`setItem`/`keys`. So — exactly like {@link createTauriFileStorage}
+ * — this loads every key once up front (`getKeys` → `getItems`) into an
+ * in-memory `Map` mirror and returns a storage that reads/enumerates the
+ * mirror **synchronously**, while writes update the mirror synchronously and
+ * are flushed to CloudStorage asynchronously through a serialized queue. Flush
+ * failures are swallowed (logged via `console.error`) so a failed cloud write
+ * never crashes the game.
+ *
+ * Telegram-only: the returned promise **rejects with an actionable error**
+ * outside Telegram or on clients below Bot API 6.9. Guard with a fallback:
+ *
+ * ```ts
+ * const storage =
+ *   bridge.kind === 'telegram' && 'cloudStorage' in bridge
+ *     ? await bridge.cloudStorage().catch(() => bridge.storage())
+ *     : bridge.storage()
+ * persistOptions({ name: 'quest', storage: () => storage })
+ * ```
+ *
+ * Overworld's persist keys are colon-namespaced (e.g. `overworld:quest`), but
+ * Telegram only accepts keys matching `[A-Za-z0-9_]`. This adapter therefore
+ * **transparently encodes** every storage key to a Telegram-legal wire form
+ * (via {@link encodeCloudKey}) and back, so framework stores route through it
+ * unchanged — `keys()` and `getItem` always speak the original colon keys. You
+ * only need to respect Telegram's value/key-count limits: each value ≤ 4096
+ * bytes and ≤ 1024 keys per user, so use CloudStorage for compact progress
+ * state, not large blobs. Encoded keys longer than 128 chars (very long store
+ * names with many escaped characters) are logged and skipped rather than
+ * crashing.
+ */
+export async function createTelegramCloudStorage(
+  options?: TelegramCloudStorageOptions
+): Promise<EnumerableStorage> {
+  const cloud = getTelegramWebApp()?.CloudStorage
+  if (
+    cloud === undefined ||
+    typeof cloud.getKeys !== 'function' ||
+    typeof cloud.getItems !== 'function' ||
+    typeof cloud.setItem !== 'function' ||
+    typeof cloud.removeItem !== 'function'
+  ) {
+    throw new Error(
+      '[overworld] createTelegramCloudStorage: window.Telegram.WebApp.CloudStorage is unavailable — ' +
+        'CloudStorage only exists inside a Telegram Mini App on Bot API >= 6.9. ' +
+        'Run this only when detectPlatform() === "telegram", and fall back to bridge.storage() ' +
+        '(localStorage) elsewhere.'
+    )
+  }
+
+  const prefix = options?.prefix
+
+  // Load once. CloudStorage stores *encoded* keys; decode to the original keys
+  // callers use, then scope by the original-key prefix.
+  const encodedKeys = await new Promise<string[]>((resolve, reject) => {
+    cloud.getKeys((error, keys) => {
+      if (error) reject(new Error(`[overworld] createTelegramCloudStorage: getKeys failed: ${error}`))
+      else resolve(keys ?? [])
+    })
+  })
+  const pairs = encodedKeys.map((enc) => ({ enc, key: decodeCloudKey(enc) }))
+  const scoped = prefix !== undefined ? pairs.filter((pair) => pair.key.startsWith(prefix)) : pairs
+
+  const entries = new Map<string, string>()
+  if (scoped.length > 0) {
+    const values = await new Promise<Record<string, string>>((resolve, reject) => {
+      cloud.getItems(
+        scoped.map((pair) => pair.enc),
+        (error, result) => {
+          if (error) reject(new Error(`[overworld] createTelegramCloudStorage: getItems failed: ${error}`))
+          else resolve(result ?? {})
+        }
+      )
+    })
+    // A key returned by getKeys is real even if its value is '' — trust
+    // membership over value truthiness (fixes the empty-string round-trip).
+    for (const { enc, key } of scoped) {
+      const value = values[enc]
+      entries.set(key, typeof value === 'string' ? value : '')
+    }
+  }
+
+  // Serialize write-through so concurrent set/remove calls flush in order and
+  // never race. Failures are logged, never thrown — a save must not crash the game.
+  let pendingWrite: Promise<void> = Promise.resolve()
+  const enqueue = (task: () => Promise<void>): void => {
+    pendingWrite = pendingWrite.then(task).catch((error: unknown) => {
+      console.error('[overworld] createTelegramCloudStorage: write failed', error)
+    })
+  }
+
+  return {
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => {
+      entries.set(key, value)
+      const enc = encodeCloudKey(key)
+      if (enc.length > MAX_CLOUD_KEY_LENGTH) {
+        console.error(
+          `[overworld] createTelegramCloudStorage: encoded key exceeds ${MAX_CLOUD_KEY_LENGTH} chars ` +
+            `(Telegram limit), kept in the local mirror but not written to the cloud: ${key}`
+        )
+        return
+      }
+      if (byteLength(value) > MAX_CLOUD_VALUE_BYTES) {
+        console.warn(
+          `[overworld] createTelegramCloudStorage: value for "${key}" exceeds ${MAX_CLOUD_VALUE_BYTES} bytes; ` +
+            'Telegram may reject it. Route large/authoritative state through your own backend instead.'
+        )
+      }
+      enqueue(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            cloud.setItem(enc, value, (error) => {
+              if (error) reject(new Error(String(error)))
+              else resolve()
+            })
+          })
+      )
+    },
+    removeItem: (key) => {
+      if (!entries.delete(key)) return
+      enqueue(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            cloud.removeItem(encodeCloudKey(key), (error) => {
+              if (error) reject(new Error(String(error)))
+              else resolve()
+            })
+          })
+      )
+    },
+    keys: () => [...entries.keys()],
   }
 }
 
