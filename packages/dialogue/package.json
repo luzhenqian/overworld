@@ -9,7 +9,7 @@
     "dialogue",
     "dialogue-tree"
   ],
-  "homepage": "https://github.com/NoahLu/overworld#readme",
+  "homepage": "https://github.com/luzhenqian/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -42,7 +42,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/NoahLu/overworld.git",
+    "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/dialogue"
   }
 }
