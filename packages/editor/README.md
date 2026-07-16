@@ -31,12 +31,40 @@ import { EditorScene, EditorPanel, EditorToggle } from '@overworld/editor'
 
 - **放置模式**:点击地面,在命中点新建实体(自动吸附网格)。有激活模板时
   按模板预填字段(见下文「实体模板」),否则新建当前 `placingKind` 的空白实体。
-- **选择模式**:点击实体(占位网格或模型)选中(高亮 + 地面光环);按住拖拽
-  即可在 XZ 平面移动;点击空地取消选中。整次拖拽只算**一步**撤销。
+- **选择模式**:点击实体(占位网格或模型)选中(高亮 + 地面光环);
+  Shift+点击加入/移出多选(见下文「多选与对齐」);按住拖拽即可在 XZ 平面
+  移动(多选时整组移动);点击空地取消选中。整次拖拽只算**一步**撤销。
 - 占位形状:NPC = 胶囊体,建筑 = 立方体,装饰 = 圆柱体;有 `modelPath` 时
   显示真实模型(见下文「模型预览」)。
 - 面板中可编辑坐标、旋转、缩放、名称、模型路径、碰撞半径,并删除实体。
   **注意:面板里的旋转以「度」显示,store 中的 `rotationY` 存的是弧度。**
+
+## 多选与对齐
+
+- **多选**:Shift+点击实体(3D 视图或面板实体列表均可)加入/移出选择;普通
+  点击 = 单选;`Ctrl/Cmd+A` 全选(阻止浏览器默认行为);点击空地清空选择。
+  store 中选择集是 `selectedIds: string[]`;`selectedId` 保留为**派生兼容字段**
+  (= 最后选中的 id,空选择时为 `null`),原有单选用法不受影响。
+- **整组拖拽**:拖拽任意**已选中**的实体会移动整个选择集 —— 被拖拽实体照常
+  吸附网格,其余实体按相同增量平移(基于增量的 `moveSelectedBy`);拖拽未选中
+  的实体则先单选它(原有行为)。整次组拖拽仍合并为**一步**撤销。
+- **删除 / 复制**:工具栏「删除」「复制」与快捷键 `Delete`/`Backspace`、
+  `Ctrl/Cmd+D` 作用于整个选择集(`removeSelected()` / `duplicateSelected()`,
+  各为一步撤销;复制把所有克隆体整体偏移 `[+1, 0, +1]` 并选中它们)。
+- **对齐**(≥2 个选中时可用,一步撤销):工具栏「对齐X / 对齐Z」的
+  min / 中 / max 三键把所选实体在该轴上的坐标统一为选择集的最小值 /
+  包围范围中点(`(min + max) / 2`)/ 最大值 —— 即
+  `alignSelected(axis, mode)`,`axis` 为 `'x' | 'z'`,`mode` 为
+  `'min' | 'center' | 'max'`;另一轴坐标不变。
+- **均分**(≥2 个选中时可用,一步撤销):「均分」的 X / Z 按钮把所选实体按
+  **当前坐标排序**(相同坐标保持工作集顺序,排序稳定)后,在最小值与最大值
+  之间等距分布(`distributeSelected(axis)`);首尾实体不动。
+- **属性面板**:恰好选中 1 个实体时照常编辑字段;多选时显示
+  「已选 N 个实体」提示(字段编辑仅支持单选)。
+- 无头 API:`toggleSelect(id)`、`selectMany(ids)`、`clearSelection()`、
+  `moveSelectedBy(dx, dz, options?)`(`options.transient` 与拖拽共用同一
+  burst 机制,`commitTransient()` 合并为一步)。撤销/重做后选择集自动剔除
+  已不存在的 id(`selectedId` 同步为剩余的最后一个)。
 
 ## 实体模板
 
@@ -87,18 +115,22 @@ useEditorStore.getState().setTemplates(templates)
   不进历史(用于拖拽 / 输入过程中);burst 开始前的快照会被记住,
   `commitTransient()` 把整个 burst 合并成一步撤销。未提交 burst 时执行任何
   非瞬时操作(或 undo/redo)会先自动提交它。
-- `undo()` / `redo()` 恢复快照;若选中的实体在恢复后不存在,自动取消选中。
+- `undo()` / `redo()` 恢复快照;恢复后选择集(`selectedIds`)自动剔除已
+  不存在的 id,`selectedId` 同步为剩余的最后一个(全没了则为 `null`)。
   `canUndo` / `canRedo` 是与栈同步的布尔状态,UI 可直接订阅。
 - id 计数器**不**随撤销回退(与「删除后不复用 id」的约定一致),重做/新增
   永远不会产生重复 id。
 - 面板工具栏提供「撤销 / 重做」按钮;快捷键(仅编辑器开启时,输入框内不生效):
-  `Ctrl/Cmd+Z` 撤销,`Ctrl/Cmd+Shift+Z` 或 `Ctrl/Cmd+Y` 重做。
+  `Ctrl/Cmd+Z` 撤销,`Ctrl/Cmd+Shift+Z` 或 `Ctrl/Cmd+Y` 重做,
+  `Ctrl/Cmd+D` 复制所选,`Ctrl/Cmd+A` 全选,`Delete`/`Backspace` 删除所选。
 
 ## 复制
 
-`duplicate(id)` 以相同的 id 计数机制克隆实体(`npc-1` → `npc-4` 之类),
-位置偏移 `[+1, 0, +1]`,克隆体自动选中,可撤销。面板工具栏的「复制」按钮
-(有选中时可用)和 `Ctrl/Cmd+D` 都会复制当前选中的实体。
+`duplicate(id)` 以相同的 id 计数机制克隆单个实体(`npc-1` → `npc-4` 之类),
+位置偏移 `[+1, 0, +1]`,克隆体自动选中,可撤销。`duplicateSelected()` 对
+**整个选择集**做同样的事:所有克隆体一次生成(一步撤销)并成为新的选择。
+面板工具栏的「复制」按钮(有选中时可用)和 `Ctrl/Cmd+D` 都走
+`duplicateSelected()`。
 
 ## 吸附与网格
 
@@ -129,7 +161,15 @@ store.duplicate(e.id)                     // 克隆(偏移 [+1, 0, +1],自动选
 store.undo(); store.redo()                // 撤销 / 重做(见上文)
 store.setSnap(1)                          // 吸附步长(0 = 关)
 store.setShowGrid(false)                  // 网格显隐
-store.select(e.id)                        // 或 select(null) 取消选中
+store.select(e.id)                        // 单选;select(null) 取消选中
+store.toggleSelect(e.id)                  // 加入/移出多选
+store.selectMany(['npc-1', 'npc-2'])      // 整体替换选择集(selectedId = 最后一个)
+store.clearSelection()                    // 清空选择
+store.moveSelectedBy(1, -2)               // 平移所选(支持 { transient: true })
+store.alignSelected('x', 'center')        // 对齐:'x' | 'z' × 'min' | 'center' | 'max'
+store.distributeSelected('z')             // 均分(按当前坐标排序,首尾不动)
+store.duplicateSelected()                 // 复制所选(一步撤销,选中克隆体)
+store.removeSelected()                    // 删除所选(一步撤销)
 store.removeEntity(e.id)
 store.loadEntities(entities)              // 整体替换(重置选中与 id 计数器)
 store.clear()                             // 清空

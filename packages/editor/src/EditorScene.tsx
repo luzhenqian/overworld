@@ -6,7 +6,7 @@
  *   (place mode) / deselect clicks and drag-move targets (select mode);
  * - placeholder meshes for every editor entity (capsule = NPC, box =
  *   building, cylinder = decoration) with an emissive highlight + ground
- *   ring on the selected one;
+ *   ring on every selected one (shift+click toggles multi-selection);
  * - the actual GLTF model instead of the placeholder when an entity has a
  *   non-empty `modelPath` (loading and load failures both fall back to the
  *   placeholder — the editor never crashes on a bad path);
@@ -15,8 +15,9 @@
  *
  * Place-mode clicks go through the store's `addEntityFromTemplate`, so an
  * active template (see `setTemplates` / `setActiveTemplate`) pre-fills the
- * new entity's fields. Drag-moves use transient store updates and commit on
- * pointer-up, so a whole drag is a single undo step.
+ * new entity's fields. Dragging any selected entity moves the **whole
+ * selection** (delta-based `moveSelectedBy`) via transient store updates,
+ * committed on pointer-up, so a whole group drag is a single undo step.
  *
  * All pointer handling uses R3F's built-in raycast events — no manual
  * raycasters. Geometries/materials are created once per mount and disposed
@@ -246,7 +247,7 @@ function EntityMesh({ entity, selected, resources, onPointerDown }: EntityMeshPr
 
 function EditorSceneImpl({ groundSize = 100, y = 0, snap: snapProp }: EditorSceneProps): ReactElement {
   const entities = useEditorStore((s) => s.entities)
-  const selectedId = useEditorStore((s) => s.selectedId)
+  const selectedIds = useEditorStore((s) => s.selectedIds)
   const storeSnap = useEditorStore((s) => s.snap)
   const showGrid = useEditorStore((s) => s.showGrid)
   const resources = useEditorResources()
@@ -277,7 +278,15 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap: snapProp }: EditorScen
     const store = useEditorStore.getState()
     if (store.mode !== 'select') return // place mode: let the ray reach the ground
     event.stopPropagation()
-    store.select(id)
+    if (event.nativeEvent.shiftKey) {
+      // Shift+click toggles multi-selection membership; never starts a drag.
+      store.toggleSelect(id)
+      return
+    }
+    // Plain click on an unselected entity single-selects it; on an already
+    // selected entity it keeps the current (multi-)selection so the drag
+    // below moves the whole group.
+    if (!store.selectedIds.includes(id)) store.select(id)
     draggingRef.current = id
   }, [])
 
@@ -308,13 +317,21 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap: snapProp }: EditorScen
     (event: ThreeEvent<PointerEvent>) => {
       const dragging = draggingRef.current
       if (!dragging) return
-      useEditorStore.getState().updateEntity(
-        dragging,
-        { position: [snapValue(event.point.x, snap), y, snapValue(event.point.z, snap)] },
-        { transient: true }
-      )
+      const store = useEditorStore.getState()
+      // Delta-based: keep the dragged entity glued to the (snapped) cursor
+      // and translate the rest of the selection by the same delta, so a
+      // multi-selection moves as one rigid group.
+      const anchor = store.entities.find((e) => e.id === dragging)
+      if (!anchor) {
+        draggingRef.current = null
+        return
+      }
+      const dx = snapValue(event.point.x, snap) - anchor.position[0]
+      const dz = snapValue(event.point.z, snap) - anchor.position[2]
+      if (dx === 0 && dz === 0) return
+      store.moveSelectedBy(dx, dz, { transient: true })
     },
-    [snap, y]
+    [snap]
   )
 
   // divisions = groundSize / snap, clamped so tiny snap values stay renderable.
@@ -344,7 +361,7 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap: snapProp }: EditorScen
         <EntityMesh
           key={entity.id}
           entity={entity}
-          selected={entity.id === selectedId}
+          selected={selectedIds.includes(entity.id)}
           resources={resources}
           onPointerDown={handleEntityPointerDown}
         />

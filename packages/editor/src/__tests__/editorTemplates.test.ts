@@ -9,6 +9,7 @@ function resetStore(): void {
     templates: [],
     activeTemplateId: null,
     entities: [],
+    selectedIds: [],
     selectedId: null,
     snap: 0.5,
     showGrid: true,

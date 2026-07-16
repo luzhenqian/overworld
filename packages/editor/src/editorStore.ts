@@ -17,6 +17,12 @@ export type EditorEntityKind = 'npc' | 'building' | 'decoration'
 /** Editor interaction mode: pick/move existing entities, or place new ones. */
 export type EditorMode = 'select' | 'place'
 
+/** Ground-plane axis usable by the alignment/distribution ops. */
+export type AlignAxis = 'x' | 'z'
+
+/** Alignment target within the selection's bounding range on one axis. */
+export type AlignMode = 'min' | 'center' | 'max'
+
 /**
  * One entity in the editor working set. A deliberately flat shape — richer
  * per-kind fields only appear in the exported JSON.
@@ -228,6 +234,26 @@ function appendCapped(stack: EditorEntity[][], snapshot: EditorEntity[]): Editor
 }
 
 /**
+ * Build the selection patch for a new list of selected ids. `selectedId` is
+ * a **derived compatibility field**: always the last id in `selectedIds`
+ * (or `null` when the selection is empty). Every selection mutation goes
+ * through here so the two fields can never drift apart.
+ */
+function selectionFrom(
+  ids: readonly string[]
+): Pick<EditorState, 'selectedIds' | 'selectedId'> {
+  return { selectedIds: [...ids], selectedId: ids[ids.length - 1] ?? null }
+}
+
+/** Drop selected ids that no longer exist in `entities` (undo/redo/remove). */
+function pruneSelection(
+  selectedIds: readonly string[],
+  entities: readonly EditorEntity[]
+): Pick<EditorState, 'selectedIds' | 'selectedId'> {
+  return selectionFrom(selectedIds.filter((id) => entities.some((e) => e.id === id)))
+}
+
+/**
  * History bookkeeping for a non-transient mutation: commits any pending
  * transient burst first, then pushes the pre-mutation snapshot and clears
  * the redo stack. Spread the result into the state patch of every
@@ -370,6 +396,17 @@ export interface EditorState {
   /** Active template id, or `null` for bare placement. */
   activeTemplateId: string | null
   entities: EditorEntity[]
+  /**
+   * The multi-selection, in the order ids were selected (last = primary).
+   * All selection mutations keep {@link EditorState.selectedId} in sync.
+   */
+  selectedIds: string[]
+  /**
+   * **Derived compatibility field**: the last id in
+   * {@link EditorState.selectedIds}, or `null` when nothing is selected.
+   * Kept for existing single-selection consumers; never set it directly —
+   * use `select` / `toggleSelect` / `selectMany` / `clearSelection`.
+   */
   selectedId: string | null
   /** Placement/drag grid step; `0` disables snapping. Default: 0.5. */
   snap: number
@@ -443,14 +480,61 @@ export interface EditorState {
    * the clone, or `undefined` for unknown ids.
    */
   duplicate: (id: string) => EditorEntity | undefined
-  /** Step back one snapshot. Clears `selectedId` if it no longer exists. */
+  /** Step back one snapshot. Prunes dangling ids from the selection. */
   undo: () => void
   /** Reapply the most recently undone snapshot. */
   redo: () => void
   /** Remove an entity (deselects it if selected). Unknown ids are a no-op. */
   removeEntity: (id: string) => void
-  /** Select an entity by id, or `null` to deselect. */
+  /**
+   * Single-select an entity by id, or `null` to clear the selection.
+   * Replaces any multi-selection. Unknown ids are a no-op.
+   */
   select: (id: string | null) => void
+  /**
+   * Add `id` to the selection, or remove it when already selected
+   * (`selectedId` becomes the last remaining id). Unknown ids are a no-op.
+   */
+  toggleSelect: (id: string) => void
+  /**
+   * Replace the selection with `ids` (unknown ids dropped, duplicates keep
+   * their first occurrence; `selectedId` = last of the result).
+   */
+  selectMany: (ids: readonly string[]) => void
+  /** Empty the selection (`selectedIds = []`, `selectedId = null`). */
+  clearSelection: () => void
+  /**
+   * Remove every selected entity as **one** history step and clear the
+   * selection. No-op when nothing is selected.
+   */
+  removeSelected: () => void
+  /**
+   * Clone every selected entity (fresh per-kind ids, `[+1, 0, +1]` offset)
+   * as **one** history step and select the clones. Returns the clones
+   * (empty array when nothing is selected).
+   */
+  duplicateSelected: () => EditorEntity[]
+  /**
+   * Translate every selected entity by `(dx, 0, dz)`. History-tracked as one
+   * step unless `options.transient` — transient moves join the same burst
+   * mechanism as {@link EditorState.updateEntity} (the whole drag becomes one
+   * undo step on {@link EditorState.commitTransient}). No-op when nothing is
+   * selected or the delta is zero.
+   */
+  moveSelectedBy: (dx: number, dz: number, options?: UpdateEntityOptions) => void
+  /**
+   * Align the selected entities on one ground axis: everyone's coordinate
+   * becomes the selection's `min` / `max` / bounding-range `center` on that
+   * axis. One history step; no-op when fewer than 2 entities are selected.
+   */
+  alignSelected: (axis: AlignAxis, mode: AlignMode) => void
+  /**
+   * Evenly space the selected entities on one ground axis between the
+   * current min and max coordinate, keeping their order by current
+   * coordinate (ties keep working-set order). One history step; no-op when
+   * fewer than 2 entities are selected.
+   */
+  distributeSelected: (axis: AlignAxis) => void
   /** Replace the whole working set (resets selection, re-seeds id counters). */
   loadEntities: (entities: EditorEntity[]) => void
   /** Remove all entities and reset selection + id counters. */
@@ -482,6 +566,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   templates: [],
   activeTemplateId: null,
   entities: [],
+  selectedIds: [],
   selectedId: null,
   snap: DEFAULT_SNAP,
   showGrid: true,
@@ -624,10 +709,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
         future: appendCapped(state.future, cloneEntities(state.entities)),
         canUndo: past.length > 1,
         canRedo: true,
-        selectedId:
-          state.selectedId !== null && entities.some((e) => e.id === state.selectedId)
-            ? state.selectedId
-            : null,
+        ...pruneSelection(state.selectedIds, entities),
         pendingSnapshot: null,
       }
     }),
@@ -645,10 +727,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
         future: state.future.slice(0, -1),
         canUndo: true,
         canRedo: state.future.length > 1,
-        selectedId:
-          state.selectedId !== null && entities.some((e) => e.id === state.selectedId)
-            ? state.selectedId
-            : null,
+        ...pruneSelection(state.selectedIds, entities),
         pendingSnapshot: null,
       }
     }),
@@ -656,9 +735,10 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   removeEntity: (id) =>
     set((state) => {
       if (!state.entities.some((e) => e.id === id)) return state
+      const entities = state.entities.filter((e) => e.id !== id)
       return {
-        entities: state.entities.filter((e) => e.id !== id),
-        selectedId: state.selectedId === id ? null : state.selectedId,
+        entities,
+        ...pruneSelection(state.selectedIds, entities),
         ...pushHistory(state),
       }
     }),
@@ -666,13 +746,143 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   select: (id) =>
     set((state) => {
       if (id !== null && !state.entities.some((e) => e.id === id)) return state
-      return { selectedId: id }
+      return selectionFrom(id === null ? [] : [id])
+    }),
+
+  toggleSelect: (id) =>
+    set((state) => {
+      if (!state.entities.some((e) => e.id === id)) return state
+      const without = state.selectedIds.filter((selected) => selected !== id)
+      return selectionFrom(
+        without.length === state.selectedIds.length ? [...state.selectedIds, id] : without
+      )
+    }),
+
+  selectMany: (ids) =>
+    set((state) => {
+      const next: string[] = []
+      for (const id of ids) {
+        if (!next.includes(id) && state.entities.some((e) => e.id === id)) next.push(id)
+      }
+      return selectionFrom(next)
+    }),
+
+  clearSelection: () => set(selectionFrom([])),
+
+  removeSelected: () =>
+    set((state) => {
+      if (state.selectedIds.length === 0) return state
+      const selected = new Set(state.selectedIds)
+      return {
+        entities: state.entities.filter((e) => !selected.has(e.id)),
+        ...selectionFrom([]),
+        ...pushHistory(state),
+      }
+    }),
+
+  duplicateSelected: () => {
+    const state = get()
+    if (state.selectedIds.length === 0) return []
+    const selected = new Set(state.selectedIds)
+    const counters = { ...state.counters }
+    const entities = [...state.entities]
+    const clones: EditorEntity[] = []
+    // Clone in working-set order so ids stay deterministic.
+    for (const source of state.entities) {
+      if (!selected.has(source.id)) continue
+      let id: string
+      do {
+        counters[source.kind] += 1
+        id = `${source.kind}-${counters[source.kind]}`
+      } while (entities.some((e) => e.id === id))
+      const clone: EditorEntity = {
+        ...source,
+        id,
+        position: [source.position[0] + 1, source.position[1], source.position[2] + 1],
+      }
+      entities.push(clone)
+      clones.push(clone)
+    }
+    set({
+      entities,
+      counters,
+      ...selectionFrom(clones.map((clone) => clone.id)),
+      ...pushHistory(state),
+    })
+    return clones
+  },
+
+  moveSelectedBy: (dx, dz, options) =>
+    set((state) => {
+      if (state.selectedIds.length === 0) return state
+      if (!Number.isFinite(dx) || !Number.isFinite(dz)) return state
+      if (dx === 0 && dz === 0) return state
+      const selected = new Set(state.selectedIds)
+      const entities = state.entities.map((e) =>
+        selected.has(e.id)
+          ? { ...e, position: [e.position[0] + dx, e.position[1], e.position[2] + dz] as Vec3 }
+          : e
+      )
+      if (options?.transient) {
+        // Same burst mechanism as updateEntity: remember the pre-burst
+        // snapshot once; commitTransient() turns the burst into one step.
+        return state.pendingSnapshot === null
+          ? { entities, pendingSnapshot: cloneEntities(state.entities) }
+          : { entities }
+      }
+      return { entities, ...pushHistory(state) }
+    }),
+
+  alignSelected: (axis, mode) =>
+    set((state) => {
+      if (state.selectedIds.length < 2) return state
+      const index = axis === 'x' ? 0 : 2
+      const selected = new Set(state.selectedIds)
+      const coords = state.entities
+        .filter((e) => selected.has(e.id))
+        .map((e) => e.position[index])
+      const min = Math.min(...coords)
+      const max = Math.max(...coords)
+      const target = mode === 'min' ? min : mode === 'max' ? max : (min + max) / 2
+      const entities = state.entities.map((e) => {
+        if (!selected.has(e.id)) return e
+        const position: Vec3 = [e.position[0], e.position[1], e.position[2]]
+        position[index] = target
+        return { ...e, position }
+      })
+      return { entities, ...pushHistory(state) }
+    }),
+
+  distributeSelected: (axis) =>
+    set((state) => {
+      if (state.selectedIds.length < 2) return state
+      const index = axis === 'x' ? 0 : 2
+      const selected = new Set(state.selectedIds)
+      // Array.sort is stable: equal coordinates keep working-set order.
+      const sorted = state.entities
+        .filter((e) => selected.has(e.id))
+        .sort((a, b) => a.position[index] - b.position[index])
+      const first = sorted[0]
+      const last = sorted[sorted.length - 1]
+      if (!first || !last) return state
+      const min = first.position[index]
+      const step = (last.position[index] - min) / (sorted.length - 1)
+      const targetByEntityId = new Map<string, number>()
+      sorted.forEach((e, i) => targetByEntityId.set(e.id, min + step * i))
+      const entities = state.entities.map((e) => {
+        const target = targetByEntityId.get(e.id)
+        if (target === undefined) return e
+        const position: Vec3 = [e.position[0], e.position[1], e.position[2]]
+        position[index] = target
+        return { ...e, position }
+      })
+      return { entities, ...pushHistory(state) }
     }),
 
   loadEntities: (entities) =>
     set((state) => ({
       entities: [...entities],
-      selectedId: null,
+      ...selectionFrom([]),
       counters: countersFrom(entities),
       ...pushHistory(state),
     })),
@@ -680,7 +890,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   clear: () =>
     set((state) => ({
       entities: [],
-      selectedId: null,
+      ...selectionFrom([]),
       counters: emptyCounters(),
       ...pushHistory(state),
     })),

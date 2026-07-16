@@ -1,6 +1,6 @@
 {
   "name": "@overworld/editor",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "In-game scene editor overlay for Overworld games: place/move entities, export scene JSON",
   "type": "module",
   "main": "./dist/index.js",

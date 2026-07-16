@@ -1,14 +1,18 @@
 /**
- * DOM half of the editor: a fixed dark side panel with an undo/redo/duplicate
- * toolbar (plus snap step and grid toggle), mode switching, a template picker
- * (place mode, when the game registered templates via `setTemplates`), the
- * entity list, property editing and JSON import/export, plus a small floating
- * `<EditorToggle>` button. Rendered outside the three.js canvas as a plain
- * HTML overlay (same pattern as `@overworld/minimap`).
+ * DOM half of the editor: a fixed dark side panel with an
+ * undo/redo/duplicate/delete toolbar plus alignment tools (对齐X/Z, 均分X/Z —
+ * enabled from 2 selected entities), snap step and grid toggle, mode
+ * switching, a template picker (place mode, when the game registered
+ * templates via `setTemplates`), the entity list (click = single select,
+ * shift+click = toggle multi-selection), property editing and JSON
+ * import/export, plus a small floating `<EditorToggle>` button. Rendered
+ * outside the three.js canvas as a plain HTML overlay (same pattern as
+ * `@overworld/minimap`).
  *
  * Keyboard (only while the editor is enabled, never while typing in a
  * field): Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo, Ctrl/Cmd+D
- * duplicate the selection.
+ * duplicate the selection, Ctrl/Cmd+A select all, Delete/Backspace remove
+ * the selection.
  *
  * Angles: the store keeps `rotationY` in **radians**; this panel displays
  * and edits **degrees** and converts on commit.
@@ -24,6 +28,7 @@ import {
 } from 'react'
 import {
   useEditorStore,
+  type AlignMode,
   type EditorEntity,
   type EditorEntityKind,
   type EditorMode,
@@ -55,6 +60,13 @@ const KIND_LABELS: Record<EditorEntityKind, string> = {
 }
 
 const MODE_LABELS: Record<EditorMode, string> = { select: '选择', place: '放置' }
+
+/** Toolbar alignment buttons (shared by the 对齐X / 对齐Z rows). */
+const ALIGN_MODES: readonly { mode: AlignMode; label: string }[] = [
+  { mode: 'min', label: 'min' },
+  { mode: 'center', label: '中' },
+  { mode: 'max', label: 'max' },
+]
 
 const panelStyle: CSSProperties = {
   position: 'fixed',
@@ -207,19 +219,32 @@ function TextField(props: {
 }
 
 /**
- * Property editors for the currently selected entity.
+ * Property editors for the currently selected entity. With a
+ * multi-selection (≥2) the field editors are replaced by a hint — use the
+ * toolbar's alignment/duplicate/delete tools instead.
  *
  * Edits are **transient** store updates committed on blur (React's `onBlur`
  * bubbles), so a typing burst in one field becomes a single undo step.
  */
 function SelectedEntityEditor(): ReactElement | null {
-  const selectedId = useEditorStore((s) => s.selectedId)
+  const selectedCount = useEditorStore((s) => s.selectedIds.length)
   const entity = useEditorStore((s) =>
-    s.selectedId === null ? undefined : s.entities.find((e) => e.id === s.selectedId)
+    s.selectedIds.length === 1 ? s.entities.find((e) => e.id === s.selectedIds[0]) : undefined
   )
   const removeEntity = useEditorStore((s) => s.removeEntity)
 
-  if (!entity || selectedId === null) return null
+  if (selectedCount > 1) {
+    return (
+      <div>
+        <div style={sectionTitleStyle}>属性</div>
+        <div style={{ color: '#94a3b8' }}>
+          已选 {selectedCount} 个实体 — 可用工具栏对齐/均分/复制/删除
+        </div>
+      </div>
+    )
+  }
+
+  if (!entity) return null
   const id = entity.id
 
   const updateEntity = (patch: Partial<Omit<EditorEntity, 'id'>>): void =>
@@ -317,7 +342,7 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
   const templates = useEditorStore((s) => s.templates)
   const activeTemplateId = useEditorStore((s) => s.activeTemplateId)
   const entities = useEditorStore((s) => s.entities)
-  const selectedId = useEditorStore((s) => s.selectedId)
+  const selectedIds = useEditorStore((s) => s.selectedIds)
   const canUndo = useEditorStore((s) => s.canUndo)
   const canRedo = useEditorStore((s) => s.canRedo)
   const snap = useEditorStore((s) => s.snap)
@@ -325,6 +350,8 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
 
   const [importText, setImportText] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+
+  const canAlign = selectedIds.length >= 2
 
   // Editing shortcuts — active only while the editor is enabled. Typing in
   // inputs/textareas is never hijacked.
@@ -338,9 +365,14 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
       ) {
         return
       }
+      const store = useEditorStore.getState()
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault()
+        store.removeSelected()
+        return
+      }
       if (!event.ctrlKey && !event.metaKey) return
       const key = event.key.toLowerCase()
-      const store = useEditorStore.getState()
       if (key === 'z') {
         event.preventDefault()
         if (event.shiftKey) store.redo()
@@ -350,7 +382,10 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         store.redo()
       } else if (key === 'd') {
         event.preventDefault()
-        if (store.selectedId !== null) store.duplicate(store.selectedId)
+        store.duplicateSelected()
+      } else if (key === 'a') {
+        event.preventDefault()
+        store.selectMany(store.entities.map((e) => e.id))
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -390,13 +425,50 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
           重做
         </Btn>
         <Btn
-          disabled={selectedId === null}
-          onClick={() => {
-            const store = useEditorStore.getState()
-            if (store.selectedId !== null) store.duplicate(store.selectedId)
-          }}
+          disabled={selectedIds.length === 0}
+          onClick={() => useEditorStore.getState().duplicateSelected()}
         >
           复制
+        </Btn>
+        <Btn
+          danger
+          disabled={selectedIds.length === 0}
+          onClick={() => useEditorStore.getState().removeSelected()}
+        >
+          删除
+        </Btn>
+      </div>
+      <div style={rowStyle}>
+        <span style={rowLabelStyle}>对齐X</span>
+        {ALIGN_MODES.map(({ mode, label }) => (
+          <Btn
+            key={mode}
+            disabled={!canAlign}
+            onClick={() => useEditorStore.getState().alignSelected('x', mode)}
+          >
+            {label}
+          </Btn>
+        ))}
+      </div>
+      <div style={rowStyle}>
+        <span style={rowLabelStyle}>对齐Z</span>
+        {ALIGN_MODES.map(({ mode, label }) => (
+          <Btn
+            key={mode}
+            disabled={!canAlign}
+            onClick={() => useEditorStore.getState().alignSelected('z', mode)}
+          >
+            {label}
+          </Btn>
+        ))}
+      </div>
+      <div style={rowStyle}>
+        <span style={rowLabelStyle}>均分</span>
+        <Btn disabled={!canAlign} onClick={() => useEditorStore.getState().distributeSelected('x')}>
+          X
+        </Btn>
+        <Btn disabled={!canAlign} onClick={() => useEditorStore.getState().distributeSelected('z')}>
+          Z
         </Btn>
       </div>
       <NumberField
@@ -479,13 +551,19 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         {entities.map((entity) => (
           <div
             key={entity.id}
-            onClick={() => useEditorStore.getState().select(entity.id)}
+            onClick={(event) => {
+              const store = useEditorStore.getState()
+              if (event.shiftKey) store.toggleSelect(entity.id)
+              else store.select(entity.id)
+            }}
             style={{
               padding: '3px 8px',
               cursor: 'pointer',
               display: 'flex',
               justifyContent: 'space-between',
-              background: entity.id === selectedId ? 'rgba(14, 165, 233, 0.35)' : 'transparent',
+              background: selectedIds.includes(entity.id)
+                ? 'rgba(14, 165, 233, 0.35)'
+                : 'transparent',
             }}
           >
             <span>{entity.id}</span>

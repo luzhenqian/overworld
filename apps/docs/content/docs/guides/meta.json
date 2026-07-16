@@ -2,6 +2,7 @@
   "title": "指南",
   "pages": [
     "i18n",
-    "assets"
+    "assets",
+    "content-hmr"
   ]
 }

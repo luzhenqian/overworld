@@ -16,7 +16,12 @@ import {
   createPresenceSync,
   isBroadcastChannelAvailable,
 } from '@overworld/net'
-import { playerPositionRef, playerRotationRef } from '@overworld/scene'
+import {
+  detectQualityPreset,
+  playerPositionRef,
+  playerRotationRef,
+  useQualityStore,
+} from '@overworld/scene'
 import { ACHIEVEMENTS, DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
 
@@ -123,6 +128,10 @@ if (typeof window !== 'undefined' && presence) {
   window.addEventListener('pagehide', () => presence.stop())
 }
 
+// ---- 性能预设:按设备能力自动降级(DPR/阴影/粒子) --------------------------
+
+useQualityStore.getState().setPreset(detectQualityPreset())
+
 // ---- 场景编辑器:实体模板目录(启动时注册一次) ----------------------------
 
 void import('@overworld/editor').then(({ useEditorStore }) => {
@@ -224,9 +233,32 @@ if (import.meta.env.DEV) {
         villagerSchedule,
         editorStore: editor.useEditorStore,
         presence,
+        quality: useQualityStore,
         // 后台标签页 RAF 被暂停时可手动驱动渲染帧(自动化验证用)
         advance: fiber.advance,
       }
     }
+  })
+}
+
+// ---- 内容热重载:content.ts 变更时增量替换定义(仅开发模式,见 docs/guides/content-hmr.md)
+if (import.meta.hot) {
+  import.meta.hot.accept('./content', (mod) => {
+    if (!mod) return
+    void import('@overworld/devtools').then((devtools) => {
+      const report = devtools.validateContent(
+        { dialogues: mod.DIALOGUES, quests: mod.QUESTS, items: mod.ITEMS, achievements: mod.ACHIEVEMENTS },
+        { effectTypes: effects.types(), conditionTypes: conditions.types() }
+      )
+      if (!report.ok) {
+        console.warn('[hmr] 内容校验未通过,跳过热更\n' + devtools.formatReport(report))
+        return
+      }
+      quests.getState().registerQuests(...mod.QUESTS)
+      dialogue.getState().registerDialogues(...mod.DIALOGUES)
+      inventory.registerItems(mod.ITEMS)
+      achievements.registerAchievements(mod.ACHIEVEMENTS)
+      console.info('[hmr] 内容已热更新')
+    })
   })
 }

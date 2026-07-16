@@ -3,6 +3,13 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v0.7
+
+- 输入预测与服务器对账:`createPredictedState`(预测/序号排队/回滚重放/误预测纠正)+ `createInputChannel` + `examples/authority-server` 权威服务器示例(含反作弊 clamp 演示)
+- 编辑器多选与对齐:shift 点选、群组拖拽单撤销步、对齐(min/center/max)与均分、Ctrl+A/Delete/Ctrl+D 作用于选区
+- 性能预设(scene):三档 DPR/阴影/粒子系数 + `ApplyQuality` + 设备启发式检测
+- 内容热重载约定:`import.meta.hot` + `registerX` 增量替换指南(语义对照源码核实),starter 已接线
+
 ## v0.6
 
 - 联机进阶:`createSnapshotBuffer` 延迟插值缓冲、presence `interpolation` 选项、`examples/ws-server` 参考中继服务器

@@ -113,6 +113,54 @@ export function Game() {
 }
 ```
 
+## 性能预设
+
+面向移动端 / 低端设备的渲染质量分档:一个 zustand 单例存当前
+`QualitySettings`,`<ApplyQuality />` 挂在 Canvas 内负责把 GL 相关的部分
+(DPR、阴影开关)应用到渲染器,其余数值由游戏自己消费。
+
+- **`QUALITY_PRESETS`** — 三档内置预设:
+
+  | 档位 | dpr | 阴影 | shadowMapSize | 粒子倍率 |
+  | --- | --- | --- | --- | --- |
+  | `high` | `[1, 2]` | 开 | 2048 | ×1 |
+  | `medium` | `[1, 1.5]` | 开 | 1024 | ×0.6 |
+  | `low` | `[0.75, 1]` | 关 | 512 | ×0.3 |
+
+- **`useQualityStore`** — `{ preset, settings, setPreset(name), setSettings(partial) }`。
+  默认 `high`;`setSettings` 合并部分覆盖并把 `preset` 置为 `'custom'`。
+  **不持久化**——玩家的画质选择由游戏自己存(localStorage / 存档槽)。
+- **`detectQualityPreset()`** — 设备启发式:无 `navigator`(SSR / 测试)返回
+  `'high'`;"弱设备" = `hardwareConcurrency` ≤ 4 或 `deviceMemory` ≤ 4GB
+  (两者都有守卫,缺失不计);"移动端" = 粗指针(`pointer: coarse`)或移动 UA。
+  移动 + 弱 → `low`,移动 → `medium`,桌面 + 弱 → `medium`,其余 → `high`。
+  只是起点,把结果喂给 `setPreset` 并允许玩家覆盖。
+- **`<ApplyQuality />`** — 挂在 `<Canvas>` 内:把 `settings.dpr` 作为
+  `[min, max]` 区间交给 R3F 的 `setDpr`(真实 `devicePixelRatio` 被钳制进该
+  区间);切换 `gl.shadowMap.enabled` 并置 `gl.shadowMap.needsUpdate = true`。
+  注意:`shadowMapSize` **不会**被自动应用——投影灯光归游戏所有,自己在创建
+  灯光处读值(`shadow-mapSize={[size, size]}`);运行中开关阴影后,阴影关闭期间
+  创建的材质可能需要 `needsUpdate` / 重挂载,尽量在场景挂载前定档。
+- **`useParticleMultiplier()`** — 读当前粒子倍率的便捷 selector。
+
+```tsx
+import { ApplyQuality, detectQualityPreset, useQualityStore, useParticleMultiplier } from '@overworld/scene'
+
+useQualityStore.getState().setPreset(detectQualityPreset()) // 启动时定档
+
+function World() {
+  const shadowMapSize = useQualityStore((s) => s.settings.shadowMapSize)
+  const particles = Math.round(200 * useParticleMultiplier())
+  return (
+    <Canvas shadows>
+      <ApplyQuality />
+      <directionalLight castShadow shadow-mapSize={[shadowMapSize, shadowMapSize]} />
+      {/* 用 particles 决定粒子数量 */}
+    </Canvas>
+  )
+}
+```
+
 ## 注意事项
 
 无美术资产也能跑:省略 `modelUrl` / 模型加载失败时,玩家与 NPC 会分别回退为胶囊体、

@@ -30,6 +30,16 @@ export type {
   RemotePeer,
 } from './presence'
 
+// Client-side prediction + server reconciliation
+export { createPredictedState, createInputChannel } from './prediction'
+export type {
+  PredictedState,
+  PredictedStateConfig,
+  PendingInput,
+  InputChannel,
+  InputChannelOptions,
+} from './prediction'
+
 // Event relay
 export { relayEvents } from './relay'
 export type { RelayBus, RelayOptions } from './relay'

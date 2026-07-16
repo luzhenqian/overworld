@@ -1,4 +1,5 @@
 import { Canvas } from '@react-three/fiber'
+import { ApplyQuality } from '@overworld/scene'
 import { EditorPanel, EditorScene, EditorToggle } from '@overworld/editor'
 import { World } from './World'
 import { HUD } from './ui/HUD'
@@ -11,6 +12,7 @@ export default function App() {
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas shadows camera={{ position: [0, 9, 14], fov: 50 }}>
         <color attach="background" args={['#0b0e1a']} />
+        <ApplyQuality />
         <World />
         {/* 场景编辑器(未启用时不渲染任何内容) */}
         <EditorScene groundSize={40} />

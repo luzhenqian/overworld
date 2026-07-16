@@ -1,8 +1,8 @@
 {
-  "name": "ws-server",
+  "name": "authority-server",
   "version": "0.7.0",
   "private": true,
-  "description": "Reference authoritative relay server for @overworld/net WebSocket transport",
+  "description": "Reference authoritative movement server for @overworld/net client-side prediction",
   "type": "module",
   "scripts": {
     "start": "node server.mjs"

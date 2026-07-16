@@ -103,6 +103,12 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  examples/authority-server:
+    dependencies:
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.1
+
   examples/starter:
     dependencies:
       '@overworld/achievements':

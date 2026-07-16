@@ -12,6 +12,7 @@ function resetStore(): void {
     mode: 'select',
     placingKind: 'npc',
     entities: [],
+    selectedIds: [],
     selectedId: null,
     snap: 0.5,
     showGrid: true,

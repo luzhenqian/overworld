@@ -56,3 +56,13 @@ export type { PortalProps } from './Portal'
 // Interaction
 export { interact, useInteractKey } from './interaction'
 export type { UseInteractKeyOptions } from './interaction'
+
+// Quality presets
+export {
+  QUALITY_PRESETS,
+  useQualityStore,
+  useParticleMultiplier,
+  detectQualityPreset,
+} from './quality'
+export type { QualitySettings, QualityPresetName, QualityState } from './quality'
+export { ApplyQuality } from './ApplyQuality'

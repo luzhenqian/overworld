@@ -1,6 +1,6 @@
 {
   "name": "@overworld/net",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Transport-agnostic multiplayer sync abstractions for Overworld games: presence replication, event relay",
   "type": "module",
   "main": "./dist/index.js",

@@ -22,6 +22,8 @@ export {
   HISTORY_LIMIT,
 } from './editorStore'
 export type {
+  AlignAxis,
+  AlignMode,
   EditorEntity,
   EditorEntityKind,
   EditorMode,
