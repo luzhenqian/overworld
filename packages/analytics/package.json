@@ -1,7 +1,15 @@
 {
   "name": "@overworld/analytics",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Pluggable analytics providers (GA4, Clarity, console)",
+  "keywords": [
+    "overworld",
+    "game",
+    "gamedev",
+    "analytics",
+    "ga4"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,6 +36,9 @@
     "react": "^18.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

@@ -1,7 +1,15 @@
 {
   "name": "@overworld/quest",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Headless event-driven quest state machine",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "quest",
+    "quest-system"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,6 +37,9 @@
     "zustand": "^5.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

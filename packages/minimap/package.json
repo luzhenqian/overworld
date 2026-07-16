@@ -1,7 +1,14 @@
 {
   "name": "@overworld/minimap",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Generic top-down minimap: marker registry + DOM canvas component",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "minimap"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,6 +36,9 @@
     "zustand": "^5.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

@@ -1,7 +1,16 @@
 {
   "name": "@overworld/loading",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Asset loading progress and scene preloading",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "threejs",
+    "loading",
+    "preload"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,6 +36,9 @@
     "@react-three/drei": "^9.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

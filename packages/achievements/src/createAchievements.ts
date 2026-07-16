@@ -29,7 +29,10 @@ export interface AchievementsConfig<Ctx = unknown> {
    * Defaults to the global `gameEvents`.
    */
   events?: EventBus<OverworldEventMap>
-  /** Enable persistence by providing (possibly empty) persist settings. */
+  /**
+   * Persist progress and unlocks. Framework convention: omitted or `false` =
+   * disabled; `true` = enabled with defaults; object = custom.
+   */
   persist?: boolean | AchievementsPersistConfig
 }
 

@@ -1,7 +1,15 @@
 {
   "name": "@overworld/notifications",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Headless toast and alert/confirm queues",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "notifications",
+    "toast"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,6 +33,9 @@
     "zustand": "^5.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

@@ -1,7 +1,15 @@
 {
   "name": "@overworld/input",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Keyboard input priority layers for Overworld games",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "input",
+    "keyboard"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,6 +34,9 @@
     "zustand": "^5.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

@@ -32,11 +32,11 @@ audio.playSfx('pickup') // 一次性音效
 | `tracks` | 必填 | 曲目 id → 音频 URL(BGM 与音效共用) |
 | `sceneTracks` | — | 场景 id → 曲目 id;未映射的场景会停止当前 BGM |
 | `autoSubscribeSceneChanges` | `true` | 订阅总线 `scene:changed` 自动换曲 |
-| `bus` | 全局 `gameEvents` | 自定义事件总线(测试时传入新实例) |
+| `events` | 全局 `gameEvents` | 自定义事件总线(测试时传入新实例);`bus` 是保留的旧别名,两者同传时 `events` 优先 |
 | `volume` / `sfxVolume` | `0.7` | 初始 BGM / 音效音量(0–1) |
 | `fadeDuration` | `1000` | 切曲淡入淡出时长(ms),`0` 表示立即切换 |
 | `loop` | `true` | BGM 是否循环 |
-| `persist` | 关闭 | 省略/`false` 不持久化;`true` 用默认配置持久化音量/静音(键 `overworld:audio`);可传对象自定义 |
+| `persist` | `true`(开启) | 省略或 `true` 用默认配置持久化音量/静音(键 `overworld:audio`);`false` 关闭;可传对象自定义。注意:与其他引擎“省略 = 关闭”的约定不同 |
 
 ## Manager API
 

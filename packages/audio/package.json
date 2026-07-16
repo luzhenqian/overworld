@@ -1,7 +1,16 @@
 {
   "name": "@overworld/audio",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "BGM/SFX manager with scene-track mapping and autoplay policy handling",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "audio",
+    "bgm",
+    "sfx"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,6 +37,9 @@
     "zustand": "^5.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

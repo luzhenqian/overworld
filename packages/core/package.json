@@ -1,7 +1,16 @@
 {
   "name": "@overworld/core",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Overworld framework core: typed event bus, condition/effect registries, persistence helpers, shared types",
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "gamedev",
+    "framework",
+    "event-bus"
+  ],
+  "homepage": "https://github.com/NoahLu/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,6 +34,9 @@
     "zustand": "^5.0.0"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",

@@ -3,6 +3,7 @@
   "pages": [
     "i18n",
     "assets",
-    "content-hmr"
+    "content-hmr",
+    "releasing"
   ]
 }

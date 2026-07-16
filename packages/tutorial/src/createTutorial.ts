@@ -23,7 +23,11 @@ export interface TutorialConfig {
    * Defaults to the global `gameEvents`.
    */
   events?: EventBus<OverworldEventMap>
-  /** Enable persistence by providing (possibly empty) persist settings. */
+  /**
+   * Persist terminal states (completed/skipped). Framework convention:
+   * omitted or `false` = disabled; `true` = enabled with defaults; object =
+   * custom.
+   */
   persist?: boolean | TutorialPersistConfig
 }
 

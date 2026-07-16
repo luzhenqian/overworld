@@ -31,7 +31,10 @@ export interface InventoryConfig<Ctx = unknown> {
   context?: Ctx
   /** Event bus to emit `item:*` events on. Defaults to the global `gameEvents`. */
   events?: EventBus<OverworldEventMap>
-  /** Enable persistence by providing (possibly empty) persist settings. */
+  /**
+   * Persist the slots. Framework convention: omitted or `false` = disabled;
+   * `true` = enabled with defaults; object = custom.
+   */
   persist?: boolean | InventoryPersistConfig
 }
 

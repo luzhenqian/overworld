@@ -3,6 +3,13 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v0.8
+
+- **第二款示例游戏 `examples/dungeon`**:种子化程序地牢、行为树敌人(巡逻→追击→回岗)、钥匙宝箱任务链、HPA* 引路点、心心/击退/通关计时 —— 验证框架泛化性,并带回 6 个 1.0 前待修阻力点
+- **1.0 API 冻结评审**(docs/api-review-1.0.md):就绪度 B+,15 项提案(store 形态统一、`interact` 加域名前缀等);低风险修复已落地(audio `events` 规范别名、persist 文档纠错、core README)
+- **发布流水线**:changesets(fixed 版本组)+ CI/Release 工作流,18 包 `publish --dry-run` 全通过
+- **性能基准**(benchmarks/):24 项基准 + 基线对比 + 8 个计数型回归守护;HPA* 访问格数少 17.9 倍,事件总线 ~250 万 emit/秒
+
 ## v0.7
 
 - 输入预测与服务器对账:`createPredictedState`(预测/序号排队/回滚重放/误预测纠正)+ `createInputChannel` + `examples/authority-server` 权威服务器示例(含反作弊 clamp 演示)

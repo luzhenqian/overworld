@@ -30,7 +30,13 @@ export interface AudioManagerConfig {
    * Only applies when `sceneTracks` is provided. Defaults to `true`.
    */
   autoSubscribeSceneChanges?: boolean
-  /** Event bus to subscribe on. Defaults to the global `gameEvents` bus. */
+  /**
+   * Event bus to subscribe on. Defaults to the global `gameEvents` bus.
+   * Canonical name, matching the `events` config of every other engine.
+   * Takes precedence over the legacy `bus` alias when both are provided.
+   */
+  events?: EventBus<OverworldEventMap>
+  /** Legacy alias of `events`, kept for backwards compatibility. Prefer `events`. */
   bus?: EventBus<OverworldEventMap>
   /** Initial BGM volume (0–1). Defaults to `0.7`. */
   volume?: number
@@ -145,10 +151,11 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     tracks,
     sceneTracks,
     autoSubscribeSceneChanges = true,
-    bus = gameEvents,
     fadeDuration = 1000,
     loop = true,
   } = config
+  // `events` is the canonical config name; `bus` is the pre-1.0 alias.
+  const bus = config.events ?? config.bus ?? gameEvents
 
   const useStore = createAudioStore(config.persist ?? true, {
     volume: clamp01(config.volume ?? 0.7),

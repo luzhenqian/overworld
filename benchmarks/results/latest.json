@@ -1,0 +1,248 @@
+{
+  "timestamp": "2026-07-16T07:28:02.729Z",
+  "node": "v22.12.0",
+  "results": [
+    {
+      "name": "events",
+      "results": [
+        {
+          "name": "emit, 10 listeners",
+          "opsPerSec": 2560000,
+          "meanMs": 0.000390625,
+          "meta": {
+            "listeners": 10,
+            "emitsPerRun": 1000
+          }
+        },
+        {
+          "name": "emit, 0 listeners",
+          "opsPerSec": 19464720.194644447,
+          "meanMs": 0.00005137500000000727,
+          "meta": {
+            "listeners": 0
+          }
+        },
+        {
+          "name": "on + off cycle",
+          "opsPerSec": 8429926.238146821,
+          "meanMs": 0.00011862499999998022
+        }
+      ]
+    },
+    {
+      "name": "registry",
+      "results": [
+        {
+          "name": "runEffects, 5 refs of 20 registered",
+          "opsPerSec": 3414425.9496371085,
+          "meanMs": 0.00029287500000000933,
+          "meta": {
+            "registered": 20,
+            "refs": 5
+          }
+        },
+        {
+          "name": "evaluateConditions, 5 refs (all pass)",
+          "opsPerSec": 2710027.1002710047,
+          "meanMs": 0.00036899999999999975,
+          "meta": {
+            "registered": 20,
+            "refs": 5
+          }
+        },
+        {
+          "name": "evaluateConditions, first ref fails",
+          "opsPerSec": 8820286.659314942,
+          "meanMs": 0.0001133750000000191,
+          "meta": {
+            "shortCircuit": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "pathfinding",
+      "results": [
+        {
+          "name": "findPath A* 100x100",
+          "opsPerSec": 247.92484303171597,
+          "meanMs": 4.033480420000001,
+          "meta": {
+            "size": 100,
+            "obstacles": true
+          }
+        },
+        {
+          "name": "findPath A* 200x200",
+          "opsPerSec": 53.48080961799567,
+          "meanMs": 18.698295839999993,
+          "meta": {
+            "size": 200,
+            "obstacles": true
+          }
+        },
+        {
+          "name": "findPathHierarchical 200x200",
+          "opsPerSec": 118.63478651467899,
+          "meanMs": 8.429230829999996,
+          "meta": {
+            "size": 200,
+            "clusterSize": 16
+          }
+        },
+        {
+          "name": "visited cells 200x200 corner-to-corner",
+          "opsPerSec": 0,
+          "meanMs": 0,
+          "meta": {
+            "plainVisited": 27786,
+            "hpaVisited": 1554,
+            "ratio": 17.88
+          }
+        },
+        {
+          "name": "createHierarchicalGrid 200x200 rebuild",
+          "opsPerSec": 27.021342758939486,
+          "meanMs": 37.007783400000335,
+          "meta": {
+            "clusterSize": 16
+          }
+        }
+      ]
+    },
+    {
+      "name": "agents",
+      "results": [
+        {
+          "name": "50 agents wander, 1 frame (grid A*)",
+          "opsPerSec": 28062.462364146937,
+          "meanMs": 0.035634791666664875,
+          "meta": {
+            "agents": 50,
+            "framesPerRun": 600
+          }
+        },
+        {
+          "name": "50 agents patrol, 1 frame (no grid)",
+          "opsPerSec": 226087.99193946464,
+          "meanMs": 0.0044230566666616745,
+          "meta": {
+            "agents": 50,
+            "framesPerRun": 600
+          }
+        },
+        {
+          "name": "behavior tree tick (3-branch selector)",
+          "opsPerSec": 6034241.909134404,
+          "meanMs": 0.00016572090000008756,
+          "meta": {
+            "nodes": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "quest",
+      "results": [
+        {
+          "name": "50 active quests, filtered trigger match",
+          "opsPerSec": 139009.5569069952,
+          "meanMs": 0.007193750000002183,
+          "meta": {
+            "quests": 50,
+            "eventsPerRun": 1000,
+            "matchesPerEvent": 1
+          }
+        },
+        {
+          "name": "50 active quests, unfiltered fan-out",
+          "opsPerSec": 37479.971171903264,
+          "meanMs": 0.0266809170000015,
+          "meta": {
+            "quests": 50,
+            "eventsPerRun": 1000,
+            "matchesPerEvent": 50
+          }
+        },
+        {
+          "name": "10 active quests, amountFrom trigger",
+          "opsPerSec": 227935.39763785465,
+          "meanMs": 0.004387208000000101,
+          "meta": {
+            "quests": 10,
+            "amountFrom": "distance"
+          }
+        }
+      ]
+    },
+    {
+      "name": "collision",
+      "results": [
+        {
+          "name": "resolveCollision, 200 colliders",
+          "opsPerSec": 600630.5419435664,
+          "meanMs": 0.0016649169999982405,
+          "meta": {
+            "colliders": 200,
+            "resolvesPerRun": 1000
+          }
+        },
+        {
+          "name": "checkCollision, 200 colliders",
+          "opsPerSec": 810154.1480295267,
+          "meanMs": 0.0012343330000003335,
+          "meta": {
+            "colliders": 200
+          }
+        },
+        {
+          "name": "registerCollider + unregisterCollider (200 existing)",
+          "opsPerSec": 59332.80028746015,
+          "meanMs": 0.016854083999998694,
+          "meta": {
+            "colliders": 200
+          }
+        }
+      ]
+    },
+    {
+      "name": "net",
+      "results": [
+        {
+          "name": "snapshotBuffer.push (maxSnapshots 32)",
+          "opsPerSec": 20630977.825826947,
+          "meanMs": 0.000048470799999995504,
+          "meta": {
+            "pushesPerRun": 10000,
+            "maxSnapshots": 32
+          }
+        },
+        {
+          "name": "snapshotBuffer.sample (interpolating)",
+          "opsPerSec": 45283087.21913091,
+          "meanMs": 0.000022083300000304006,
+          "meta": {
+            "samplesPerRun": 10000
+          }
+        },
+        {
+          "name": "applyInput + reconcile every 10",
+          "opsPerSec": 4634994.2062703725,
+          "meanMs": 0.00021574999999938882,
+          "meta": {
+            "inputsPerRun": 1000,
+            "reconcileEvery": 10
+          }
+        },
+        {
+          "name": "onServerState replaying 100 pending inputs",
+          "opsPerSec": 186610.68346240857,
+          "meanMs": 0.00535874999997759,
+          "meta": {
+            "pendingReplayed": 100
+          }
+        }
+      ]
+    }
+  ]
+}

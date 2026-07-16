@@ -153,6 +153,27 @@ describe('scene:changed bus subscription', () => {
     expect(bus.listenerCount('scene:changed')).toBe(0)
   })
 
+  it('accepts the canonical `events` config name', async () => {
+    const events = new EventBus<OverworldEventMap>()
+    const manager = makeManager({ bus: undefined, events })
+
+    events.emit('scene:changed', { from: null, to: 'plaza' })
+    await vi.waitFor(() => expect(manager.getState().currentTrackId).toBe('town'))
+  })
+
+  it('prefers `events` over the legacy `bus` alias when both are set', async () => {
+    const events = new EventBus<OverworldEventMap>()
+    const legacy = new EventBus<OverworldEventMap>()
+    const manager = makeManager({ bus: legacy, events })
+
+    legacy.emit('scene:changed', { from: null, to: 'plaza' })
+    await Promise.resolve()
+    expect(manager.getState().currentTrackId).toBeNull()
+
+    events.emit('scene:changed', { from: null, to: 'plaza' })
+    await vi.waitFor(() => expect(manager.getState().currentTrackId).toBe('town'))
+  })
+
   it('stops listening after dispose()', async () => {
     const bus = new EventBus<OverworldEventMap>()
     const manager = makeManager({ bus })

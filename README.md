@@ -53,8 +53,13 @@ pnpm test         # 全部单测
 pnpm --filter starter dev   # 运行示例游戏
 ```
 
-最小示例见 [`examples/starter`](examples/starter):一个场景 + WASD 移动 + NPC 对话 +
-任务 + 物品拾取 + 成就 + Toast,全部通过 `@overworld/*` 公开 API 实现。
+两个官方示例(均只用 `@overworld/*` 公开 API):
+
+- [`examples/starter`](examples/starter) —— 村庄演示:移动/对话/任务/物品/成就/联机/编辑器/中英切换
+- [`examples/dungeon`](examples/dungeon) —— 地牢探索:种子化程序地牢、行为树敌人、钥匙宝箱任务链、HPA* 引路(`?seed=N` 换地图)
+
+配套服务器示例:[`examples/ws-server`](examples/ws-server)(联机中继)、
+[`examples/authority-server`](examples/authority-server)(权威服务器 + 输入预测对账)。
 
 ## 文档
 
