@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/minimap",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Generic top-down minimap: marker registry + DOM canvas component",
   "keywords": [
     "overworld",
