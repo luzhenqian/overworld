@@ -1,6 +1,6 @@
 {
   "name": "@overworld/minimap",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Generic top-down minimap: marker registry + DOM canvas component",
   "type": "module",
   "main": "./dist/index.js",

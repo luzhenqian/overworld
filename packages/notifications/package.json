@@ -1,6 +1,6 @@
 {
   "name": "@overworld/notifications",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Headless toast and alert/confirm queues",
   "type": "module",
   "main": "./dist/index.js",

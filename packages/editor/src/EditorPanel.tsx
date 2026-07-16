@@ -1,7 +1,8 @@
 /**
  * DOM half of the editor: a fixed dark side panel with an undo/redo/duplicate
- * toolbar (plus snap step and grid toggle), mode switching, the entity list,
- * property editing and JSON import/export, plus a small floating
+ * toolbar (plus snap step and grid toggle), mode switching, a template picker
+ * (place mode, when the game registered templates via `setTemplates`), the
+ * entity list, property editing and JSON import/export, plus a small floating
  * `<EditorToggle>` button. Rendered outside the three.js canvas as a plain
  * HTML overlay (same pattern as `@overworld/minimap`).
  *
@@ -313,6 +314,8 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
   const enabled = useEditorStore((s) => s.enabled)
   const mode = useEditorStore((s) => s.mode)
   const placingKind = useEditorStore((s) => s.placingKind)
+  const templates = useEditorStore((s) => s.templates)
+  const activeTemplateId = useEditorStore((s) => s.activeTemplateId)
   const entities = useEditorStore((s) => s.entities)
   const selectedId = useEditorStore((s) => s.selectedId)
   const canUndo = useEditorStore((s) => s.canUndo)
@@ -434,6 +437,30 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
               </Btn>
             ))}
           </div>
+          {templates.length > 0 && (
+            <>
+              <div style={sectionTitleStyle}>模板</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <Btn
+                  active={activeTemplateId === null}
+                  onClick={() => useEditorStore.getState().setActiveTemplate(null)}
+                >
+                  空白
+                </Btn>
+                {templates.map((template) => (
+                  // setActiveTemplate also switches placingKind to the
+                  // template's kind (see the store).
+                  <Btn
+                    key={template.id}
+                    active={activeTemplateId === template.id}
+                    onClick={() => useEditorStore.getState().setActiveTemplate(template.id)}
+                  >
+                    {template.label}
+                  </Btn>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 

@@ -2,11 +2,12 @@
  * @overworld/editor — in-game scene editor prototype.
  *
  * Three pieces:
- * - {@link useEditorStore}: headless working set + JSON import/export;
+ * - {@link useEditorStore}: headless working set + placement templates +
+ *   JSON import/export;
  * - {@link EditorScene}: R3F layer mounted inside `<Canvas>` (ground-plane
- *   picking, placeholder meshes, drag-move);
+ *   picking, placeholder meshes with GLTF model preview, drag-move);
  * - {@link EditorPanel} / {@link EditorToggle}: DOM overlay (mode switch,
- *   entity list, property editing, JSON import/export).
+ *   template picker, entity list, property editing, JSON import/export).
  *
  * The exported JSON is structurally compatible with `@overworld/scene`'s
  * `NPCConfig` / `BuildingConfig` / `DecorationInstance` — no import of the
@@ -25,6 +26,7 @@ export type {
   EditorEntityKind,
   EditorMode,
   EditorState,
+  EditorTemplate,
   NewEditorEntity,
   UpdateEntityOptions,
   EditorSceneJSON,

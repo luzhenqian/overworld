@@ -1,6 +1,6 @@
 {
   "name": "@overworld/inventory",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Headless inventory/item engine",
   "type": "module",
   "main": "./dist/index.js",

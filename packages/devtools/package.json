@@ -1,6 +1,6 @@
 {
   "name": "@overworld/devtools",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Dev-time content validation (dialogues/quests) and event-bus logging for Overworld games",
   "type": "module",
   "main": "./dist/index.js",

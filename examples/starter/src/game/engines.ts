@@ -105,6 +105,8 @@ bindScheduleToBus(villagerSchedule, gameEvents)
 export const presence = isBroadcastChannelAvailable()
   ? createPresenceSync({
       transport: createBroadcastChannelTransport({ channelName: 'overworld-starter' }),
+      // 延迟插值缓冲:远端玩家按 120ms 前的快照对插值,平滑应对网络抖动
+      interpolation: { delayMs: 120 },
       getLocal: () => ({
         position: [
           playerPositionRef.current[0],
@@ -120,6 +122,16 @@ if (typeof window !== 'undefined' && presence) {
   // 页面关闭时广播 bye,让其他标签页立即移除本玩家
   window.addEventListener('pagehide', () => presence.stop())
 }
+
+// ---- 场景编辑器:实体模板目录(启动时注册一次) ----------------------------
+
+void import('@overworld/editor').then(({ useEditorStore }) => {
+  useEditorStore.getState().setTemplates([
+    { id: 'tpl-guide', label: '向导 NPC', kind: 'npc', modelPath: '/models/guide.glb', name: '新向导' },
+    { id: 'tpl-house', label: '小屋', kind: 'building', scale: 2, collisionRadius: 3, name: '小屋' },
+    { id: 'tpl-rock', label: '岩石装饰', kind: 'decoration', collisionRadius: 1 },
+  ])
+})
 
 // ---- Effects & conditions the content refers to -------------------------
 

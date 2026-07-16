@@ -1,6 +1,6 @@
 {
   "name": "@overworld/editor",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "In-game scene editor overlay for Overworld games: place/move entities, export scene JSON",
   "type": "module",
   "main": "./dist/index.js",
@@ -35,5 +35,9 @@
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",
     "directory": "packages/editor"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

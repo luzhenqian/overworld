@@ -1,6 +1,6 @@
 {
   "name": "@overworld/net",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Transport-agnostic multiplayer sync abstractions for Overworld games: presence replication, event relay",
   "type": "module",
   "main": "./dist/index.js",
@@ -35,5 +35,9 @@
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",
     "directory": "packages/net"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

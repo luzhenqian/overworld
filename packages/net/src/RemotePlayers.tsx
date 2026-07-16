@@ -7,15 +7,21 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import type { Group } from 'three'
 import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand/vanilla'
-import type { RemotePeer } from './presence'
+import type { PeerSample, RemotePeer } from './presence'
 
 /** Props for {@link RemotePlayers}. */
 export interface RemotePlayersProps {
   /**
    * A presence sync (or anything exposing its store shape) — typically the
-   * return value of `createPresenceSync`.
+   * return value of `createPresenceSync`. When the sync was created with
+   * `interpolation` enabled, peers are positioned by sampling its snapshot
+   * buffers instead of the exponential smoothing below.
    */
-  sync: { store: StoreApi<Record<string, RemotePeer>> }
+  sync: {
+    store: StoreApi<Record<string, RemotePeer>>
+    interpolationEnabled?: boolean
+    samplePeer?: (peerId: string) => PeerSample | null
+  }
   /**
    * Visual for one peer, rendered inside the moving group (so return it
    * centered at the origin). Re-invoked only when peers join/leave, not per
@@ -61,9 +67,21 @@ export function RemotePlayers({ sync, renderPeer, lerp = 0.15 }: RemotePlayersPr
 
   useFrame(() => {
     const state = sync.store.getState()
+    const samplePeer = sync.interpolationEnabled === true ? sync.samplePeer : undefined
     for (const [id, group] of groups.current) {
       const peer = state[id]
       if (!peer) continue
+      if (samplePeer) {
+        const sampled = samplePeer(id)
+        if (sampled) {
+          // The delay buffer already yields a continuous trajectory —
+          // apply it directly, no extra smoothing on top.
+          group.position.set(sampled.position[0], sampled.position[1], sampled.position[2])
+          group.rotation.y = sampled.rotationY
+          continue
+        }
+        // No sample yet (peer just joined): fall through to smoothing.
+      }
       group.position.x += (peer.position[0] - group.position.x) * lerp
       group.position.y += (peer.position[1] - group.position.y) * lerp
       group.position.z += (peer.position[2] - group.position.z) * lerp

@@ -161,6 +161,70 @@ const useStore = create<State>()(
 全框架统一约定:各引擎的 `persist` 配置**省略或 `false` = 不持久化;`true` = 默认配置
 开启;传对象 = 自定义 `name` / `version` / `storage`**。
 
+## 云存档 REST 适配器(createRestStorage)
+
+`createRestStorage(config)` 返回一个**异步**的 zustand 兼容存储(zustand 的
+`StateStorage` 原生支持 `getItem` 返回 `Promise<string | null>`),直接作为
+`persistOptions` 的 `storage` 工厂即可把存档落到远端服务器:
+
+```ts
+import { createRestStorage, persistOptions } from '@overworld/core'
+
+const storage = createRestStorage({
+  baseUrl: 'https://api.example.com/saves',
+  headers: () => ({ authorization: `Bearer ${getToken()}` }), // 每次请求都重新求值
+})
+
+const useStore = create<State>()(
+  persist(initializer, persistOptions({ name: 'inventory', storage: () => storage }))
+)
+```
+
+### REST 契约
+
+所有请求的 URL 均为 `${baseUrl}/${keyToPath(key)}`(`keyToPath` 默认
+`encodeURIComponent`;`baseUrl` 末尾多余的 `/` 会被剔除):
+
+| 方法 | 语义 |
+| --- | --- |
+| `GET` | `200` + 响应体为持久化字符串;`404` 表示 key 不存在(`getItem` 解析为 `null`) |
+| `PUT` | 请求体为原始字符串,`content-type: text/plain` |
+| `DELETE` | 删除 key;`404` 视为成功(幂等) |
+
+其余非 2xx 状态码或网络异常一律交给 `onError`(默认 `console.warn`)后**吞掉**:
+`getItem` 解析为 `null`,`setItem` / `removeItem` 静默 resolve——**存档失败永远
+不会让游戏崩溃**。
+
+### 写入防抖(debounce)
+
+`setItem` **按 key** 防抖(尾沿触发,`debounceMs` 默认 `300`):zustand 每次
+setState 都会触发一次写入,防抖把窗口内的连续写合并成**一次** PUT,只发送最后
+的值,不会打爆服务器。窗口内对同一 key 的 `getItem` 直接返回缓冲中的待写值
+(读不会倒退);`removeItem` 会取消该 key 的待写并立即发 DELETE。
+
+### 卸载前 flush
+
+防抖意味着页面关闭瞬间可能还有未发出的写。返回的存储带 `flush()` 方法
+(也有自由函数拼写 `flushRestStorage(storage)`),强制立即发出全部待写并等待
+在途请求完成:
+
+```ts
+window.addEventListener('beforeunload', () => {
+  void storage.flush()   // 或 flushRestStorage(storage)
+})
+```
+
+`RestStorageConfig` 字段:
+
+| 字段 | 说明 | 默认 |
+| --- | --- | --- |
+| `baseUrl` | 存档端点根 URL | 必填 |
+| `fetch` | fetch 实现(测试注入 / 自定义传输) | `globalThis.fetch` |
+| `headers` | 额外请求头;传函数则**每次请求**重新求值(刷新 token) | — |
+| `keyToPath` | 存储 key 到 URL 路径段的映射 | `encodeURIComponent` |
+| `debounceMs` | 按 key 的写入防抖窗口(毫秒) | `300` |
+| `onError` | 请求失败回调 `(error, op, key)`,`op` 为 `'get' \| 'set' \| 'remove'` | `console.warn` |
+
 ## 存档槽位(createSaveSlots)
 
 所有经 `persistOptions` 持久化的 store 都落在 `<prefix>:<name>` 键下,这组键的整体就是

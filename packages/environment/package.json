@@ -1,6 +1,6 @@
 {
   "name": "@overworld/environment",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Day-night cycle and weather system for Overworld games",
   "type": "module",
   "main": "./dist/index.js",
@@ -35,5 +35,9 @@
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",
     "directory": "packages/environment"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

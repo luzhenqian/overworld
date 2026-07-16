@@ -6,6 +6,7 @@
  */
 import { gameEvents } from '@overworld/core'
 import { createStore, type StoreApi } from 'zustand/vanilla'
+import { createSnapshotBuffer, type SnapshotBuffer } from './snapshotBuffer'
 import type { NetMessage, Transport } from './transport'
 
 /**
@@ -64,6 +65,23 @@ export interface PresenceSyncConfig {
   staleAfterMs?: number
   /** Bus receiving `net:peer-joined` / `net:peer-left`. @default gameEvents */
   events?: PresenceEventSink
+  /**
+   * Snapshot-interpolation for remote transforms. When enabled, every
+   * received presence packet is also pushed into a per-peer delay buffer
+   * and `samplePeer()` returns the transform interpolated `delayMs` in the
+   * past — smooth under real network jitter, at the cost of that fixed
+   * latency. `delayMs` defaults to 120; ~1.5–2× the sender's `intervalMs`
+   * is a good value. Disabled by default (`samplePeer` returns `null` and
+   * `<RemotePlayers>` keeps its plain exponential smoothing).
+   * @default false
+   */
+  interpolation?: { delayMs?: number } | false
+}
+
+/** An interpolated remote transform, returned by `PresenceSync.samplePeer`. */
+export interface PeerSample {
+  position: [number, number, number]
+  rotationY: number
 }
 
 /** Handle returned by {@link createPresenceSync}. */
@@ -76,6 +94,15 @@ export interface PresenceSync {
   stop(): void
   /** Snapshot of the currently known remote peers. */
   peers(): RemotePeer[]
+  /** Whether snapshot interpolation was enabled in the config. */
+  readonly interpolationEnabled: boolean
+  /**
+   * Sample `peerId`'s transform at the interpolation delay (linear position
+   * lerp, shortest-arc rotation lerp). `null` when interpolation is
+   * disabled, the peer is unknown, or its buffer can't produce a sample
+   * yet. See {@link SnapshotBuffer.sample} for the edge-case semantics.
+   */
+  samplePeer(peerId: string): PeerSample | null
 }
 
 interface PresenceEnvelope {
@@ -128,8 +155,26 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
   const intervalMs = config.intervalMs ?? 100
   const staleAfterMs = config.staleAfterMs ?? 3000
   const events: PresenceEventSink = config.events ?? gameEvents
+  const interpolation = config.interpolation ?? false
+  const interpolationEnabled = interpolation !== false
+  const interpolationDelayMs = interpolationEnabled ? (interpolation.delayMs ?? 120) : 120
 
   const store = createStore<Record<string, RemotePeer>>()(() => ({}))
+  /** Per-peer delay buffers; only allocated when interpolation is enabled. */
+  const buffers = interpolationEnabled ? new Map<string, SnapshotBuffer<PeerSample>>() : null
+
+  const lerpSample = (a: PeerSample, b: PeerSample, t: number): PeerSample => {
+    const dy = b.rotationY - a.rotationY
+    return {
+      position: [
+        a.position[0] + (b.position[0] - a.position[0]) * t,
+        a.position[1] + (b.position[1] - a.position[1]) * t,
+        a.position[2] + (b.position[2] - a.position[2]) * t,
+      ],
+      // Shortest-arc angle lerp, so -π/π wraps don't spin the long way.
+      rotationY: a.rotationY + Math.atan2(Math.sin(dy), Math.cos(dy)) * t,
+    }
+  }
 
   let timer: ReturnType<typeof setInterval> | null = null
   let unsubscribe: (() => void) | null = null
@@ -137,6 +182,7 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
   let lastSentJson: string | null = null
 
   const removePeer = (peerId: string) => {
+    buffers?.delete(peerId)
     const state = store.getState()
     if (!(peerId in state)) return
     const next = { ...state }
@@ -162,6 +208,19 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
       ...(data.meta !== undefined && { meta: data.meta }),
     }
     store.setState({ [msg.from]: peer })
+    if (buffers) {
+      let buffer = buffers.get(msg.from)
+      if (!buffer) {
+        // Date.now() (not performance.now) so timestamps share the timebase
+        // of lastSeenAt and behave under test fake timers.
+        buffer = createSnapshotBuffer<PeerSample>({
+          delayMs: interpolationDelayMs,
+          now: () => Date.now(),
+        })
+        buffers.set(msg.from, buffer)
+      }
+      buffer.push({ position: peer.position, rotationY: peer.rotationY })
+    }
     if (!existing) events.emit('net:peer-joined', { peerId: msg.from })
   }
 
@@ -209,6 +268,12 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
     },
     peers() {
       return Object.values(store.getState())
+    },
+    interpolationEnabled,
+    samplePeer(peerId) {
+      const buffer = buffers?.get(peerId)
+      if (!buffer) return null
+      return buffer.sample(lerpSample)
     },
   }
 }

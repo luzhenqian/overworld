@@ -1,14 +1,14 @@
 ---
 title: '@overworld/editor'
-description: 游戏内场景编辑器:摆放/移动实体、属性编辑、导出场景 JSON
+description: 游戏内场景编辑器:模板摆放/移动实体、GLTF 模型预览、属性编辑、导出场景 JSON
 ---
 
 游戏内场景编辑器**雏形**:在运行中的游戏里摆放/移动 NPC、建筑、装饰物,
 调整属性,一键导出场景 JSON。由三部分组成:
 
-- `useEditorStore` —— 无头工作集(zustand 单例),含 JSON 导入/导出,可脱离渲染层单测;
-- `<EditorScene>` —— 挂在 `<Canvas>` 内的 R3F 编辑层(地面拾取、占位网格、拖拽移动);
-- `<EditorPanel>` / `<EditorToggle>` —— Canvas 外的 DOM 面板与悬浮开关按钮。
+- `useEditorStore` —— 无头工作集(zustand 单例),含实体模板与 JSON 导入/导出,可脱离渲染层单测;
+- `<EditorScene>` —— 挂在 `<Canvas>` 内的 R3F 编辑层(地面拾取、占位网格 + GLTF 模型预览、拖拽移动);
+- `<EditorPanel>` / `<EditorToggle>` —— Canvas 外的 DOM 面板(含模板选择器)与悬浮开关按钮。
 
 编辑器关闭时(`enabled === false`)三者都不渲染任何内容,可以常驻在开发构建里。
 
@@ -32,12 +32,54 @@ import { EditorScene, EditorPanel, EditorToggle } from '@overworld/editor'
 
 ## 交互
 
-- **放置模式**:点击地面,在命中点新建当前 `placingKind` 的实体(自动吸附网格)。
-- **选择模式**:点击占位网格选中(高亮 + 地面光环);按住拖拽即可在 XZ 平面移动;
-  点击空地取消选中。整次拖拽只算**一步**撤销。
-- 占位形状:NPC = 胶囊体,建筑 = 立方体,装饰 = 圆柱体。
+- **放置模式**:点击地面,在命中点新建实体(自动吸附网格)。有激活模板时
+  按模板预填字段(见下文「实体模板」),否则新建当前 `placingKind` 的空白实体。
+- **选择模式**:点击实体(占位网格或模型)选中(高亮 + 地面光环);按住拖拽
+  即可在 XZ 平面移动;点击空地取消选中。整次拖拽只算**一步**撤销。
+- 占位形状:NPC = 胶囊体,建筑 = 立方体,装饰 = 圆柱体;有 `modelPath` 时
+  显示真实模型(见下文「模型预览」)。
 - 面板中可编辑坐标、旋转、缩放、名称、模型路径、碰撞半径,并删除实体。
   **注意:面板里的旋转以「度」显示,store 中的 `rotationY` 存的是弧度。**
+
+## 实体模板
+
+游戏可以注册一份**放置预设**目录,启动时调用一次即可:
+
+```ts
+import { useEditorStore, type EditorTemplate } from '@overworld/editor'
+
+const templates: EditorTemplate[] = [
+  { id: 'bank', label: '银行', kind: 'building',
+    modelPath: '/models/bank.glb', scale: 2, collisionRadius: 5, name: '银行' },
+  { id: 'guide', label: '向导 NPC', kind: 'npc', modelPath: '/models/guide.glb' },
+]
+useEditorStore.getState().setTemplates(templates)
+```
+
+- `setTemplates(templates)` 整体替换目录(不进撤销历史;若激活模板已不存在
+  则自动回退到 `null`)。
+- `setActiveTemplate(id | null)` 激活模板(`null` = 空白放置;未知 id 无操作)。
+  激活的同时会把 `placingKind` 切换成模板的 `kind`。
+- 放置模式下,面板的「模板」区(有模板时出现)列出所有 `label` 按钮,外加
+  一个「空白」按钮(= 不用模板)。
+- 放置点击走 `addEntityFromTemplate(position)`:kind / modelPath / scale /
+  collisionRadius / name 取自激活模板,位置取命中点;无激活模板时等价于
+  `addEntity({ kind: placingKind, position })`。与 `addEntity` 一样可撤销。
+- 模板只**预填**实体字段 —— 放下的实体是自包含的,导出 JSON 不引用模板 id,
+  `exportScene` / `importScene` 行为不变。
+
+## 模型预览
+
+实体的 `modelPath` 非空时,`<EditorScene>` 用 `useLoader(GLTFLoader, url)`
+(GLTFLoader 来自 `three/examples`,无新依赖)加载并渲染**真实模型**代替占位形状:
+
+- 加载中(Suspense)与加载失败(内部错误边界捕获)都回退到占位形状,
+  坏路径**不会**让编辑器崩溃;修改 `modelPath` 会重试加载。
+- 同一 URL 只加载一次(`useLoader` 按 URL 缓存),每个实体渲染缓存场景的
+  克隆体;克隆体与缓存共享几何/材质,卸载时交给 GC 即可(主动 dispose
+  反而会破坏其他克隆体共享的缓存)。
+- 选中高亮对模型实体依然有效:地面光环照常显示,点击模型即可选中
+  (指针事件挂在包裹 group 上,占位形状与模型走同一条路径)。
 
 ## 撤销 / 重做
 
@@ -79,7 +121,10 @@ const store = useEditorStore.getState()
 store.setEnabled(true)
 store.setMode('place')                    // 'select' | 'place'
 store.setPlacingKind('building')          // 'npc' | 'building' | 'decoration'
-const e = store.addEntity({ position: [4, 0, -2], name: '银行' })  // id 自动生成:building-1
+store.setTemplates(templates)             // 注册放置模板(启动时一次)
+store.setActiveTemplate('bank')           // 激活模板(null = 空白;同步 placingKind)
+store.addEntityFromTemplate([4, 0, -2])   // 放置:字段取自激活模板,位置取参数
+const e = store.addEntity({ position: [4, 0, -2], name: '银行' })  // id 自动生成:building-2
 store.updateEntity(e.id, { rotationY: Math.PI / 2 })
 store.updateEntity(e.id, { scale: 2 }, { transient: true })  // 瞬时:不进历史
 store.commitTransient()                   // 把瞬时 burst 合并成一步撤销
@@ -136,5 +181,6 @@ const scene = store.exportScene()
 ## 已知边界(雏形)
 
 - 只支持 XZ 平面拖拽;旋转/缩放需在面板中输入,没有 3D gizmo。
-- 占位网格不加载 GLTF 模型,`modelPath` 只是随 JSON 导出的元数据。
-- 编辑器状态不持久化 —— 产物就是导出的 JSON,不是存档。
+- 模型预览不做碰撞体可视化,`collisionRadius` 只是随 JSON 导出的数据。
+- 编辑器状态不持久化 —— 产物就是导出的 JSON,不是存档(模板目录同理,
+  由游戏每次启动时用 `setTemplates` 注册)。

@@ -7,19 +7,34 @@
  * - placeholder meshes for every editor entity (capsule = NPC, box =
  *   building, cylinder = decoration) with an emissive highlight + ground
  *   ring on the selected one;
+ * - the actual GLTF model instead of the placeholder when an entity has a
+ *   non-empty `modelPath` (loading and load failures both fall back to the
+ *   placeholder — the editor never crashes on a bad path);
  * - an optional snapping grid (`showGrid` in the store) whose cell size
  *   follows the effective snap step.
  *
- * Drag-moves use transient store updates and commit on pointer-up, so a
- * whole drag is a single undo step.
+ * Place-mode clicks go through the store's `addEntityFromTemplate`, so an
+ * active template (see `setTemplates` / `setActiveTemplate`) pre-fills the
+ * new entity's fields. Drag-moves use transient store updates and commit on
+ * pointer-up, so a whole drag is a single undo step.
  *
  * All pointer handling uses R3F's built-in raycast events — no manual
  * raycasters. Geometries/materials are created once per mount and disposed
  * on unmount; there is no per-frame work at all.
  */
-import { useCallback, useEffect, useMemo, useRef, type ReactElement } from 'react'
+import {
+  Component,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import * as THREE from 'three'
-import type { ThreeEvent } from '@react-three/fiber'
+import { useLoader, type ThreeEvent } from '@react-three/fiber'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { useEditorStore, type EditorEntity, type EditorEntityKind } from './editorStore'
 
 /** Props for {@link EditorScene}. */
@@ -121,6 +136,62 @@ function snapValue(value: number, snap: number): number {
   return snap > 0 ? Math.round(value / snap) * snap : value
 }
 
+/**
+ * Loads a GLTF and renders a **clone** of its scene (so several entities can
+ * share one cached load without fighting over the same object graph).
+ * `useLoader` caches by URL — the file is fetched once per URL, never per
+ * frame or per entity. The clone shares geometries/materials with the cached
+ * original and is intentionally left to the GC on unmount: disposing it
+ * would kill the shared cache entry for every other clone.
+ *
+ * `useLoader` **suspends** while loading and **throws** on failure — callers
+ * must wrap this in `<Suspense>` + an error boundary (see
+ * {@link ModelFallbackBoundary}).
+ */
+function EntityModel({ url, scale }: { url: string; scale: number }): ReactElement {
+  const gltf = useLoader(GLTFLoader, url)
+  const cloned = useMemo(() => gltf.scene.clone(true), [gltf])
+  return <primitive object={cloned} scale={scale} />
+}
+
+/**
+ * Minimal error boundary: renders `fallback` once the subtree throws (e.g.
+ * `useLoader` rejecting on a 404/parse error). Keyed by URL at the call
+ * site, so editing `modelPath` retries the load with a fresh boundary.
+ */
+class ModelFallbackBoundary extends Component<
+  { fallback: ReactNode; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true }
+  }
+
+  render(): ReactNode {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
+
+/** The placeholder primitive (capsule/box/cylinder) for one entity kind. */
+function PlaceholderMesh(props: {
+  entity: EditorEntity
+  selected: boolean
+  resources: EditorResources
+}): ReactElement {
+  const { geometries, materials } = props.resources
+  const pair = materials[props.entity.kind]
+  return (
+    <mesh
+      geometry={geometries[props.entity.kind]}
+      material={props.selected ? pair.selected : pair.base}
+      position={[0, CENTER_OFFSET[props.entity.kind] * props.entity.scale, 0]}
+      scale={props.entity.scale}
+    />
+  )
+}
+
 interface EntityMeshProps {
   entity: EditorEntity
   selected: boolean
@@ -128,37 +199,48 @@ interface EntityMeshProps {
   onPointerDown: (event: ThreeEvent<PointerEvent>, id: string) => void
 }
 
-/** Placeholder mesh (+ selection ring) for one editor entity. */
+/**
+ * One editor entity: a group at the entity's position/rotation containing
+ * either the GLTF model (when `modelPath` is set; placeholder while loading
+ * or on load failure) or the placeholder primitive, plus the selection ring.
+ * The pointer handler sits on the **group**, so clicking works identically
+ * for placeholder and model (R3F events bubble up the object tree).
+ */
 function EntityMesh({ entity, selected, resources, onPointerDown }: EntityMeshProps): ReactElement {
   const { geometries, materials } = resources
   const [x, baseY, z] = entity.position
-  const pair = materials[entity.kind]
 
   const handlePointerDown = useCallback(
     (event: ThreeEvent<PointerEvent>) => onPointerDown(event, entity.id),
     [onPointerDown, entity.id]
   )
 
+  const placeholder = (
+    <PlaceholderMesh entity={entity} selected={selected} resources={resources} />
+  )
+
   return (
-    <>
-      <mesh
-        geometry={geometries[entity.kind]}
-        material={selected ? pair.selected : pair.base}
-        position={[x, baseY + CENTER_OFFSET[entity.kind] * entity.scale, z]}
-        rotation-y={entity.rotationY}
-        scale={entity.scale}
-        onPointerDown={handlePointerDown}
-      />
+    <group position={[x, baseY, z]} rotation-y={entity.rotationY} onPointerDown={handlePointerDown}>
+      {entity.modelPath ? (
+        // Key by URL so editing modelPath resets a previous load failure.
+        <ModelFallbackBoundary key={entity.modelPath} fallback={placeholder}>
+          <Suspense fallback={placeholder}>
+            <EntityModel url={entity.modelPath} scale={entity.scale} />
+          </Suspense>
+        </ModelFallbackBoundary>
+      ) : (
+        placeholder
+      )}
       {selected && (
         <mesh
           geometry={geometries.ring}
           material={materials.ring}
-          position={[x, baseY + 0.02, z]}
+          position={[0, 0.02, 0]}
           rotation-x={-Math.PI / 2}
           scale={entity.scale}
         />
       )}
-    </>
+    </group>
   )
 }
 
@@ -205,10 +287,13 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap: snapProp }: EditorScen
       const store = useEditorStore.getState()
       if (store.mode === 'place') {
         event.stopPropagation()
-        const entity = store.addEntity({
-          kind: store.placingKind,
-          position: [snapValue(event.point.x, snap), y, snapValue(event.point.z, snap)],
-        })
+        // Pre-fills kind/model/scale/... from the active template (if any);
+        // falls back to a bare `placingKind` entity otherwise.
+        const entity = store.addEntityFromTemplate([
+          snapValue(event.point.x, snap),
+          y,
+          snapValue(event.point.z, snap),
+        ])
         store.select(entity.id)
       } else {
         // Select mode, empty ground: deselect. (Entity meshes stopPropagation

@@ -1,6 +1,7 @@
 # @overworld/devtools
 
-开发期工具:**内容静态校验**(对话 / 任务 / 物品 / 成就)与**事件总线日志**。
+开发期工具:**内容静态校验**(对话 / 任务 / 物品 / 成就)、**事件总线日志**与
+**事件总线剖析**。
 所有校验器都是纯函数,只返回问题列表、从不抛出;`assertValidContent` 供
 开发启动脚本与测试在存在 error 时快速失败。
 
@@ -146,3 +147,29 @@ recorder.stop()
 注意:`RecordedEvent.at` 是**单调递增的序号**(0、1、2…),不是
 `Date.now()` 时间戳——这样在假时钟、同毫秒多次 emit 或任何运行环境下,
 顺序断言都是确定的。
+
+## 事件总线剖析(profileBus)
+
+`profileBus(bus, options?)` 通过包裹 `bus.emit`(monkey-patch,`stop()` 时还原)
+统计每个事件的发射次数与**同步分发耗时**,每事件累计
+`{ count, totalMs, maxMs, lastMs }`(`EventStats`):
+
+```ts
+import { profileBus } from '@overworld/devtools'
+import { gameEvents } from '@overworld/core'
+
+const profiler = profileBus(gameEvents)
+// ... 跑一段游戏 ...
+console.log(profiler.report())   // 按 totalMs 倒序的对齐文本表格
+profiler.top(3)                  // 最贵的 3 个事件(默认按 totalMs,可选 'count')
+profiler.reset()                 // 清空统计,继续剖析
+profiler.stop()                  // 还原原始 emit(幂等)
+```
+
+- `options.now` 可注入时钟(默认 `performance.now`),测试里注入假时钟即可
+  得到确定性的耗时断言;监听器里发起的异步工作不计入耗时。
+- **重复剖析同一总线会链式包裹**(打 warning,两者都正常统计);此时 `stop()`
+  必须按 **LIFO** 顺序调用(后启动的先 stop),乱序 stop 会把过期的 emit
+  还原回去,叠在上面的 profiler 会悄悄失效。
+- 与 `bindEventLogger` / `createEventRecorder` 互不干扰:它们走 `bus.onAny`,
+  剖析包裹的是 `emit` 本身。

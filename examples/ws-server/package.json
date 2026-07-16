@@ -1,0 +1,14 @@
+{
+  "name": "ws-server",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Reference authoritative relay server for @overworld/net WebSocket transport",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}

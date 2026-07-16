@@ -1,9 +1,10 @@
 ---
 title: '@overworld/devtools'
-description: 开发期工具:内容静态校验、JSON Schema 与事件总线日志
+description: 开发期工具:内容静态校验、JSON Schema、事件总线日志与剖析
 ---
 
-开发期工具:**内容静态校验**(对话 / 任务 / 物品 / 成就)与**事件总线日志**。
+开发期工具:**内容静态校验**(对话 / 任务 / 物品 / 成就)、**事件总线日志**与
+**事件总线剖析**。
 所有校验器都是纯函数,只返回问题列表、从不抛出;`assertValidContent` 供
 开发启动脚本与测试在存在 error 时快速失败。
 
@@ -149,3 +150,42 @@ recorder.stop()
 注意:`RecordedEvent.at` 是**单调递增的序号**(0、1、2…),不是
 `Date.now()` 时间戳——这样在假时钟、同毫秒多次 emit 或任何运行环境下,
 顺序断言都是确定的。
+
+## 事件总线剖析(profileBus)
+
+`profileBus(bus, options?)` 通过包裹 `bus.emit`(monkey-patch,`stop()` 时还原)
+统计每个事件的发射次数与**同步分发耗时**——即所有监听器同步执行的时间;
+监听器里发起的异步工作不计入。每个事件累计
+`{ count, totalMs, maxMs, lastMs }`(`EventStats`)。
+
+```ts
+import { profileBus } from '@overworld/devtools'
+import { gameEvents } from '@overworld/core'
+
+const profiler = profileBus(gameEvents)
+// ... 跑一段游戏 ...
+console.log(profiler.report())   // 按 totalMs 倒序的对齐文本表格
+profiler.top(3)                  // 最贵的 3 个事件(默认按 totalMs)
+profiler.top(3, 'count')         // 或按发射次数
+profiler.reset()                 // 清空统计,继续剖析
+profiler.stop()                  // 还原原始 emit(幂等)
+```
+
+| 成员 | 说明 |
+| --- | --- |
+| `stats()` | 每事件统计快照(`Record<string, EventStats>`,返回副本) |
+| `top(n?, by?)` | 前 `n`(默认 5)个事件,按 `'totalMs'`(默认)或 `'count'` 倒序 |
+| `reset()` | 清空已收集的统计,剖析继续 |
+| `stop()` | 还原原始 `emit` 并停止收集;幂等 |
+| `report()` | 人类可读的对齐表格,按 `totalMs` 倒序 |
+
+行为细节:
+
+- `options.now` 可注入时钟(默认 `performance.now`),测试里注入假时钟即可
+  得到确定性的耗时断言。
+- **重复剖析同一总线会链式包裹**:第二个 profiler 包住第一个的 emit(并打
+  warning),两者都正常统计(外层的耗时含内层的少量记账开销)。此时
+  `stop()` 必须按 **LIFO** 顺序调用(后启动的先 stop)——乱序 stop 会把一个
+  过期的 emit 还原回去,导致叠在上面的 profiler 悄悄失效。
+- 与 `bindEventLogger` / `createEventRecorder` 互不干扰:它们走 `bus.onAny`,
+  剖析包裹的是 `emit` 本身。

@@ -15,6 +15,10 @@ export type {
   WebSocketConstructor,
 } from './transport'
 
+// Snapshot interpolation
+export { createSnapshotBuffer } from './snapshotBuffer'
+export type { SnapshotBuffer, SnapshotBufferConfig } from './snapshotBuffer'
+
 // Presence replication
 export { createPresenceSync } from './presence'
 export type {
@@ -22,6 +26,7 @@ export type {
   PresenceSyncConfig,
   PresenceLocal,
   PresenceEventSink,
+  PeerSample,
   RemotePeer,
 } from './presence'
 

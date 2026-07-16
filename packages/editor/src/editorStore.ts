@@ -42,6 +42,26 @@ export interface EditorEntity {
 /** Fields accepted by {@link EditorState.addEntity}; everything is optional. */
 export type NewEditorEntity = Partial<Omit<EditorEntity, 'id'>>
 
+/**
+ * A reusable placement preset. Games register their catalogue once at
+ * startup via {@link EditorState.setTemplates}; while a template is active
+ * (see {@link EditorState.setActiveTemplate}), place-mode clicks pre-fill
+ * the new entity from it ({@link EditorState.addEntityFromTemplate}).
+ *
+ * Templates only pre-fill entity fields — the placed entity remains
+ * self-contained, so exported JSON never references template ids.
+ */
+export interface EditorTemplate {
+  id: string
+  /** Human-readable label shown in the panel's template picker. */
+  label: string
+  kind: EditorEntityKind
+  modelPath?: string
+  scale?: number
+  collisionRadius?: number
+  name?: string
+}
+
 /** Structurally compatible with `@overworld/scene`'s `NPCConfig`. */
 export interface EditorNPCJSON {
   id: string
@@ -345,6 +365,10 @@ export interface EditorState {
   mode: EditorMode
   /** Kind placed by the next place-mode click. */
   placingKind: EditorEntityKind
+  /** Placement presets registered by the game. See {@link EditorTemplate}. */
+  templates: EditorTemplate[]
+  /** Active template id, or `null` for bare placement. */
+  activeTemplateId: string | null
   entities: EditorEntity[]
   selectedId: string | null
   /** Placement/drag grid step; `0` disables snapping. Default: 0.5. */
@@ -367,6 +391,27 @@ export interface EditorState {
   setEnabled: (enabled: boolean) => void
   setMode: (mode: EditorMode) => void
   setPlacingKind: (kind: EditorEntityKind) => void
+  /**
+   * Replace the template catalogue. Call once at game startup:
+   * `useEditorStore.getState().setTemplates([...])`. If the active template
+   * no longer exists in the new list, the selection falls back to `null`.
+   * Not history-tracked (templates are configuration, not scene content).
+   */
+  setTemplates: (templates: EditorTemplate[]) => void
+  /**
+   * Activate a template (`null` = bare placement). Unknown ids are a no-op.
+   * Activating a template also switches `placingKind` to the template's
+   * kind so the panel/scene stay consistent.
+   */
+  setActiveTemplate: (id: string | null) => void
+  /**
+   * Place-mode click entry point: add an entity at `position`, pre-filling
+   * kind/modelPath/scale/collisionRadius/name from the active template.
+   * Without an active template this is `addEntity({ kind: placingKind,
+   * position })`. History-tracked exactly like {@link EditorState.addEntity}
+   * (it delegates to it). Returns the created entity.
+   */
+  addEntityFromTemplate: (position: Vec3) => EditorEntity
   /** Set the grid snapping step (`0` = off; negative/non-finite → 0). */
   setSnap: (snap: number) => void
   /** Toggle the `<EditorScene>` grid overlay. */
@@ -434,6 +479,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   enabled: false,
   mode: 'select',
   placingKind: 'npc',
+  templates: [],
+  activeTemplateId: null,
   entities: [],
   selectedId: null,
   snap: DEFAULT_SNAP,
@@ -453,6 +500,41 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   },
   setSnap: (snap) => set({ snap: Number.isFinite(snap) && snap > 0 ? snap : 0 }),
   setShowGrid: (showGrid) => set({ showGrid }),
+
+  setTemplates: (templates) =>
+    set((state) => ({
+      templates: [...templates],
+      activeTemplateId:
+        state.activeTemplateId !== null &&
+        templates.some((t) => t.id === state.activeTemplateId)
+          ? state.activeTemplateId
+          : null,
+    })),
+
+  setActiveTemplate: (id) =>
+    set((state) => {
+      if (id === null) return { activeTemplateId: null }
+      const template = state.templates.find((t) => t.id === id)
+      if (!template) return state
+      return { activeTemplateId: id, placingKind: template.kind }
+    }),
+
+  addEntityFromTemplate: (position) => {
+    const state = get()
+    const template =
+      state.activeTemplateId === null
+        ? undefined
+        : state.templates.find((t) => t.id === state.activeTemplateId)
+    if (!template) {
+      return get().addEntity({ kind: state.placingKind, position })
+    }
+    const partial: NewEditorEntity = { kind: template.kind, position }
+    if (template.modelPath !== undefined) partial.modelPath = template.modelPath
+    if (template.scale !== undefined) partial.scale = template.scale
+    if (template.collisionRadius !== undefined) partial.collisionRadius = template.collisionRadius
+    if (template.name !== undefined) partial.name = template.name
+    return get().addEntity(partial)
+  },
 
   addEntity: (partial = {}) => {
     const state = get()

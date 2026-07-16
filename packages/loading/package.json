@@ -1,6 +1,6 @@
 {
   "name": "@overworld/loading",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Asset loading progress and scene preloading",
   "type": "module",
   "main": "./dist/index.js",
@@ -31,5 +31,9 @@
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",
     "directory": "packages/loading"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
