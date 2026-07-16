@@ -1,6 +1,6 @@
 {
   "name": "starter",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -20,6 +20,7 @@
     "@overworld/input": "workspace:*",
     "@overworld/inventory": "workspace:*",
     "@overworld/minimap": "workspace:*",
+    "@overworld/net": "workspace:*",
     "@overworld/notifications": "workspace:*",
     "@overworld/quest": "workspace:*",
     "@overworld/scene": "workspace:*",

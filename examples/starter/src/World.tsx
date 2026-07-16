@@ -11,6 +11,7 @@ import {
 import { DayNightLighting, EnvironmentTick } from '@overworld/environment'
 import { useMinimapStore } from '@overworld/minimap'
 import { NPCWalker } from '@overworld/ai'
+import { RemotePlayers } from '@overworld/net'
 import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
 import { CRYSTAL_SPOTS, NPCS } from './game/content'
@@ -19,6 +20,7 @@ import {
   inventory,
   isGameInputBlocked,
   movementInput,
+  presence,
   quests,
   villagerAgent,
 } from './game/engines'
@@ -156,6 +158,8 @@ export function World() {
       <fog attach="fog" args={['#0b0e1a', 30, 60]} />
       <Crystals />
       <Villager />
+      {/* 其他标签页的玩家(幽灵胶囊) */}
+      {presence && <RemotePlayers sync={presence} />}
     </SceneShell>
   )
 }

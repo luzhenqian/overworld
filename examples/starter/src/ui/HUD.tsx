@@ -4,7 +4,8 @@ import { useToastStore } from '@overworld/notifications'
 import { playerPositionRef, playerRotationRef, useSceneStore } from '@overworld/scene'
 import { MiniMap } from '@overworld/minimap'
 import { VirtualJoystick } from '@overworld/input'
-import { achievements, inventory, movementInput, quests } from '../game/engines'
+import type { PresenceSync } from '@overworld/net'
+import { achievements, inventory, movementInput, presence, quests } from '../game/engines'
 import { useGoldStore } from '../game/gold'
 import { ACHIEVEMENTS } from '../game/content'
 
@@ -55,6 +56,12 @@ function QuestTracker() {
   )
 }
 
+/** 其他标签页在线的玩家数(BroadcastChannel presence) */
+function PeerCount({ sync }: { sync: PresenceSync }) {
+  const peers = useStore(sync.store)
+  return <span>👥 {Object.keys(peers).length + 1}</span>
+}
+
 function StatusBar() {
   const { i18n } = useTranslation()
   const gold = useGoldStore((s) => s.gold)
@@ -65,6 +72,7 @@ function StatusBar() {
       <span>
         🏆 {Object.keys(unlocked).length}/{ACHIEVEMENTS.length}
       </span>
+      {presence && <PeerCount sync={presence} />}
       <button
         id="lang-toggle"
         onClick={() => void i18n.changeLanguage(i18n.language === 'zh' ? 'en' : 'zh')}

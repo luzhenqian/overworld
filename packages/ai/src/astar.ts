@@ -18,6 +18,13 @@ export interface FindPathOptions {
   fallbackRadius?: number
   /** Run {@link smoothPath} on the result. @default true */
   smooth?: boolean
+  /**
+   * Optional visited-cell counter, mutated in place: `stats.visited` is
+   * incremented once per cell the search expands. Never read — pass
+   * `{ visited: 0 }` and inspect it afterwards (for benchmarks/tests
+   * comparing search effort, e.g. against `findPathHierarchical`).
+   */
+  stats?: { visited: number }
 }
 
 const SQRT2 = Math.SQRT2
@@ -177,6 +184,115 @@ export function smoothPath(grid: NavGrid, path: PathPoint[]): PathPoint[] {
 }
 
 /**
+ * Inclusive cell-coordinate rectangle restricting a cell-level search.
+ * @internal — used by the hierarchical pathfinder in `hpa.ts`.
+ */
+export interface CellWindow {
+  minCx: number
+  minCz: number
+  maxCx: number
+  maxCz: number
+}
+
+/** Options for {@link findCellPath}. @internal */
+export interface FindCellPathOptions {
+  /**
+   * Restrict the search (and the resulting cell chain) to this inclusive
+   * window; searches outside it fail. Defaults to the whole grid. Diagonal
+   * corner-cut checks still consult walkability outside the window — only
+   * traversed cells are confined.
+   */
+  window?: CellWindow
+  /** Visited-cell counter mutated in place (see {@link FindPathOptions.stats}). */
+  stats?: { visited: number }
+}
+
+/**
+ * Cell-level A* between two **walkable** cells, optionally bounded to a
+ * {@link CellWindow}: octile heuristic, 8-directional, no diagonal
+ * corner-cutting — the shared core of {@link findPath} and the hierarchical
+ * pathfinder's window-bounded refinement searches.
+ *
+ * @returns the inclusive `start → goal` cell chain plus its cost in cell
+ * units (orthogonal 1, diagonal √2), or `null` when unreachable (or either
+ * endpoint is blocked / outside the window).
+ * @internal
+ */
+export function findCellPath(
+  grid: NavGrid,
+  start: readonly [number, number],
+  goal: readonly [number, number],
+  options: FindCellPathOptions = {}
+): { cells: [number, number][]; cost: number } | null {
+  const minCx = Math.max(0, options.window?.minCx ?? 0)
+  const minCz = Math.max(0, options.window?.minCz ?? 0)
+  const maxCx = Math.min(grid.cols - 1, options.window?.maxCx ?? grid.cols - 1)
+  const maxCz = Math.min(grid.rows - 1, options.window?.maxCz ?? grid.rows - 1)
+  if (maxCx < minCx || maxCz < minCz) return null
+
+  const [sx, sz] = start
+  const [gx, gz] = goal
+  if (sx < minCx || sx > maxCx || sz < minCz || sz > maxCz) return null
+  if (gx < minCx || gx > maxCx || gz < minCz || gz > maxCz) return null
+  if (!grid.isWalkable(sx, sz) || !grid.isWalkable(gx, gz)) return null
+  if (sx === gx && sz === gz) return { cells: [[sx, sz]], cost: 0 }
+
+  const stats = options.stats
+  const width = maxCx - minCx + 1
+  const size = width * (maxCz - minCz + 1)
+  const gScore = new Float64Array(size).fill(Infinity)
+  const parent = new Int32Array(size).fill(-1)
+  const closed = new Uint8Array(size)
+  const open = new OpenHeap()
+
+  const startIdx = (sz - minCz) * width + (sx - minCx)
+  const goalIdx = (gz - minCz) * width + (gx - minCx)
+  gScore[startIdx] = 0
+  open.push(startIdx, octile(sx, sz, gx, gz), 0)
+
+  let found = false
+  while (open.size > 0) {
+    const current = open.pop()
+    if (closed[current]) continue
+    closed[current] = 1
+    if (stats) stats.visited++
+    if (current === goalIdx) {
+      found = true
+      break
+    }
+
+    const localX = current % width
+    const cx = localX + minCx
+    const cz = (current - localX) / width + minCz
+    for (const [dx, dz, cost] of DIRECTIONS) {
+      const nx = cx + dx
+      const nz = cz + dz
+      if (nx < minCx || nx > maxCx || nz < minCz || nz > maxCz) continue
+      if (!grid.isWalkable(nx, nz)) continue
+      // No corner-cutting: a diagonal needs both orthogonal cells free.
+      if (dx !== 0 && dz !== 0 && (!grid.isWalkable(cx + dx, cz) || !grid.isWalkable(cx, cz + dz))) {
+        continue
+      }
+      const neighbor = (nz - minCz) * width + (nx - minCx)
+      if (closed[neighbor]) continue
+      const tentative = gScore[current]! + cost
+      if (tentative >= gScore[neighbor]!) continue
+      gScore[neighbor] = tentative
+      parent[neighbor] = current
+      open.push(neighbor, tentative + octile(nx, nz, gx, gz), tentative)
+    }
+  }
+  if (!found) return null
+
+  const cells: [number, number][] = []
+  for (let idx = goalIdx; idx !== -1; idx = parent[idx]!) {
+    cells.push([(idx % width) + minCx, Math.floor(idx / width) + minCz])
+  }
+  cells.reverse()
+  return { cells, cost: gScore[goalIdx]! }
+}
+
+/**
  * Find a world-space path `from → to` on the grid.
  *
  * - A* with octile heuristic, 8-directional movement; diagonal steps are
@@ -217,58 +333,14 @@ export function findPath(
     return [[from[0], from[1]], endPoint]
   }
 
-  const { cols, rows } = grid
-  const size = cols * rows
-  const gScore = new Float64Array(size).fill(Infinity)
-  const parent = new Int32Array(size).fill(-1)
-  const closed = new Uint8Array(size)
-  const open = new OpenHeap()
+  const result = findCellPath(grid, start, goal, { stats: options.stats })
+  if (!result) return null
 
-  const startIdx = start[1] * cols + start[0]
-  const goalIdx = goal[1] * cols + goal[0]
-  gScore[startIdx] = 0
-  open.push(startIdx, octile(start[0], start[1], goal[0], goal[1]), 0)
-
-  let found = false
-  while (open.size > 0) {
-    const current = open.pop()
-    if (current === goalIdx) {
-      found = true
-      break
-    }
-    if (closed[current]) continue
-    closed[current] = 1
-
-    const cx = current % cols
-    const cz = (current - cx) / cols
-    for (const [dx, dz, cost] of DIRECTIONS) {
-      const nx = cx + dx
-      const nz = cz + dz
-      if (!grid.isWalkable(nx, nz)) continue
-      // No corner-cutting: a diagonal needs both orthogonal cells free.
-      if (dx !== 0 && dz !== 0 && (!grid.isWalkable(cx + dx, cz) || !grid.isWalkable(cx, cz + dz))) {
-        continue
-      }
-      const neighbor = nz * cols + nx
-      if (closed[neighbor]) continue
-      const tentative = gScore[current]! + cost
-      if (tentative >= gScore[neighbor]!) continue
-      gScore[neighbor] = tentative
-      parent[neighbor] = current
-      open.push(neighbor, tentative + octile(nx, nz, goal[0], goal[1]), tentative)
-    }
-  }
-  if (!found) return null
-
-  // Reconstruct the cell chain start → goal.
-  const cells: number[] = []
-  for (let idx = goalIdx; idx !== -1; idx = parent[idx]!) cells.push(idx)
-  cells.reverse()
-
+  const { cells } = result
   const path: PathPoint[] = [[from[0], from[1]]]
   for (let i = 1; i < cells.length - 1; i++) {
-    const idx = cells[i]!
-    path.push(grid.cellToWorld(idx % cols, Math.floor(idx / cols)))
+    const cell = cells[i]!
+    path.push(grid.cellToWorld(cell[0], cell[1]))
   }
   path.push(endPoint)
 

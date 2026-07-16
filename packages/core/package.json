@@ -1,6 +1,6 @@
 {
   "name": "@overworld/core",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Overworld framework core: typed event bus, condition/effect registries, persistence helpers, shared types",
   "type": "module",
   "main": "./dist/index.js",

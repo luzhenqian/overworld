@@ -90,6 +90,12 @@ export interface EditorSceneJSON {
 /** Default collider radius for buildings and decoration groups. */
 export const DEFAULT_COLLISION_RADIUS = 2
 
+/** Maximum number of undo (and redo) snapshots kept; oldest are dropped. */
+export const HISTORY_LIMIT = 100
+
+/** Default grid snapping step. */
+export const DEFAULT_SNAP = 0.5
+
 /** Group key used for decorations that have no `name`. */
 const DEFAULT_DECORATION_GROUP = 'decoration'
 
@@ -185,6 +191,35 @@ function toVec3(value: unknown): Vec3 | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Deep-clone the working set (entities are flat except `position`). */
+function cloneEntities(entities: readonly EditorEntity[]): EditorEntity[] {
+  return entities.map((entity) => ({
+    ...entity,
+    position: [entity.position[0], entity.position[1], entity.position[2]],
+  }))
+}
+
+/** Append a snapshot to a history stack, dropping the oldest past the cap. */
+function appendCapped(stack: EditorEntity[][], snapshot: EditorEntity[]): EditorEntity[][] {
+  const next = [...stack, snapshot]
+  return next.length > HISTORY_LIMIT ? next.slice(next.length - HISTORY_LIMIT) : next
+}
+
+/**
+ * History bookkeeping for a non-transient mutation: commits any pending
+ * transient burst first, then pushes the pre-mutation snapshot and clears
+ * the redo stack. Spread the result into the state patch of every
+ * history-tracked op.
+ */
+function pushHistory(
+  state: Pick<EditorState, 'past' | 'entities' | 'pendingSnapshot'>
+): Pick<EditorState, 'past' | 'future' | 'canUndo' | 'canRedo' | 'pendingSnapshot'> {
+  let past = state.past
+  if (state.pendingSnapshot !== null) past = appendCapped(past, state.pendingSnapshot)
+  past = appendCapped(past, cloneEntities(state.entities))
+  return { past, future: [], canUndo: true, canRedo: false, pendingSnapshot: null }
 }
 
 /**
@@ -290,6 +325,19 @@ export function importEntities(json: unknown): EditorEntity[] {
   return entities
 }
 
+/** Options for {@link EditorState.updateEntity}. */
+export interface UpdateEntityOptions {
+  /**
+   * Transient updates mutate the entity **without** touching history (used
+   * during drags / while typing). The snapshot from before the first
+   * transient update of a burst is remembered; call
+   * {@link EditorState.commitTransient} at the end of the burst (pointer-up,
+   * blur, ...) to turn the whole burst into **one** undo step. Any
+   * non-transient op with a burst still pending commits the burst first.
+   */
+  transient?: boolean
+}
+
 /** Editor store state and actions. See {@link useEditorStore}. */
 export interface EditorState {
   /** Master switch; `<EditorScene>`/`<EditorPanel>` render nothing when false. */
@@ -299,20 +347,61 @@ export interface EditorState {
   placingKind: EditorEntityKind
   entities: EditorEntity[]
   selectedId: string | null
+  /** Placement/drag grid step; `0` disables snapping. Default: 0.5. */
+  snap: number
+  /** Whether `<EditorScene>` renders the snapping grid. Default: true. */
+  showGrid: boolean
+  /** `past.length > 0` — kept in sync so the UI can subscribe cheaply. */
+  canUndo: boolean
+  /** `future.length > 0` — kept in sync so the UI can subscribe cheaply. */
+  canRedo: boolean
   /** @internal Per-kind auto-id counters (`npc-1`, `npc-2`, ...). */
   counters: Counters
+  /** @internal Undo stack: pre-mutation snapshots, oldest first (≤ 100). */
+  past: EditorEntity[][]
+  /** @internal Redo stack: snapshots undone from, most recent last. */
+  future: EditorEntity[][]
+  /** @internal Pre-burst snapshot while a transient burst is in flight. */
+  pendingSnapshot: EditorEntity[] | null
 
   setEnabled: (enabled: boolean) => void
   setMode: (mode: EditorMode) => void
   setPlacingKind: (kind: EditorEntityKind) => void
+  /** Set the grid snapping step (`0` = off; negative/non-finite → 0). */
+  setSnap: (snap: number) => void
+  /** Toggle the `<EditorScene>` grid overlay. */
+  setShowGrid: (showGrid: boolean) => void
   /**
    * Add an entity. `kind` defaults to `placingKind`; the id is generated from
    * an incrementing per-kind counter (skipping ids already in use). Returns
    * the created entity.
    */
   addEntity: (partial?: NewEditorEntity) => EditorEntity
-  /** Shallow-merge a patch into one entity. Unknown ids are a no-op. */
-  updateEntity: (id: string, patch: Partial<Omit<EditorEntity, 'id'>>) => void
+  /**
+   * Shallow-merge a patch into one entity. Unknown ids are a no-op.
+   * History-tracked unless `options.transient` — see {@link UpdateEntityOptions}.
+   */
+  updateEntity: (
+    id: string,
+    patch: Partial<Omit<EditorEntity, 'id'>>,
+    options?: UpdateEntityOptions
+  ) => void
+  /**
+   * End a transient burst: pushes the remembered pre-burst snapshot onto the
+   * undo stack (one step for the whole burst). No-op when no burst is
+   * pending.
+   */
+  commitTransient: () => void
+  /**
+   * Clone an entity with a fresh id (same per-kind counter mechanism),
+   * offset by `[+1, 0, +1]`, and select the clone. History-tracked. Returns
+   * the clone, or `undefined` for unknown ids.
+   */
+  duplicate: (id: string) => EditorEntity | undefined
+  /** Step back one snapshot. Clears `selectedId` if it no longer exists. */
+  undo: () => void
+  /** Reapply the most recently undone snapshot. */
+  redo: () => void
   /** Remove an entity (deselects it if selected). Unknown ids are a no-op. */
   removeEntity: (id: string) => void
   /** Select an entity by id, or `null` to deselect. */
@@ -347,7 +436,14 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   placingKind: 'npc',
   entities: [],
   selectedId: null,
+  snap: DEFAULT_SNAP,
+  showGrid: true,
+  canUndo: false,
+  canRedo: false,
   counters: emptyCounters(),
+  past: [],
+  future: [],
+  pendingSnapshot: null,
 
   setEnabled: (enabled) => set({ enabled }),
   setMode: (mode) => set({ mode }),
@@ -355,6 +451,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     if (!ALL_KINDS.includes(placingKind)) return
     set({ placingKind })
   },
+  setSnap: (snap) => set({ snap: Number.isFinite(snap) && snap > 0 ? snap : 0 }),
+  setShowGrid: (showGrid) => set({ showGrid }),
 
   addEntity: (partial = {}) => {
     const state = get()
@@ -377,18 +475,100 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     if (partial.modelPath !== undefined) entity.modelPath = partial.modelPath
     if (partial.collisionRadius !== undefined) entity.collisionRadius = partial.collisionRadius
 
-    set({ entities: [...state.entities, entity], counters })
+    set({ entities: [...state.entities, entity], counters, ...pushHistory(state) })
     return entity
   },
 
-  updateEntity: (id, patch) =>
+  updateEntity: (id, patch, options) =>
     set((state) => {
       const index = state.entities.findIndex((e) => e.id === id)
       const current = state.entities[index]
       if (!current) return state
       const entities = [...state.entities]
       entities[index] = { ...current, ...patch, id: current.id }
-      return { entities }
+      if (options?.transient) {
+        // Remember the pre-burst snapshot on the first transient update; the
+        // burst becomes one undo step when commitTransient() runs.
+        return state.pendingSnapshot === null
+          ? { entities, pendingSnapshot: cloneEntities(state.entities) }
+          : { entities }
+      }
+      return { entities, ...pushHistory(state) }
+    }),
+
+  commitTransient: () =>
+    set((state) => {
+      if (state.pendingSnapshot === null) return state
+      return {
+        past: appendCapped(state.past, state.pendingSnapshot),
+        future: [],
+        canUndo: true,
+        canRedo: false,
+        pendingSnapshot: null,
+      }
+    }),
+
+  duplicate: (id) => {
+    const state = get()
+    const source = state.entities.find((e) => e.id === id)
+    if (!source) return undefined
+    const partial: NewEditorEntity = {
+      kind: source.kind,
+      position: [source.position[0] + 1, source.position[1], source.position[2] + 1],
+      rotationY: source.rotationY,
+      scale: source.scale,
+    }
+    if (source.name !== undefined) partial.name = source.name
+    if (source.modelPath !== undefined) partial.modelPath = source.modelPath
+    if (source.collisionRadius !== undefined) partial.collisionRadius = source.collisionRadius
+    const clone = get().addEntity(partial)
+    get().select(clone.id)
+    return clone
+  },
+
+  undo: () =>
+    set((state) => {
+      // An uncommitted transient burst counts as the newest undoable step.
+      const past =
+        state.pendingSnapshot !== null
+          ? appendCapped(state.past, state.pendingSnapshot)
+          : state.past
+      const previous = past[past.length - 1]
+      if (!previous) return state
+      const entities = cloneEntities(previous)
+      return {
+        entities,
+        past: past.slice(0, -1),
+        future: appendCapped(state.future, cloneEntities(state.entities)),
+        canUndo: past.length > 1,
+        canRedo: true,
+        selectedId:
+          state.selectedId !== null && entities.some((e) => e.id === state.selectedId)
+            ? state.selectedId
+            : null,
+        pendingSnapshot: null,
+      }
+    }),
+
+  redo: () =>
+    set((state) => {
+      const next = state.future[state.future.length - 1]
+      if (!next) return state
+      let past = state.past
+      if (state.pendingSnapshot !== null) past = appendCapped(past, state.pendingSnapshot)
+      const entities = cloneEntities(next)
+      return {
+        entities,
+        past: appendCapped(past, cloneEntities(state.entities)),
+        future: state.future.slice(0, -1),
+        canUndo: true,
+        canRedo: state.future.length > 1,
+        selectedId:
+          state.selectedId !== null && entities.some((e) => e.id === state.selectedId)
+            ? state.selectedId
+            : null,
+        pendingSnapshot: null,
+      }
     }),
 
   removeEntity: (id) =>
@@ -397,6 +577,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       return {
         entities: state.entities.filter((e) => e.id !== id),
         selectedId: state.selectedId === id ? null : state.selectedId,
+        ...pushHistory(state),
       }
     }),
 
@@ -407,13 +588,20 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     }),
 
   loadEntities: (entities) =>
-    set({
+    set((state) => ({
       entities: [...entities],
       selectedId: null,
       counters: countersFrom(entities),
-    }),
+      ...pushHistory(state),
+    })),
 
-  clear: () => set({ entities: [], selectedId: null, counters: emptyCounters() }),
+  clear: () =>
+    set((state) => ({
+      entities: [],
+      selectedId: null,
+      counters: emptyCounters(),
+      ...pushHistory(state),
+    })),
 
   exportScene: () => exportEntities(get().entities),
 

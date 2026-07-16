@@ -1,8 +1,13 @@
 /**
- * DOM half of the editor: a fixed dark side panel with mode switching, the
- * entity list, property editing and JSON import/export, plus a small
- * floating `<EditorToggle>` button. Rendered outside the three.js canvas as
- * a plain HTML overlay (same pattern as `@overworld/minimap`).
+ * DOM half of the editor: a fixed dark side panel with an undo/redo/duplicate
+ * toolbar (plus snap step and grid toggle), mode switching, the entity list,
+ * property editing and JSON import/export, plus a small floating
+ * `<EditorToggle>` button. Rendered outside the three.js canvas as a plain
+ * HTML overlay (same pattern as `@overworld/minimap`).
+ *
+ * Keyboard (only while the editor is enabled, never while typing in a
+ * field): Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo, Ctrl/Cmd+D
+ * duplicate the selection.
  *
  * Angles: the store keeps `rotationY` in **radians**; this panel displays
  * and edits **degrees** and converts on commit.
@@ -18,6 +23,7 @@ import {
 } from 'react'
 import {
   useEditorStore,
+  type EditorEntity,
   type EditorEntityKind,
   type EditorMode,
 } from './editorStore'
@@ -125,14 +131,13 @@ function Btn(props: {
   onClick: () => void
   children: ReactNode
   danger?: boolean
+  disabled?: boolean
 }): ReactElement {
-  const style = props.active ? activeButtonStyle : buttonStyle
+  let style = props.active ? activeButtonStyle : buttonStyle
+  if (props.danger) style = { ...style, background: '#7f1d1d', borderColor: '#ef4444' }
+  if (props.disabled) style = { ...style, opacity: 0.4, cursor: 'default' }
   return (
-    <button
-      type="button"
-      style={props.danger ? { ...style, background: '#7f1d1d', borderColor: '#ef4444' } : style}
-      onClick={props.onClick}
-    >
+    <button type="button" style={style} onClick={props.onClick} disabled={props.disabled}>
       {props.children}
     </button>
   )
@@ -200,26 +205,33 @@ function TextField(props: {
   )
 }
 
-/** Property editors for the currently selected entity. */
+/**
+ * Property editors for the currently selected entity.
+ *
+ * Edits are **transient** store updates committed on blur (React's `onBlur`
+ * bubbles), so a typing burst in one field becomes a single undo step.
+ */
 function SelectedEntityEditor(): ReactElement | null {
   const selectedId = useEditorStore((s) => s.selectedId)
   const entity = useEditorStore((s) =>
     s.selectedId === null ? undefined : s.entities.find((e) => e.id === s.selectedId)
   )
-  const updateEntity = useEditorStore((s) => s.updateEntity)
   const removeEntity = useEditorStore((s) => s.removeEntity)
 
   if (!entity || selectedId === null) return null
   const id = entity.id
 
+  const updateEntity = (patch: Partial<Omit<EditorEntity, 'id'>>): void =>
+    useEditorStore.getState().updateEntity(id, patch, { transient: true })
+
   const setPositionAxis = (axis: 0 | 1 | 2, value: number): void => {
     const position: [number, number, number] = [...entity.position]
     position[axis] = value
-    updateEntity(id, { position })
+    updateEntity({ position })
   }
 
   return (
-    <div key={id}>
+    <div key={id} onBlur={() => useEditorStore.getState().commitTransient()}>
       <div style={sectionTitleStyle}>
         属性 — {id} ({KIND_LABELS[entity.kind]})
       </div>
@@ -230,31 +242,31 @@ function SelectedEntityEditor(): ReactElement | null {
         label="旋转 (°)"
         step={15}
         value={(entity.rotationY * 180) / Math.PI}
-        onCommit={(deg) => updateEntity(id, { rotationY: (deg * Math.PI) / 180 })}
+        onCommit={(deg) => updateEntity({ rotationY: (deg * Math.PI) / 180 })}
       />
       <NumberField
         label="缩放"
         step={0.1}
         value={entity.scale}
-        onCommit={(v) => updateEntity(id, { scale: v })}
+        onCommit={(v) => updateEntity({ scale: v })}
       />
       <TextField
         label="名称"
         value={entity.name ?? ''}
         placeholder="(未命名)"
-        onCommit={(v) => updateEntity(id, { name: v === '' ? undefined : v })}
+        onCommit={(v) => updateEntity({ name: v === '' ? undefined : v })}
       />
       <TextField
         label="模型路径"
         value={entity.modelPath ?? ''}
         placeholder="/models/….glb"
-        onCommit={(v) => updateEntity(id, { modelPath: v === '' ? undefined : v })}
+        onCommit={(v) => updateEntity({ modelPath: v === '' ? undefined : v })}
       />
       <NumberField
         label="碰撞半径"
         step={0.5}
         value={entity.collisionRadius ?? 2}
-        onCommit={(v) => updateEntity(id, { collisionRadius: v })}
+        onCommit={(v) => updateEntity({ collisionRadius: v })}
       />
       <div style={{ marginTop: 6 }}>
         <Btn danger onClick={() => removeEntity(id)}>
@@ -303,9 +315,44 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
   const placingKind = useEditorStore((s) => s.placingKind)
   const entities = useEditorStore((s) => s.entities)
   const selectedId = useEditorStore((s) => s.selectedId)
+  const canUndo = useEditorStore((s) => s.canUndo)
+  const canRedo = useEditorStore((s) => s.canRedo)
+  const snap = useEditorStore((s) => s.snap)
+  const showGrid = useEditorStore((s) => s.showGrid)
 
   const [importText, setImportText] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+
+  // Editing shortcuts — active only while the editor is enabled. Typing in
+  // inputs/textareas is never hijacked.
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
+        return
+      }
+      if (!event.ctrlKey && !event.metaKey) return
+      const key = event.key.toLowerCase()
+      const store = useEditorStore.getState()
+      if (key === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) store.redo()
+        else store.undo()
+      } else if (key === 'y') {
+        event.preventDefault()
+        store.redo()
+      } else if (key === 'd') {
+        event.preventDefault()
+        if (store.selectedId !== null) store.duplicate(store.selectedId)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [enabled])
 
   const handleExport = useCallback(() => {
     const state = useEditorStore.getState()
@@ -330,6 +377,39 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
   return (
     <div style={{ ...panelStyle, ...style }} className={className}>
       <div style={{ fontWeight: 700, fontSize: 13 }}>Overworld 场景编辑器</div>
+
+      <div style={sectionTitleStyle}>工具</div>
+      <div style={{ marginBottom: 4 }}>
+        <Btn disabled={!canUndo} onClick={() => useEditorStore.getState().undo()}>
+          撤销
+        </Btn>
+        <Btn disabled={!canRedo} onClick={() => useEditorStore.getState().redo()}>
+          重做
+        </Btn>
+        <Btn
+          disabled={selectedId === null}
+          onClick={() => {
+            const store = useEditorStore.getState()
+            if (store.selectedId !== null) store.duplicate(store.selectedId)
+          }}
+        >
+          复制
+        </Btn>
+      </div>
+      <NumberField
+        label="吸附"
+        step={0.1}
+        value={snap}
+        onCommit={(v) => useEditorStore.getState().setSnap(v)}
+      />
+      <label style={{ ...rowStyle, cursor: 'pointer' }}>
+        <span style={rowLabelStyle}>网格</span>
+        <input
+          type="checkbox"
+          checked={showGrid}
+          onChange={(e) => useEditorStore.getState().setShowGrid(e.target.checked)}
+        />
+      </label>
 
       <div style={sectionTitleStyle}>模式</div>
       <div>

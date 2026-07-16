@@ -16,9 +16,10 @@ Overworld 从实际上线的 3D RPG 项目(degener-city)中提取通用能力沉
 | `@overworld/input` | 键盘输入优先级层级(模态框 > 对话 > 面板 > 游戏控制)、移动端虚拟摇杆 |
 | `@overworld/environment` | 昼夜循环 + 天气状态机,配套 R3F 灯光/雨雪粒子组件 |
 | `@overworld/minimap` | 通用小地图(标记注册表 + canvas 顶视图组件) |
-| `@overworld/ai` | 网格 A* 寻路 + NPC 行为(巡逻/游荡/跟随/goTo)、昼夜日程系统、动态避障 |
+| `@overworld/ai` | 网格 A* + 层级化寻路(HPA*)、NPC 行为(巡逻/游荡/跟随/goTo)、行为树、昼夜日程、动态避障 |
 | `@overworld/devtools` | 开发期内容校验(对话/任务引用完整性)、内容 JSON Schema、事件总线日志 |
-| `@overworld/editor` | 游戏内场景编辑器雏形:放置/拖拽实体、属性面板、导出场景 JSON |
+| `@overworld/editor` | 游戏内场景编辑器:放置/拖拽实体、撤销重做、属性面板、导出场景 JSON |
+| `@overworld/net` | 多人同步抽象:Transport 接口(内存/BroadcastChannel/WebSocket)、presence 复制、事件中继 |
 | `@overworld/dialogue` | 无头对话树引擎(条件门控选项、效果、好感度) |
 | `@overworld/quest` | 无头任务状态机(声明式目标触发器、前置条件、奖励、任务链) |
 | `@overworld/inventory` | 无头背包/物品引擎(堆叠、容量、使用效果) |

@@ -13,7 +13,14 @@ function resetStore(): void {
     placingKind: 'npc',
     entities: [],
     selectedId: null,
+    snap: 0.5,
+    showGrid: true,
+    canUndo: false,
+    canRedo: false,
     counters: { npc: 0, building: 0, decoration: 0 },
+    past: [],
+    future: [],
+    pendingSnapshot: null,
   })
 }
 

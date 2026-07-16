@@ -17,6 +17,8 @@ export {
   exportEntities,
   importEntities,
   DEFAULT_COLLISION_RADIUS,
+  DEFAULT_SNAP,
+  HISTORY_LIMIT,
 } from './editorStore'
 export type {
   EditorEntity,
@@ -24,6 +26,7 @@ export type {
   EditorMode,
   EditorState,
   NewEditorEntity,
+  UpdateEntityOptions,
   EditorSceneJSON,
   EditorNPCJSON,
   EditorBuildingJSON,

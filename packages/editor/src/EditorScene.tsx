@@ -6,7 +6,12 @@
  *   (place mode) / deselect clicks and drag-move targets (select mode);
  * - placeholder meshes for every editor entity (capsule = NPC, box =
  *   building, cylinder = decoration) with an emissive highlight + ground
- *   ring on the selected one.
+ *   ring on the selected one;
+ * - an optional snapping grid (`showGrid` in the store) whose cell size
+ *   follows the effective snap step.
+ *
+ * Drag-moves use transient store updates and commit on pointer-up, so a
+ * whole drag is a single undo step.
  *
  * All pointer handling uses R3F's built-in raycast events — no manual
  * raycasters. Geometries/materials are created once per mount and disposed
@@ -23,9 +28,17 @@ export interface EditorSceneProps {
   groundSize?: number
   /** World Y of the ground plane; placed entities get this Y. Default: 0. */
   y?: number
-  /** Placement/drag grid size; `0` disables snapping. Default: 0.5. */
+  /**
+   * Placement/drag grid size; `0` disables snapping. **Override** — when
+   * provided it wins over the store's adjustable `snap`; leave it unset to
+   * let the panel's 吸附 input control snapping. Default: unset (store value,
+   * initially 0.5).
+   */
   snap?: number
 }
+
+/** gridHelper divisions are clamped here so tiny snap values can't explode. */
+const MAX_GRID_DIVISIONS = 200
 
 const COLORS: Record<EditorEntityKind, string> = {
   npc: '#7dd3fc',
@@ -149,24 +162,34 @@ function EntityMesh({ entity, selected, resources, onPointerDown }: EntityMeshPr
   )
 }
 
-function EditorSceneImpl({ groundSize = 100, y = 0, snap = 0.5 }: EditorSceneProps): ReactElement {
+function EditorSceneImpl({ groundSize = 100, y = 0, snap: snapProp }: EditorSceneProps): ReactElement {
   const entities = useEditorStore((s) => s.entities)
   const selectedId = useEditorStore((s) => s.selectedId)
+  const storeSnap = useEditorStore((s) => s.snap)
+  const showGrid = useEditorStore((s) => s.showGrid)
   const resources = useEditorResources()
+
+  // The `snap` prop is an override: when provided it wins over the store's
+  // adjustable value (panel input / setSnap).
+  const snap = snapProp ?? storeSnap
 
   /** Id of the entity currently being dragged (select mode only). */
   const draggingRef = useRef<string | null>(null)
+
+  const endDrag = useCallback(() => {
+    if (!draggingRef.current) return
+    draggingRef.current = null
+    // Collapse the whole drag (a burst of transient updates) into one undo step.
+    useEditorStore.getState().commitTransient()
+  }, [])
 
   // Safety net: end the drag even when the pointer is released outside the
   // ground plane (or outside the canvas entirely).
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const end = () => {
-      draggingRef.current = null
-    }
-    window.addEventListener('pointerup', end)
-    return () => window.removeEventListener('pointerup', end)
-  }, [])
+    window.addEventListener('pointerup', endDrag)
+    return () => window.removeEventListener('pointerup', endDrag)
+  }, [endDrag])
 
   const handleEntityPointerDown = useCallback((event: ThreeEvent<PointerEvent>, id: string) => {
     const store = useEditorStore.getState()
@@ -200,18 +223,20 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap = 0.5 }: EditorScenePro
     (event: ThreeEvent<PointerEvent>) => {
       const dragging = draggingRef.current
       if (!dragging) return
-      useEditorStore
-        .getState()
-        .updateEntity(dragging, {
-          position: [snapValue(event.point.x, snap), y, snapValue(event.point.z, snap)],
-        })
+      useEditorStore.getState().updateEntity(
+        dragging,
+        { position: [snapValue(event.point.x, snap), y, snapValue(event.point.z, snap)] },
+        { transient: true }
+      )
     },
     [snap, y]
   )
 
-  const handleGroundPointerUp = useCallback(() => {
-    draggingRef.current = null
-  }, [])
+  // divisions = groundSize / snap, clamped so tiny snap values stay renderable.
+  const gridDivisions = Math.min(
+    MAX_GRID_DIVISIONS,
+    Math.max(1, Math.round(groundSize / (snap > 0 ? snap : 1)))
+  )
 
   return (
     <group>
@@ -224,8 +249,12 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap = 0.5 }: EditorScenePro
         scale={[groundSize, groundSize, 1]}
         onPointerDown={handleGroundPointerDown}
         onPointerMove={handleGroundPointerMove}
-        onPointerUp={handleGroundPointerUp}
+        onPointerUp={endDrag}
       />
+      {showGrid && (
+        // Slightly elevated to avoid z-fighting with the game's own ground.
+        <gridHelper args={[groundSize, gridDivisions]} position={[0, y + 0.02, 0]} />
+      )}
       {entities.map((entity) => (
         <EntityMesh
           key={entity.id}
@@ -246,7 +275,7 @@ function EditorSceneImpl({ groundSize = 100, y = 0, snap = 0.5 }: EditorScenePro
  * ```tsx
  * <Canvas>
  *   <MyScene />
- *   <EditorScene groundSize={120} snap={0.5} />
+ *   <EditorScene groundSize={120} />
  * </Canvas>
  * <EditorPanel />
  * <EditorToggle hotkey="F2" />

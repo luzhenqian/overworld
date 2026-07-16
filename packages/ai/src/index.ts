@@ -6,6 +6,35 @@ export type { NavGrid, NavGridBounds, NavGridConfig, Obstacle } from './grid'
 export { findPath, smoothPath, hasLineOfSight, nearestWalkableCell } from './astar'
 export type { FindPathOptions, PathPoint } from './astar'
 
+// Hierarchical pathfinding (HPA*-style, for large maps)
+export { createHierarchicalGrid, findPathHierarchical } from './hpa'
+export type {
+  AbstractEdge,
+  HierarchicalGrid,
+  HierarchicalGridOptions,
+  TransitionNode,
+} from './hpa'
+
+// Behavior trees (tick-driven decision logic + agent-flavored leaves)
+export {
+  action,
+  alwaysSucceed,
+  condition,
+  createBehaviorTree,
+  goToAction,
+  idleAction,
+  invert,
+  isNearCondition,
+  parallel,
+  patrolAction,
+  repeat,
+  selector,
+  sequence,
+  tickTreeWithAgent,
+  wait,
+} from './behaviorTree'
+export type { BTContext, BTNode, BTStatus, BehaviorTree } from './behaviorTree'
+
 // Steering behaviors (headless)
 export { createAgent } from './behaviors'
 export type {

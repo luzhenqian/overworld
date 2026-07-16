@@ -1,8 +1,8 @@
 # @overworld/ai
 
-网格 A* 寻路 + NPC 转向行为(巡逻/游荡/跟随/前往)。纯函数的网格与寻路、
-无头 agent 引擎、日程系统与动态避障,加上可选的 R3F 驱动组件 ——
-视觉模型由游戏注入。
+网格 A* 寻路 + NPC 转向行为(巡逻/游荡/跟随/前往)。纯函数的网格与寻路
+(含面向大地图的 HPA* 层级化寻路)、无头 agent 引擎、行为树、日程系统与
+动态避障,加上可选的 R3F 驱动组件 —— 视觉模型由游戏注入。
 
 ## 安装
 
@@ -49,6 +49,96 @@ function Guard() {
   找不到路(或回退失败)返回 `null`。默认自动平滑,`smooth: false` 关闭。
 - `smoothPath(grid, path)`:拉绳式平滑(基于 `hasLineOfSight` 的网格射线,
   1/4 格步进采样),保端点、不增长。`hasLineOfSight` / `nearestWalkableCell` 亦导出。
+
+## 层级化寻路(HPA*,`createHierarchicalGrid`)
+
+面向**大地图**的 HPA* 风格两级寻路:把网格切成 `clusterSize × clusterSize`
+(单位:**格子**,默认 16)的簇,沿簇边界提取入口作为抽象图的过渡节点;
+查询先走小小的抽象图,再只在**窗口受限**的范围内精化底层路段 ——
+最坏情况展开的格子数远小于整图 A*。
+
+```ts
+import { createHierarchicalGrid, findPathHierarchical } from '@overworld/ai'
+
+const hgrid = createHierarchicalGrid(grid, { clusterSize: 16 })
+const path = findPathHierarchical(hgrid, [1.5, 1.5], [198.5, 198.5])  // [x, z][] | null
+
+grid.blockCircle(50, 50, 3)
+hgrid.rebuild()   // 网格变化后整体重建抽象图
+```
+
+- **入口提取**:对每对相邻簇,取共享边界上可通行格子对的**最长连续段**;
+  段长 ≤ 8 时在段中点放 1 对过渡节点,更长的段在**两端各放 1 对**
+  (宽开口走中点会绕远,端点让贴角路线接近最优,残余误差交给拉绳平滑)。
+- **抽象图**:配对的过渡节点间为跨簇边(代价 1 步);同簇节点间为簇内边,
+  代价 = 限制在该簇窗口内的 A* 距离(不可达则无边)。
+- `findPathHierarchical(hgrid, from, to, options?)` — 与 `findPath`
+  **同一路点格式与端点语义**(首路点恒为精确 `from`,目标格被阻塞时按
+  `fallbackRadius` 回退到最近可走格,默认自动平滑),不可达返回 `null`:
+  - 起终点在同簇或相邻簇 → 直接在覆盖两簇的窗口内跑一次普通 A*;
+  - 否则 → 端点接入各自簇的过渡节点(簇内受限 A*)、抽象图 Dijkstra、
+    逐段精化(全部窗口受限、查询时现算,因此过期的抽象图不会给出穿墙路径)、
+    最后对拼接结果整体 `smoothPath`;
+  - 层级路线失败(路径需要绕出再绕回同一簇的罕见形状,或 `rebuild()`
+    之前的过期图)→ **自动回退整图 `findPath`**,可达性与普通寻路完全一致。
+- `rebuild()` — 底层网格(`blockCircle` / `unblockAll` / `rebuild`)变化后全量重建。
+- **统计**:两个寻路函数都接受 `options.stats = { visited: 0 }`(原地累加
+  展开的格子数,抽象节点也计入),便于基准对比 —— 200×200 蛇形墙地图上
+  层级版本访问量约为整图 A* 的 1/10。测试可读的结构:`hgrid.nodes`
+  (过渡节点及其簇)、`nodesOfCluster(cluster)`、`edgesOf(id)`。
+
+## 行为树(`createBehaviorTree`)
+
+可组合的 tick 驱动决策逻辑,配共享黑板;纯工厂函数,每个节点实例自带状态
+(每个 agent 建一棵树)。状态:`'success' | 'failure' | 'running'`;
+tick 上下文:`{ blackboard, deltaMs }`。
+
+```ts
+import {
+  createBehaviorTree, sequence, parallel, condition,
+  patrolAction, goToAction, isNearCondition, tickTreeWithAgent,
+} from '@overworld/ai'
+
+const tree = createBehaviorTree(
+  sequence(
+    parallel('any',                                  // 「巡逻直到接近触发点」
+      isNearCondition(guard, [4, 0], 0.5),
+      patrolAction(guard, [[4, 0], [0, 0]]),
+    ),
+    goToAction(guard, [0, 5]),                       // 然后回家
+  ),
+  { alertLevel: 0 }                                  // 黑板(任意可变对象)
+)
+
+useFrame((_, delta) => tickTreeWithAgent(tree, guard, delta * 1000))
+```
+
+- **节点构造器**:`action(fn)`(返回 `void` 视为 success)、`condition(fn)`
+  (true = success)、`sequence(...)` / `selector(...)`、`invert(child)`、
+  `alwaysSucceed(child)`、`wait(ms)`(跨 tick 累计 `deltaMs`,到时 success,
+  `reset` 清零)、`repeat(child, times?)`(迭代间重置 child;省略 `times`
+  为无限 → 恒 running;给定次数时子节点失败即失败,每 tick 至多消耗一次
+  子节点完成)、`parallel('all' | 'any', ...)`。
+- **记忆语义**:`sequence` / `selector` **带记忆** —— 子节点返回 running 时,
+  下一 tick 从该子节点续跑,不重复 tick 前面的兄弟;记忆只跨 running:
+  组合节点一旦完成(success/failure)即重置游标与全部子节点。`parallel`
+  **无记忆**:每 tick 重新 tick 所有子节点(条件每帧重估 —— 监视模式),
+  完成时重置全部子节点(含仍在 running 的)。`'all'` 遇失败即失败(快速)、
+  全成功才成功;`'any'` 遇成功即成功(快速)、同一 tick 全失败才失败。
+- `createBehaviorTree(root, blackboard)` → `{ tick(deltaMs), reset(), blackboard }`。
+  根节点完成后,**下一次 tick 先自动整树重置**再执行 —— 树自动从头重启。
+- **agent 集成**(显式组合,绝不改写 agent):`tickTreeWithAgent(tree, agent,
+  deltaMs)` = 先 tick 树(树里可下发 `goTo` 等指令)再 `agent.update(deltaMs)`。
+  agent 味的叶子(闭包持有 agent,无上下文魔法):
+  - `goToAction(agent, point)` — 首个 tick 发起 `goTo`;`behavior === 'goTo'`
+    期间 running;到达自动转 idle 时 success(含最近可走格回退与多次寻路
+    失败后的放弃转 idle);被其他行为抢占则 failure。完成或 `reset` 后
+    下次 tick 重新发起。
+  - `patrolAction(agent, waypoints, opts?)` — agent 不在 patrol 模式就
+    (重新)发起巡逻,恒 running;配 `parallel('any', ...)` + 条件即
+    「巡逻直到……」。
+  - `idleAction(agent)` — 置为 idle(已 idle 则跳过),恒 success。
+  - `isNearCondition(agent, point, radius)` — 距离判定(含边界)。
 
 ## 无头 agent(`createAgent`)
 
@@ -154,5 +244,5 @@ const npc = createAgent({
 ## 测试
 
 ```bash
-pnpm test        # vitest,67 个用例覆盖栅格化/A*/平滑/巡逻/游荡/跟随/前往/日程/避障
+pnpm test        # vitest,105 个用例覆盖栅格化/A*/平滑/层级化寻路/行为树/巡逻/游荡/跟随/前往/日程/避障
 ```

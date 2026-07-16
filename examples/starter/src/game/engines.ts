@@ -11,7 +11,12 @@ import { useToastStore } from '@overworld/notifications'
 import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld/input'
 import { createEnvironment } from '@overworld/environment'
 import { bindScheduleToBus, createAgent, createNavGrid, createSchedule } from '@overworld/ai'
-import { playerPositionRef } from '@overworld/scene'
+import {
+  createBroadcastChannelTransport,
+  createPresenceSync,
+  isBroadcastChannelAvailable,
+} from '@overworld/net'
+import { playerPositionRef, playerRotationRef } from '@overworld/scene'
 import { ACHIEVEMENTS, DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
 
@@ -92,6 +97,29 @@ export const villagerSchedule = createSchedule({
   initialPhase: 'day',
 })
 bindScheduleToBus(villagerSchedule, gameEvents)
+
+/**
+ * 跨标签页联机演示:BroadcastChannel 传输 + presence 同步。
+ * 同源多开标签页即可互见幽灵玩家;换成 WebSocket transport 即为真联机。
+ */
+export const presence = isBroadcastChannelAvailable()
+  ? createPresenceSync({
+      transport: createBroadcastChannelTransport({ channelName: 'overworld-starter' }),
+      getLocal: () => ({
+        position: [
+          playerPositionRef.current[0],
+          playerPositionRef.current[1],
+          playerPositionRef.current[2],
+        ],
+        rotationY: playerRotationRef.current,
+      }),
+    })
+  : null
+presence?.start()
+if (typeof window !== 'undefined' && presence) {
+  // 页面关闭时广播 bye,让其他标签页立即移除本玩家
+  window.addEventListener('pagehide', () => presence.stop())
+}
 
 // ---- Effects & conditions the content refers to -------------------------
 
@@ -183,6 +211,7 @@ if (import.meta.env.DEV) {
         villagerAgent,
         villagerSchedule,
         editorStore: editor.useEditorStore,
+        presence,
         // 后台标签页 RAF 被暂停时可手动驱动渲染帧(自动化验证用)
         advance: fiber.advance,
       }
