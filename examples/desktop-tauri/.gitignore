@@ -1,0 +1,6 @@
+# 构建产物
+dist/
+
+# Rust 构建缓存与生成物
+src-tauri/target/
+src-tauri/gen/

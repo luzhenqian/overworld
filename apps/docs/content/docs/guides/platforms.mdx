@@ -1,0 +1,94 @@
+---
+title: 多端支持
+description: 一套代码覆盖 Web/Telegram/桌面/移动/微信的策略与接线对照
+---
+
+Overworld 的多端策略:**一套 Web 代码,三类交付**。所有端差异收敛到
+`@overworld-engine/platform`(检测/能力/桥)与 `@overworld-engine/adapters-weapp`
+(微信适配器),壳 SDK 只存在于端模板中,框架 19 个包零硬依赖。
+
+## 平台矩阵
+
+| 端 | 类别 | 模板 | 3D | 说明 |
+|---|---|---|---|---|
+| Web | 浏览器直达 | examples/starter | ✅ | 原生目标 |
+| Telegram 小程序 | 浏览器直达 | examples/telegram-mini-app | ✅ | TG WebView 即网页 |
+| macOS / Windows | WebView 壳 | examples/desktop-tauri | ✅ | Tauri 2,产物 ~10MB |
+| iOS / Android | WebView 壳 | examples/mobile-capacitor | ✅ | Capacitor 8 |
+| 微信小游戏 | 适配层 | examples/weapp-game | ✅ | R3F createRoot + weapp-adapter |
+| 微信小程序 | 适配层 | (见下文接法) | ❌ | 无头引擎 + WXML UI |
+| Node(服务器/测试) | — | examples/authority-server | — | 无头引擎原生可跑 |
+
+## 通用接线(所有端一致)
+
+```ts
+import { createBridge, recommendedQualityPreset, shouldShowTouchControls } from '@overworld-engine/platform'
+import { gameEvents } from '@overworld-engine/core'
+import { useQualityStore } from '@overworld-engine/scene'
+
+const bridge = createBridge()               // 自动检测平台
+const unbind = bridge.bindLifecycle(gameEvents)  // app:paused / app:resumed / app:back
+useQualityStore.getState().setPreset(recommendedQualityPreset())
+
+// 存档跟随平台(localStorage / Tauri 文件 / wx.storage)
+const quests = createQuestEngine({
+  quests: QUESTS, conditions, effects,
+  persist: { storage: () => bridge.storage() },
+})
+
+// 触屏端默认挂摇杆
+{shouldShowTouchControls() && <VirtualJoystick target={movementInput} />}
+
+// 返回键约定:开着对话先关对话,否则交给游戏
+gameEvents.on('app:back', () => { if (dialogue.getState().activeDialogue) dialogue.end() })
+```
+
+## 注入对照表
+
+| 关注点 | Web | Telegram | Tauri | Capacitor | 微信 |
+|---|---|---|---|---|---|
+| 存储 | localStorage | localStorage | localStorage 或 `await createTauriFileStorage()` | localStorage | `createWeappStorage()` |
+| 联机 socket | 原生 WebSocket | 原生 | 原生 | 原生 | `WebSocketImpl: WeappWebSocket` |
+| 音频后端 | 默认(HTMLAudio) | 默认 | 默认 | 默认 | `backend: createWeappAudioBackend()` |
+| 生命周期 | visibilitychange | TG activated/BackButton | 焦点/关窗 | App 插件 | wx.onShow/onHide |
+| 标签文字 | drei Text(默认) | 默认 | 默认 | 默认 | `labelMode="sprite"` + `setLabelCanvasFactory` |
+| 渲染宿主 | `<Canvas>` | `<Canvas>` | `<Canvas>` | `<Canvas>` | `createWeappCanvasRoot()` |
+
+## 各端要点
+
+### Telegram
+`index.html` 引入官方 `telegram-web-app.js`;桥会自动 `ready()+expand()`、
+BackButton → `app:back`、`getTheme()` 拿主题色。部署要求 HTTPS(Ship Dock/Vercel 均可),
+BotFather `/newapp` 绑定 URL。审核红线:外链走 `bridge.openExternal`(内部用 openLink)。
+
+### 桌面(Tauri 2)
+需要 Rust 工具链;`pnpm tauri:dev` 开发、`pnpm tauri:build` 出 .app/.dmg(macOS)与
+.msi/.exe(Windows)。文件存档:`await createTauriFileStorage()` 后注入 persist。
+macOS 分发需公证(notarization),见模板 README。
+
+### 移动(Capacitor 8)
+`pnpm build && pnpm exec cap add ios android && pnpm exec cap sync`,Xcode/Android Studio
+打开出包。safe-area 用 `viewport-fit=cover` + `env(safe-area-inset-*)`;
+低端机画质由 `recommendedQualityPreset()` 自动压档。
+
+### 微信小游戏(完整 3D)
+- 渲染:`createWeappCanvasRoot()`(内部 R3F `createRoot`,不依赖 react-dom)+
+  模板 vendored 的 weapp-adapter;基础库 ≥ 2.19。
+- 已知约束:**无射线拾取**(v1.1 不桥接 R3F pointer 事件,交互用邻近检测 + 触摸区);
+  drei `Text` 不可用,用 `SpriteLabel`(`labelMode="sprite"`);模型资源放包内或
+  业务域名白名单;three 主导包体,超 4MB 走分包。
+- 验证:模板自带 wx-shim 真浏览器 harness(CI 可跑);最终真机用微信开发者工具预览。
+
+### 微信小程序(无头层)
+不跑 3D。逻辑层直接用无头引擎(quest/dialogue/inventory/achievements/ai 均为纯 TS):
+`createWeappStorage` 注入 persist,WXML 渲染任务列表/对话选项,事件总线驱动 setData。
+联机同样注入 `WeappWebSocket`。
+
+## 上架注意(要点)
+
+- **微信**:禁止热更新可执行代码(打进包内);包体主包 ≤ 4MB(分包总量看当前政策);
+  联机域名需在后台配置 socket 合法域名。
+- **macOS**:分发需 Developer ID 签名 + 公证;App Store 另有沙箱要求。
+- **iOS/Android**:WebView 游戏可上架,但 iOS 对"主要功能需原生"的审查存在弹性,
+  建议接入平台能力(震动/存档/推送)增强原生性。
+- **Telegram**:HTTPS 强制;支付走 Telegram Stars/Payments,不可绕过。

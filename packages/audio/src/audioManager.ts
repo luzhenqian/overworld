@@ -8,6 +8,7 @@ import {
   type EventBus,
   type OverworldEventMap,
 } from '@overworld-engine/core'
+import { htmlAudioBackend, type AudioBackend, type AudioHandle } from './backend'
 
 /** Persistence tuning for {@link createAudioManager}. */
 export interface AudioPersistConfig {
@@ -46,6 +47,19 @@ export interface AudioManagerConfig {
   fadeDuration?: number
   /** Loop BGM tracks. Defaults to `true`. */
   loop?: boolean
+  /**
+   * Playback backend. Defaults to {@link htmlAudioBackend} (`new Audio(url)`,
+   * historical behavior). Inject e.g. `createWeappAudioBackend()` from
+   * `@overworld-engine/adapters-weapp` on WeChat mini-games.
+   */
+  backend?: AudioBackend
+  /**
+   * Pause the BGM on `app:paused` and resume it on `app:resumed` (events
+   * emitted on the configured bus by `@overworld-engine/platform` bridges'
+   * `bindLifecycle`). Defaults to `false` — no subscription, historical
+   * behavior. `dispose()` unsubscribes.
+   */
+  pauseOnHide?: boolean
   /**
    * Persist volume/mute settings (localStorage under `overworld:audio`).
    * Framework convention: omitted or `false` = disabled; `true` = enabled
@@ -132,13 +146,15 @@ function createAudioStore(
 }
 
 /**
- * Create an audio manager: a singleton HTMLAudio BGM pool with fade in/out
- * on track switches, browser autoplay-policy handling (playback retries
- * after the first user interaction) and optional persisted volume/mute
- * settings (opt in via `persist`, like every other engine).
+ * Create an audio manager: a singleton BGM handle with fade in/out on track
+ * switches, browser autoplay-policy handling (playback retries after the
+ * first user interaction) and optional persisted volume/mute settings (opt
+ * in via `persist`, like every other engine).
  *
- * All browser APIs are guarded, so the manager is safe to create (and its
- * pure logic testable) in Node/SSR — it simply tracks state without playing.
+ * Playback goes through an injectable {@link AudioBackend}; the default is
+ * {@link htmlAudioBackend} (`new Audio(url)`, historical behavior). All
+ * browser APIs are guarded, so the manager is safe to create (and its pure
+ * logic testable) in Node/SSR — it simply tracks state without playing.
  *
  * ```ts
  * const audio = createAudioManager({
@@ -158,6 +174,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
   } = config
   // `events` is the canonical config name; `bus` is the pre-1.0 alias.
   const bus = config.events ?? config.bus ?? gameEvents
+  const backend = config.backend ?? htmlAudioBackend
 
   const store = createAudioStore(config.persist, {
     volume: clamp01(config.volume ?? 0.7),
@@ -167,23 +184,31 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     unlocked: false,
   })
 
-  // Per-manager singleton: at most one BGM element exists at any time.
-  let currentAudio: HTMLAudioElement | null = null
+  // Per-manager singleton: at most one BGM handle exists at any time.
+  let currentAudio: AudioHandle | null = null
   let unlockCleanup: (() => void) | null = null
   let disposed = false
 
+  /** Whether the backend can actually play here (Node/SSR: state-only). */
+  const backendAvailable = (): boolean => backend.isAvailable?.() ?? true
+
+  /** `handle.play()` normalized to a promise (sync throws become rejections). */
+  async function playHandle(handle: AudioHandle): Promise<void> {
+    await handle.play()
+  }
+
   function fadeTo(
-    audio: HTMLAudioElement,
+    audio: AudioHandle,
     target: number,
     options: { onDone?: () => void; isCancelled?: () => boolean } = {}
   ): void {
     if (fadeDuration <= 0) {
-      audio.volume = target
+      audio.setVolume(target)
       options.onDone?.()
       return
     }
     const steps = 20
-    const delta = (target - audio.volume) / steps
+    const delta = (target - audio.getVolume()) / steps
     let step = 0
     const timer = setInterval(() => {
       if (options.isCancelled?.()) {
@@ -191,29 +216,24 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
         return
       }
       step++
-      audio.volume = clamp01(audio.volume + delta)
+      audio.setVolume(clamp01(audio.getVolume() + delta))
       if (step >= steps) {
         clearInterval(timer)
-        audio.volume = target
+        audio.setVolume(target)
         options.onDone?.()
       }
     }, fadeDuration / steps)
   }
 
-  function teardown(audio: HTMLAudioElement): void {
-    audio.pause()
-    audio.src = ''
-  }
-
-  /** Stop (and forget) the current BGM element, optionally with fade-out. */
+  /** Stop (and forget) the current BGM handle, optionally with fade-out. */
   function stopCurrent(withFade: boolean): void {
     const audio = currentAudio
     if (!audio) return
     currentAudio = null
-    if (withFade && !audio.paused) {
-      fadeTo(audio, 0, { onDone: () => teardown(audio) })
+    if (withFade && !audio.isPaused()) {
+      fadeTo(audio, 0, { onDone: () => audio.destroy() })
     } else {
-      teardown(audio)
+      audio.destroy()
     }
   }
 
@@ -237,18 +257,18 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     unlockCleanup = cleanup
   }
 
-  /** Create the BGM element for `url`, play it and fade it in. */
+  /** Create the BGM handle for `url`, play it and fade it in. */
   async function startPlayback(url: string): Promise<void> {
-    if (typeof Audio === 'undefined') return // Node/SSR: state-only.
-    const audio = new Audio(url)
-    audio.loop = loop
-    audio.volume = 0 // Start silent for fade-in.
+    if (!backendAvailable()) return // Node/SSR: state-only.
+    const audio = backend.create(url)
+    audio.setLoop(loop)
+    audio.setVolume(0) // Start silent for fade-in.
     currentAudio = audio
     try {
-      await audio.play()
-      // Verify this is still the current element (guards races on switches).
+      await playHandle(audio)
+      // Verify this is still the current handle (guards races on switches).
       if (currentAudio !== audio) {
-        teardown(audio)
+        audio.destroy()
         return
       }
       store.setState({ unlocked: true })
@@ -271,7 +291,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
       return
     }
     const state = store.getState()
-    if (state.currentTrackId === trackId && currentAudio && !currentAudio.paused) return
+    if (state.currentTrackId === trackId && currentAudio && !currentAudio.isPaused()) return
 
     stopCurrent(true)
     store.setState({ currentTrackId: trackId })
@@ -306,10 +326,17 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
       return
     }
     const { muted, sfxVolume } = store.getState()
-    if (muted || typeof Audio === 'undefined') return
-    const audio = new Audio(url)
-    audio.volume = sfxVolume
-    void audio.play().catch(() => {
+    if (muted || !backendAvailable()) return
+    const audio = backend.create(url)
+    audio.setLoop(false)
+    audio.setVolume(sfxVolume)
+    // Release the handle as soon as the one-shot finishes (backends like
+    // wx.createInnerAudioContext hold real native resources per handle).
+    const unbind = audio.onEnded(() => {
+      unbind()
+      audio.destroy()
+    })
+    void playHandle(audio).catch(() => {
       // One-shots are best-effort; a blocked SFX is not worth retrying.
     })
   }
@@ -317,7 +344,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
   function setVolume(volume: number): void {
     const clamped = clamp01(volume)
     store.setState({ volume: clamped })
-    if (currentAudio && !currentAudio.paused) currentAudio.volume = clamped
+    if (currentAudio && !currentAudio.isPaused()) currentAudio.setVolume(clamped)
   }
 
   function setSfxVolume(volume: number): void {
@@ -333,9 +360,9 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
       return
     }
     if (currentAudio) {
-      // Element exists (was paused by mute): resume at full volume.
-      currentAudio.volume = state.volume
-      void currentAudio.play().catch(() => registerUnlockListeners())
+      // Handle exists (was paused by mute): resume at full volume.
+      currentAudio.setVolume(state.volume)
+      void playHandle(currentAudio).catch(() => registerUnlockListeners())
     } else if (state.currentTrackId) {
       const url = tracks[state.currentTrackId]
       if (url) void startPlayback(url)
@@ -353,10 +380,39 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     })
   }
 
+  // `app:paused` / `app:resumed` are merged into OverworldEventMap by
+  // `@overworld-engine/platform` (which audio does not depend on), so the
+  // bus is viewed through a local structural map for these two events.
+  const lifecycleBus = bus as unknown as EventBus<{
+    'app:paused': Record<string, never>
+    'app:resumed': Record<string, never>
+  }>
+  const lifecycleUnsubs: Array<() => void> = []
+  if (config.pauseOnHide) {
+    // Only resume what *this* subscription paused: an already-paused (muted,
+    // stopped) BGM must stay paused when the app comes back.
+    let pausedByLifecycle = false
+    lifecycleUnsubs.push(
+      lifecycleBus.on('app:paused', () => {
+        if (currentAudio && !currentAudio.isPaused()) {
+          pausedByLifecycle = true
+          currentAudio.pause()
+        }
+      }),
+      lifecycleBus.on('app:resumed', () => {
+        if (!pausedByLifecycle) return
+        pausedByLifecycle = false
+        if (disposed || store.getState().muted || !currentAudio) return
+        void playHandle(currentAudio).catch(() => registerUnlockListeners())
+      })
+    )
+  }
+
   function dispose(): void {
     disposed = true
     unsubscribe?.()
     unsubscribe = null
+    for (const off of lifecycleUnsubs.splice(0, lifecycleUnsubs.length)) off()
     unlockCleanup?.()
     stopCurrent(false)
   }

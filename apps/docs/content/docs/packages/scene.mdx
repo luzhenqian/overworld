@@ -40,6 +40,10 @@ import 本包即可响应玩家移动、场景切换与交互。
 - **`<FollowCamera targetRef offset lerp>`** — 平滑跟随相机,可独立使用。
 - **`<BaseNPC>` / `<BaseBuilding>`** — 模型加载 + 名牌 + 发光 + 交互气泡,
   颜色全部来自 `theme`;"是否在附近"读取本包的 `useSceneStore`。
+  `labelMode?: 'troika' | 'sprite'` 切换标签文字的渲染方式(见下文"跨端标签")。
+- **`<SpriteLabel text color? background? fontSize? maxWidth? position?>`** —
+  跨端文字标签:offscreen canvas 纹理 + `THREE.Sprite`,零 DOM / Worker 依赖,
+  所有端可用(微信小游戏等 troika 不可用的环境必选)。
 - **`<SelectionRing>` / `<CollisionRegistration>` / `<Portal>`** — 地面选中环、
   声明式碰撞注册、场景传送门(默认走 `setScene`,可用 `onEnter` 覆盖)。
 - **`useSceneStore`** — `currentScene` / `nearbyNpcId` / `nearbyBuildingId`;
@@ -188,3 +192,25 @@ NPC 回退胶囊与名牌 / 角标 / 交互气泡高度随 `scale` 等比缩放(
 `labelHeight` prop 可覆盖名牌高度(角标与气泡保持其上方的比例间距)。
 纯数学部分以 `npcVisualHeights(scale, labelHeight?)` /
 `buildingVisualHeights(scale, labelHeight?)` 导出。
+
+### 跨端标签(`SpriteLabel` 与 `labelMode`)
+
+drei `<Text>`(troika)依赖 DOM / Worker,在微信小游戏等环境不可用。
+`<SpriteLabel>` 提供零依赖替代:offscreen canvas 把文字栅格化成
+`THREE.CanvasTexture`,贴到按文本宽高比缩放的 `THREE.Sprite` 上
+(始终面向相机,居中锚点,同 `anchorX/anchorY="center"`):
+
+```tsx
+<SpriteLabel text="铁匠铺" fontSize={0.5} background="rgba(0,0,0,0.6)" maxWidth={4} />
+```
+
+- `fontSize` 为**世界单位**的文字高度(与 drei `Text` 的 `fontSize` 同义),
+  栅格分辨率固定为 `SPRITE_LABEL_FONT_PX`(64px),两者互不影响;
+- `maxWidth`(世界单位)超宽时整体等比缩小;
+- 布局纯数学以 `computeSpriteLabelLayout()` 导出(可单测,无需 GL);
+- 无 DOM 环境先注册画布来源:`setLabelCanvasFactory(() => wx.createCanvas())`。
+
+`BaseNPC` / `BaseBuilding` 的 `labelMode?: 'troika' | 'sprite'`(默认
+`'troika'`,行为不变)一键切换名牌、任务角标与交互气泡的文字渲染;
+`'sprite'` 模式使用系统字体(`labelFont` 被忽略)。微信小游戏传
+`labelMode="sprite"`。

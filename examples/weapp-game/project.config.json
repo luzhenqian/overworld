@@ -1,0 +1,21 @@
+{
+  "appid": "touristappid",
+  "compileType": "game",
+  "libVersion": "2.19.4",
+  "projectname": "overworld-weapp-game",
+  "description": "Overworld 微信小游戏完整 3D 模板(R3F + weapp-adapter)",
+  "setting": {
+    "urlCheck": false,
+    "es6": false,
+    "enhance": false,
+    "postcss": false,
+    "minified": false,
+    "uglifyFileName": false,
+    "ignoreDevUnusedFiles": false,
+    "ignoreUploadUnusedFiles": false
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}

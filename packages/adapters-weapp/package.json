@@ -1,0 +1,53 @@
+{
+  "name": "@overworld-engine/adapters-weapp",
+  "version": "1.1.0",
+  "description": "WeChat mini-game adapters for Overworld: storage, socket transport, audio backend, R3F canvas root, touch joystick",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@overworld-engine/core": "workspace:*",
+    "@overworld-engine/input": "workspace:*",
+    "@overworld-engine/platform": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "three": ">=0.160.0",
+    "@react-three/fiber": "^8.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@overworld-engine/audio": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg"
+  ],
+  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luzhenqian/overworld.git",
+    "directory": "packages/adapters-weapp"
+  }
+}

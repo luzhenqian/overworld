@@ -22,6 +22,8 @@ import { useSceneStore } from './sceneStore'
 import { useModelLoader } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { npcVisualHeights, DEFAULT_NPC_SCALE } from './visualHeights'
+import { SpriteLabel } from './SpriteLabel'
+import type { LabelMode } from './types'
 import type { NPCTheme, NPCIndicator } from './types'
 
 const INDICATOR_STYLE: Record<NPCIndicator, { symbol: string; color: string }> = {
@@ -54,6 +56,14 @@ export interface BaseNPCProps {
   interactHint?: (id: string) => React.ReactNode
   /** Optional font URL for labels (drei `Text` default font when omitted). */
   labelFont?: string
+  /**
+   * How label text (name, indicator badge, interaction bubble) is rendered:
+   * `'troika'` (default) uses drei `Text`; `'sprite'` uses the DOM-less
+   * {@link SpriteLabel} (canvas texture + `THREE.Sprite`) — required on
+   * platforms without troika support, e.g. WeChat mini-games. Sprite mode
+   * uses the system font (`labelFont` is ignored).
+   */
+  labelMode?: LabelMode
   /**
    * Name-label height in world units, overriding the scale-proportional
    * default (`4.2 × scale / 2.5`). The indicator badge and interaction
@@ -124,6 +134,7 @@ export function BaseNPC({
   interactLabel = 'E',
   interactHint,
   labelFont,
+  labelMode = 'troika',
   labelHeight,
   modifyMaterial,
 }: BaseNPCProps) {
@@ -167,17 +178,21 @@ export function BaseNPC({
               <planeGeometry args={[name.length * 0.25 + 0.5, 0.6]} />
               <meshBasicMaterial color={theme.nameLabelBg} transparent opacity={0.9} />
             </mesh>
-            <Text
-              fontSize={0.4}
-              color={theme.primaryColor}
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.02}
-              outlineColor="#000000"
-              font={labelFont}
-            >
-              {name}
-            </Text>
+            {labelMode === 'sprite' ? (
+              <SpriteLabel text={name} color={theme.primaryColor} fontSize={0.4} />
+            ) : (
+              <Text
+                fontSize={0.4}
+                color={theme.primaryColor}
+                anchorX="center"
+                anchorY="middle"
+                outlineWidth={0.02}
+                outlineColor="#000000"
+                font={labelFont}
+              >
+                {name}
+              </Text>
+            )}
           </group>
         </Billboard>
       )}
@@ -191,16 +206,20 @@ export function BaseNPC({
                 <circleGeometry args={[0.5, 32]} />
                 <meshBasicMaterial color={indicatorStyle.color} transparent opacity={0.3} />
               </mesh>
-              <Text
-                fontSize={0.7}
-                color={indicatorStyle.color}
-                anchorX="center"
-                anchorY="middle"
-                outlineWidth={0.06}
-                outlineColor="#000000"
-              >
-                {indicatorStyle.symbol}
-              </Text>
+              {labelMode === 'sprite' ? (
+                <SpriteLabel text={indicatorStyle.symbol} color={indicatorStyle.color} fontSize={0.7} />
+              ) : (
+                <Text
+                  fontSize={0.7}
+                  color={indicatorStyle.color}
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.06}
+                  outlineColor="#000000"
+                >
+                  {indicatorStyle.symbol}
+                </Text>
+              )}
             </group>
           </Billboard>
         </Float>
@@ -232,16 +251,20 @@ export function BaseNPC({
                   <ringGeometry args={[0.4, 0.48, 32]} />
                   <meshBasicMaterial color={theme.primaryColor} transparent opacity={0.8} />
                 </mesh>
-                <Text
-                  fontSize={0.35}
-                  color={theme.primaryColor}
-                  anchorX="center"
-                  anchorY="middle"
-                  outlineWidth={0.02}
-                  outlineColor="#000000"
-                >
-                  {interactLabel}
-                </Text>
+                {labelMode === 'sprite' ? (
+                  <SpriteLabel text={interactLabel} color={theme.primaryColor} fontSize={0.35} />
+                ) : (
+                  <Text
+                    fontSize={0.35}
+                    color={theme.primaryColor}
+                    anchorX="center"
+                    anchorY="middle"
+                    outlineWidth={0.02}
+                    outlineColor="#000000"
+                  >
+                    {interactLabel}
+                  </Text>
+                )}
               </group>
             </Billboard>
           )

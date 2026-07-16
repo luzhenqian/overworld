@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Overworld · Telegram Mini App</title>
+    <style>
+      html, body, #root { margin: 0; height: 100%; overflow: hidden; background: #0b0e1a; }
+    </style>
+    <!-- Telegram 官方 SDK 必须在应用代码之前加载(注入 window.Telegram.WebApp) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

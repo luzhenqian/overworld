@@ -18,7 +18,7 @@ import { SelectionRing } from './SelectionRing'
 import { CollisionRegistration, type DecorationCollisionGroup } from './CollisionRegistration'
 import { useProximityDetection } from './useProximityDetection'
 import { defaultSceneTheme } from './types'
-import type { NPCConfig, BuildingConfig, SceneTheme, NPCIndicator } from './types'
+import type { NPCConfig, BuildingConfig, SceneTheme, NPCIndicator, LabelMode } from './types'
 
 export interface SceneShellProps {
   /** Visual theme. Default: {@link defaultSceneTheme}. */
@@ -50,6 +50,8 @@ export interface SceneShellProps {
   player?: React.ReactNode
   /** Optional font URL for entity labels. */
   labelFont?: string
+  /** Label renderer for all NPC/building labels: drei Text (default) or cross-platform sprite. */
+  labelMode?: LabelMode
   /** Scene-specific content (lighting, ground, portals, decorations, ...). */
   children?: React.ReactNode
 }
@@ -68,6 +70,7 @@ export function SceneShell({
   buildingProximityRadius,
   player = <Player />,
   labelFont,
+  labelMode,
   children,
 }: SceneShellProps) {
   const resolvedNpcPositions = useMemo(
@@ -124,6 +127,7 @@ export function SceneShell({
           indicator={npcIndicators?.[config.id]}
           interactHint={interactHint}
           labelFont={labelFont}
+          labelMode={labelMode}
           showQuestIndicator={npcOptions?.showQuestIndicator}
           showEBubble={npcOptions?.showEBubble}
           showGlow={npcOptions?.showGlow}
@@ -143,6 +147,7 @@ export function SceneShell({
           theme={theme.building}
           interactHint={interactHint}
           labelFont={labelFont}
+          labelMode={labelMode}
         />
       ))}
 

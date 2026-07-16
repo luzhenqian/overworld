@@ -8,6 +8,7 @@ export type {
   BuildingConfig,
   DecorationInstance,
   NPCIndicator,
+  LabelMode,
   NPCTheme,
   BuildingTheme,
   SceneTheme,
@@ -59,6 +60,10 @@ export { BaseBuilding } from './BaseBuilding'
 export type { BaseBuildingProps } from './BaseBuilding'
 export { SelectionRing } from './SelectionRing'
 export type { SelectionRingProps } from './SelectionRing'
+export { SpriteLabel, setLabelCanvasFactory } from './SpriteLabel'
+export type { SpriteLabelProps, LabelCanvas, LabelCanvasContext } from './SpriteLabel'
+export { computeSpriteLabelLayout, SPRITE_LABEL_FONT_PX } from './spriteLabelLayout'
+export type { SpriteLabelLayout, SpriteLabelLayoutInput } from './spriteLabelLayout'
 export { CollisionRegistration } from './CollisionRegistration'
 export type { CollisionRegistrationProps, DecorationCollisionGroup } from './CollisionRegistration'
 export { Portal } from './Portal'

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover:WebView 铺满刘海/圆角屏,安全区由 HUD 的 env() padding 处理 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Overworld</title>
+    <style>
+      html, body, #root { margin: 0; height: 100%; overflow: hidden; background: #0b0e1a; }
+      /* 禁掉移动端长按选中/标注,避免干扰摇杆操作 */
+      body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

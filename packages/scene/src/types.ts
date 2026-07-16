@@ -46,6 +46,14 @@ export interface DecorationInstance {
 /** Quest-style indicator badge rendered above an NPC. */
 export type NPCIndicator = 'quest-available' | 'quest-in-progress' | 'quest-complete'
 
+/**
+ * How `BaseNPC`/`BaseBuilding` render label text: `'troika'` = drei `Text`
+ * (default, SDF quality); `'sprite'` = `SpriteLabel` (canvas texture +
+ * `THREE.Sprite`, zero DOM/worker dependencies — the mode for platforms
+ * where troika is unavailable, e.g. WeChat mini-games).
+ */
+export type LabelMode = 'troika' | 'sprite'
+
 // ========== Theme configuration ==========
 
 /** Colors used by {@link BaseNPC} (labels, glow, rings, model fallback). */

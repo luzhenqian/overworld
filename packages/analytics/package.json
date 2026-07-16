@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/analytics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Pluggable analytics providers (GA4, Clarity, console)",
   "keywords": [
     "overworld",

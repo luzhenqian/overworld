@@ -1,0 +1,87 @@
+---
+title: '@overworld-engine/adapters-weapp'
+description: 微信小游戏/小程序适配器:存储、socket、音频后端、R3F 画布入口与触摸摇杆
+---
+
+微信环境适配器合集。所有导出都是**注入物**,喂给既有包的注入点即可,
+游戏其余代码与 Web 端共用;小游戏获得**完整 3D**(R3F `createRoot` +
+`wx.createCanvas()`),小程序(WXML)可使用除 3D / 触摸外的无头能力。
+
+> 依赖 `core` + `input` + `platform` 三个工作区包 —— 适配层的**例外**
+> (适配器的职责就是粘合它所服务的包);系统包"只依赖 core"的依赖规则不变。
+
+## 注入对照表
+
+| 导出 | 注入到 |
+| --- | --- |
+| `createWeappStorage()` | core `persistOptions({ storage })` / `createSaveSlots({ storage })` |
+| `WeappWebSocket` | net `createWebSocketTransport({ WebSocketImpl: WeappWebSocket })` |
+| `createWeappAudioBackend()` | audio `createAudioManager({ backend })` |
+| `createWeappTouchJoystick(target)` | scene `<Player externalInput={target}>` |
+| `registerWeappBridge()` | platform `createBridge()`(注册 `weapp` 桥) |
+
+## 快速开始(小游戏)
+
+```tsx
+// game.js 顶部先加载官方 weapp-adapter polyfill(模板内锁定版本)
+import { createMovementInput } from '@overworld-engine/input'
+import { setLabelCanvasFactory } from '@overworld-engine/scene'
+import {
+  createWeappCanvasRoot,
+  createWeappTouchJoystick,
+  registerWeappBridge,
+} from '@overworld-engine/adapters-weapp'
+
+registerWeappBridge()
+setLabelCanvasFactory(() => wx.createCanvas()) // SpriteLabel 的画布来源
+
+const movement = createMovementInput()
+createWeappTouchJoystick(movement)
+
+const { render } = createWeappCanvasRoot()
+render(<Game externalInput={movement} />) // SceneShell(labelMode="sprite")等
+```
+
+## 导出说明
+
+- **`createWeappStorage(): EnumerableStorage`** — `wx` 同步存储 API 包装,
+  键枚举来自 `getStorageInfoSync().keys`。注意 `wx.getStorageSync` 对缺失键
+  返回 `''`,空字符串值读取为 `null`(持久层只存 JSON,实际无影响)。
+- **`WeappWebSocket`** — `wx.connectSocket` SocketTask 上的标准 `WebSocket`
+  包装类,与 net 的 `WebSocketConstructor` 结构兼容(本包不依赖 net):
+  一行注入即可沿用 net 的 `{ from, data }` 信封、连接期缓冲、限次重连与
+  `close()` 语义。服务器域名需加入小游戏 socket 白名单。
+- **`createWeappAudioBackend(): AudioBackend`** — `wx.createInnerAudioContext`
+  映射为 audio 的后端契约(接口结构一致,契约测试对 weapp 与 HTMLAudio
+  两个后端跑同一套断言)。配合 `pauseOnHide: true` 与平台桥,切后台自动静音恢复。
+- **`createWeappCanvasRoot(options?)`** — R3F 底层 `createRoot(canvas)` +
+  `wx.createCanvas()`;尺寸取 `getSystemInfoSync()`,dpr 钳制 2,缺省
+  `gl: { antialias: true, alpha: false }`、`frameloop: 'always'`,
+  `options.renderProps` 可覆盖合并(`camera`/`shadows`/`onCreated` 等)。
+  返回 `{ root, canvas, size, render, dispose }`。
+  **v1.1 限制**:R3F 指针事件未接线(`onClick` 等不触发、无射线拾取)——
+  Overworld 的交互模型是"接近检测 + `interact()` + 摇杆",不依赖场景图事件。
+- **`createWeappTouchJoystick(target, { region?, size?, deadZone?, runThreshold? })`**
+  — 无 DOM 浮动摇杆:消费 `wx` 全局触摸事件,锚定在触点落点,复用 input 包的
+  纯函数摇杆数学,写入 `MovementInputRef`;返回 `{ dispose }`。
+  `region: 'left-half'`(缺省)只响应左半屏。
+- **`registerWeappBridge()` / `createWeappBridge()`** — 注册 platform 的
+  `weapp` 桥:`storage()` 用 wx 存储、`wx.onShow/onHide` →
+  `app:resumed`/`app:paused`、safe-area 读系统信息、`openExternal` 为
+  warn no-op(平台政策)。
+- **`getWx()` 与 `Wx*` 类型** — `wx` 全局的最小结构化类型与访问器
+  (非微信环境抛出带指引的错误),同时是测试 fake 的契约。
+
+## 已知约束(小游戏)
+
+- drei `Text`(troika)不可用:标签用 scene 的 `SpriteLabel`
+  (`labelMode="sprite"` + `setLabelCanvasFactory`);
+- `useGLTF` 走 adapter 的 XHR polyfill:模型放包内或加入 CDN 白名单域;
+- weapp-adapter 版本在模板内锁定;基础库最低 2.19(WebGL1 兜底)。
+
+## 测试
+
+单测全部基于 `vi.stubGlobal('wx', fake)`(存储枚举、socket 信封语义、
+audio 契约两后端对齐、摇杆触摸序列、canvasRoot 尺寸/配置/释放);
+真实 WebGL 渲染由 wx-shim 浏览器 harness 验证,微信开发者工具预览为
+最终人工确认。

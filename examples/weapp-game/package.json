@@ -1,0 +1,33 @@
+{
+  "name": "weapp-game",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@overworld-engine/adapters-weapp": "workspace:*",
+    "@overworld-engine/core": "workspace:*",
+    "@overworld-engine/dialogue": "workspace:*",
+    "@overworld-engine/input": "workspace:*",
+    "@overworld-engine/inventory": "workspace:*",
+    "@overworld-engine/net": "workspace:*",
+    "@overworld-engine/platform": "workspace:*",
+    "@overworld-engine/quest": "workspace:*",
+    "@overworld-engine/scene": "workspace:*",
+    "react": "^18.3.1",
+    "three": "^0.170.0",
+    "@react-three/fiber": "^8.17.10",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.3",
+    "@types/react": "^18.3.12",
+    "@types/three": "^0.170.0"
+  },
+  "license": "MIT"
+}

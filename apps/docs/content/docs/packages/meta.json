@@ -18,6 +18,8 @@
     "loading",
     "analytics",
     "net",
+    "platform",
+    "adapters-weapp",
     "devtools",
     "editor"
   ]

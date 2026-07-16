@@ -1,0 +1,45 @@
+{
+  "name": "@overworld-engine/platform",
+  "version": "1.1.0",
+  "description": "Runtime platform detection and capability bridges (web/telegram/tauri/capacitor/weapp) for Overworld games",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@overworld-engine/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg"
+  ],
+  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luzhenqian/overworld.git",
+    "directory": "packages/platform"
+  }
+}

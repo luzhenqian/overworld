@@ -20,6 +20,8 @@ Overworld 从实际上线的 3D RPG 项目(degener-city)中提取通用能力沉
 | `@overworld-engine/devtools` | 开发期内容校验(对话/任务引用完整性)、内容 JSON Schema、事件总线日志 |
 | `@overworld-engine/editor` | 游戏内场景编辑器:放置/拖拽实体、撤销重做、属性面板、导出场景 JSON |
 | `@overworld-engine/net` | 多人同步抽象:Transport 接口(内存/BroadcastChannel/WebSocket)、presence 复制、事件中继 |
+| `@overworld-engine/platform` | 平台检测与能力桥(web/telegram/tauri/capacitor/weapp),app:* 生命周期事件 |
+| `@overworld-engine/adapters-weapp` | 微信适配层:存储/socket/音频/R3F canvas root/触摸摇杆 |
 | `@overworld-engine/dialogue` | 无头对话树引擎(条件门控选项、效果、好感度) |
 | `@overworld-engine/quest` | 无头任务状态机(声明式目标触发器、前置条件、奖励、任务链) |
 | `@overworld-engine/inventory` | 无头背包/物品引擎(堆叠、容量、使用效果) |
@@ -53,7 +55,11 @@ pnpm test         # 全部单测
 pnpm --filter starter dev   # 运行示例游戏
 ```
 
-两个官方示例(均只用 `@overworld-engine/*` 公开 API):
+**多端**:一套代码覆盖 Web / Telegram 小程序 / macOS / Windows / iOS / Android / 微信小游戏
+(完整 3D)—— 见[多端支持指南](docs/guides/platforms.md)与 examples/ 下的
+telegram-mini-app、desktop-tauri、mobile-capacitor、weapp-game 四个端模板。
+
+官方示例(均只用 `@overworld-engine/*` 公开 API):
 
 - [`examples/starter`](examples/starter) —— 村庄演示:移动/对话/任务/物品/成就/联机/编辑器/中英切换
 - [`examples/dungeon`](examples/dungeon) —— 地牢探索:种子化程序地牢、行为树敌人、钥匙宝箱任务链、HPA* 引路(`?seed=N` 换地图)

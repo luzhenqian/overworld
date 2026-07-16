@@ -3,6 +3,15 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v1.1 多端支持
+
+- **新包 `platform`**:平台检测/能力/桥(web/telegram/tauri/capacitor/weapp),`app:paused/resumed/back` 事件
+- **新包 `adapters-weapp`**:wx 存储/socket/音频适配器、`createWeappCanvasRoot`(R3F 免 react-dom)、触摸摇杆
+- **微信小游戏完整 3D**:examples/weapp-game(wx-shim 真浏览器 harness 21 断言,发布包体 1.01MB)
+- 端模板:telegram-mini-app / desktop-tauri(macOS 实测出包)/ mobile-capacitor
+- audio 后端注入 + `pauseOnHide`;scene `SpriteLabel` 跨端标签 + `labelMode`
+- 指南:docs/guides/platforms.md(矩阵/接线/注入对照/上架红线)
+
 ## v0.9(破坏性变更收官)
 
 - **P1** store 形态统一:dialogue/quest/audio 全部改为 `{ store, ...方法 }`(React 端 `useStore(engine.store, sel)`),全框架 8 个引擎形态一致

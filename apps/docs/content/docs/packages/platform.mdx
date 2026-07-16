@@ -1,0 +1,116 @@
+---
+title: '@overworld-engine/platform'
+description: 运行时平台检测与能力桥:web / telegram / tauri / capacitor / weapp 一套代码全覆盖
+---
+
+运行时平台检测 + 能力快照 + 每端一个 `PlatformBridge`(存档存储、外链、
+safe-area、震动、生命周期接线)。**零硬依赖**:壳 SDK(`window.Telegram.WebApp`、
+`window.Capacitor`、Tauri 插件)全部运行时动态探测,依赖面只有
+`@overworld-engine/core`,同一份 Web 构建原样跑遍所有端。
+
+## 安装
+
+```bash
+pnpm add @overworld-engine/platform @overworld-engine/core
+# peer(可选,仅 usePlatform 需要): react
+```
+
+## 平台检测
+
+```ts
+import { detectPlatform, configurePlatform, resetPlatform } from '@overworld-engine/platform'
+
+detectPlatform()  // 'web' | 'telegram' | 'tauri' | 'capacitor' | 'weapp' | 'node'
+```
+
+按**特异性降序**探测宿主全局(更具体的壳永远赢过它内嵌的环境):
+
+1. `wx`(带函数 `getSystemInfoSync`)→ `weapp`
+2. `window.__TAURI_INTERNALS__` → `tauri`
+3. `window.Capacitor` → `capacitor`(`isNativePlatform()` 为 false 的 web 构建会被跳过)
+4. `window.Telegram.WebApp.initData` 非空 → `telegram`
+5. 有 `window` → `web`,否则 → `node`
+
+所有探测均为防御式 `typeof` 检查,SSR/测试环境安全。测试与调试用
+`configurePlatform({ force: 'telegram' })` 强制指定,`resetPlatform()` 恢复。
+
+## 能力与画质推荐
+
+```ts
+import {
+  getCapabilities, shouldShowTouchControls, recommendedQualityPreset,
+} from '@overworld-engine/platform'
+```
+
+- `getCapabilities()` — `{ kind, hasDOM, hasWebGL, hasTouch, hasKeyboard, persistentStorage }`,
+  其中 `persistentStorage` 为 `'localStorage' | 'file' | 'wx' | 'memory'`。
+- `shouldShowTouchControls()` — 有触摸且没有物理键盘时为 `true`,
+  作为 input 包 `<VirtualJoystick>` 的默认挂载开关。
+- `recommendedQualityPreset()` — 自带 scene 同款设备启发式(核数/内存/移动特征),
+  再做平台修正:**telegram / capacitor / weapp 至多 `'medium'`**(WebView 与小程序
+  GPU 表现低于裸硬件)。直接喂 `useQualityStore.getState().setPreset(...)`。
+- `usePlatform()` — React Hook,组件生命周期内 memoized 的能力快照。
+
+## PlatformBridge
+
+```ts
+import { gameEvents } from '@overworld-engine/core'
+import { createBridge } from '@overworld-engine/platform'
+
+const bridge = createBridge()               // 缺省按 detectPlatform()
+bridge.storage()                            // EnumerableStorage → persistOptions / createSaveSlots
+bridge.openExternal('https://example.com')  // TG 用 openLink,壳用系统浏览器
+bridge.safeAreaInsets()                     // { top, right, bottom, left }
+bridge.vibrate?.('light')                   // 'light' | 'medium' | 'heavy',平台支持时存在
+const unbind = bridge.bindLifecycle(gameEvents)  // 端事件 → app:* 总线事件,返回解绑
+bridge.quit?.()                             // 桌面壳可用
+```
+
+### 内置桥
+
+| 桥 | 存档 | 生命周期 | 特有能力 |
+| --- | --- | --- | --- |
+| `web` | localStorage(缺席时 memory 兜底) | `visibilitychange` → `app:paused/resumed` | — |
+| `telegram` | localStorage | `activated/deactivated`(Bot API ≥ 8.0)否则 `visibilitychange`;`BackButton` → `app:back` | 创建即 `ready()+expand()`;`getTheme()` 暴露 `themeParams`;Haptic 震动 |
+| `tauri` | localStorage(可升级文件存档) | `visibilitychange` + `beforeunload`(关窗)→ `app:paused` | 外链走 shell/opener 插件;`quit()` 关窗 |
+| `capacitor` | localStorage | App 插件 `pause/resume/backButton` → 总线(插件缺席回退 `visibilitychange`) | safe-area 读 CSS `env()`;Haptics 震动 |
+
+`weapp` 桥不内置:由 `@overworld-engine/adapters-weapp` 的 `registerWeappBridge()`
+通过注册机制注入,platform 不反向依赖它。未注册的 kind(如 `node`)回退
+web 桥并 `console.warn`。
+
+### 自定义/外部桥注册
+
+```ts
+import { registerBridge } from '@overworld-engine/platform'
+
+registerBridge('weapp', () => myWeappBridge)   // 覆盖内置 kind 同样可行
+```
+
+### Tauri 文件存档(可选升级)
+
+`createTauriFileStorage(options?)` 返回 `Promise<EnumerableStorage>`:
+动态 `import('@tauri-apps/plugin-fs')`(插件装在**壳模板**里,本包零 Tauri 依赖,
+bundler 也不会去解析它),把整份存档放进应用数据目录下的一个 JSON 文件,
+写入按序串行落盘。先 resolve 再交给持久化 API:
+
+```ts
+const storage = await createTauriFileStorage()  // 缺省 'overworld-save.json'
+persistOptions({ name: 'inventory', storage: () => storage })
+createSaveSlots({ storage })
+```
+
+插件缺失时以带安装指引的错误 reject。
+
+## app:* 事件(经 declaration merging 并入框架事件表)
+
+- `app:paused` — 切后台 / 失焦 / 小程序 onHide / 关窗(空负载)
+- `app:resumed` — 回到前台(空负载)
+- `app:back` — Android 返回键 / TG BackButton;**游戏决定**是关面板还是退出
+
+```ts
+gameEvents.on('app:back', () => closeTopPanel())   // 完全类型化
+```
+
+约定用法:audio 的 `pauseOnHide: true` 订阅这两个 pause/resume 事件实现
+切后台自动静音恢复。常量 `APP_EVENTS` 列出全部三个事件名。

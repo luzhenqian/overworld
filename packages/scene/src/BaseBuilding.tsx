@@ -17,7 +17,8 @@ import { useSceneStore } from './sceneStore'
 import { useModelLoader } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { buildingVisualHeights } from './visualHeights'
-import type { BuildingTheme } from './types'
+import { SpriteLabel } from './SpriteLabel'
+import type { BuildingTheme, LabelMode } from './types'
 
 export interface BaseBuildingProps {
   buildingId: string
@@ -35,6 +36,14 @@ export interface BaseBuildingProps {
   interactHint?: (id: string) => React.ReactNode
   /** Optional font URL for labels (drei `Text` default font when omitted). */
   labelFont?: string
+  /**
+   * How label text (name, interaction bubble) is rendered: `'troika'`
+   * (default) uses drei `Text`; `'sprite'` uses the DOM-less
+   * {@link SpriteLabel} (canvas texture + `THREE.Sprite`) — required on
+   * platforms without troika support, e.g. WeChat mini-games. Sprite mode
+   * uses the system font (`labelFont` is ignored).
+   */
+  labelMode?: LabelMode
   /**
    * Name-label height in world units, overriding the scale-proportional
    * default (`6 × scale`). The interaction bubble keeps its offset above it.
@@ -95,6 +104,7 @@ export function BaseBuilding({
   interactLabel = 'E',
   interactHint,
   labelFont,
+  labelMode = 'troika',
   labelHeight,
 }: BaseBuildingProps) {
   const groupRef = useRef<THREE.Group>(null)
@@ -129,17 +139,21 @@ export function BaseBuilding({
               <planeGeometry args={[name.length * 0.3 + 1, 0.8]} />
               <meshBasicMaterial color={theme.nameLabelBg} transparent opacity={0.9} />
             </mesh>
-            <Text
-              fontSize={0.5}
-              color={theme.primaryColor}
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.02}
-              outlineColor="#000000"
-              font={labelFont}
-            >
-              {name}
-            </Text>
+            {labelMode === 'sprite' ? (
+              <SpriteLabel text={name} color={theme.primaryColor} fontSize={0.5} />
+            ) : (
+              <Text
+                fontSize={0.5}
+                color={theme.primaryColor}
+                anchorX="center"
+                anchorY="middle"
+                outlineWidth={0.02}
+                outlineColor="#000000"
+                font={labelFont}
+              >
+                {name}
+              </Text>
+            )}
           </group>
         </Billboard>
       )}
@@ -169,16 +183,20 @@ export function BaseBuilding({
                 <ringGeometry args={[0.48, 0.58, 32]} />
                 <meshBasicMaterial color={theme.primaryColor} transparent opacity={0.8} />
               </mesh>
-              <Text
-                fontSize={0.4}
-                color={theme.primaryColor}
-                anchorX="center"
-                anchorY="middle"
-                outlineWidth={0.02}
-                outlineColor="#000000"
-              >
-                {interactLabel}
-              </Text>
+              {labelMode === 'sprite' ? (
+                <SpriteLabel text={interactLabel} color={theme.primaryColor} fontSize={0.4} />
+              ) : (
+                <Text
+                  fontSize={0.4}
+                  color={theme.primaryColor}
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.02}
+                  outlineColor="#000000"
+                >
+                  {interactLabel}
+                </Text>
+              )}
             </group>
           </Billboard>
         ))}

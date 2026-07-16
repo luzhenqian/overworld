@@ -3,9 +3,10 @@ title: '@overworld-engine/audio'
 description: BGM/音效管理器:场景-曲目映射、切曲淡入淡出与自动播放策略处理
 ---
 
-BGM / 音效管理器:单例 HTMLAudio 池、切曲淡入淡出、浏览器自动播放策略处理
+BGM / 音效管理器:单例 BGM 音源、切曲淡入淡出、浏览器自动播放策略处理
 (首次用户交互后自动重试)、可选的音量与静音设置持久化(经 `persist` 显式开启),
-并可订阅事件总线上的 `scene:changed` 事件自动切换场景 BGM。
+并可订阅事件总线上的 `scene:changed` 事件自动切换场景 BGM。播放经可注入的
+`AudioBackend`(缺省 HTMLAudio,行为不变;微信小游戏注入 weapp 后端)。
 
 包内**零游戏内容**:曲目表、场景映射全部由配置注入。所有浏览器 API 均有守卫,
 在 Node / SSR / 测试环境中导入和创建不会崩溃(仅记录状态、不实际播放)。
@@ -39,6 +40,8 @@ audio.playSfx('pickup') // 一次性音效
 | `volume` / `sfxVolume` | `0.7` | 初始 BGM / 音效音量(0–1) |
 | `fadeDuration` | `1000` | 切曲淡入淡出时长(ms),`0` 表示立即切换 |
 | `loop` | `true` | BGM 是否循环 |
+| `backend` | `htmlAudioBackend` | 播放后端注入(见下文"后端注入");缺省为 HTMLAudio,行为不变 |
+| `pauseOnHide` | `false` | 订阅总线 `app:paused` / `app:resumed`(由 `@overworld-engine/platform` 桥发出):切后台自动暂停 BGM、回前台恢复;`dispose()` 退订 |
 | `persist` | 省略(关闭) | 框架统一约定:省略或 `false` 不持久化;`true` 用默认配置持久化音量/静音(键 `overworld:audio`);可传对象自定义。v0.9 起省略即关闭(此前默认开启),依赖持久化请显式传 `persist: true` |
 
 ## Manager API
@@ -59,6 +62,31 @@ audio.playSfx('pickup') // 一次性音效
 - `setVolume(v)` / `setSfxVolume(v)` — 音量(自动钳制到 0–1)
 - `setMuted(muted)` / `toggleMute()` — 静音;静音期间仍记录目标曲目,取消静音后恢复播放
 - `dispose()` — 退订总线、移除解锁监听并停止播放
+
+## 后端注入(`AudioBackend`)
+
+管理器的全部播放操作都经过可注入的后端接口,跨端只需换后端、逻辑零改动:
+
+```ts
+interface AudioBackend {
+  create(url: string): AudioHandle // 每个音源一个 handle
+  isAvailable?(): boolean          // false = 仅记录状态(Node/SSR 守卫)
+}
+interface AudioHandle {
+  play(): Promise<void> | void
+  pause(): void
+  setVolume(v: number): void
+  getVolume(): number              // 淡入淡出读取当前音量
+  setLoop(loop: boolean): void
+  isPaused(): boolean
+  onEnded(cb: () => void): () => void // 一次性音效播完自动 destroy
+  destroy(): void
+}
+```
+
+- 缺省 `htmlAudioBackend`(已导出):`new Audio(url)`,与历史行为一致;
+- 微信小游戏:`backend: createWeappAudioBackend()`
+  (来自 `@overworld-engine/adapters-weapp`,映射 `wx.createInnerAudioContext`)。
 
 ## 自动播放策略
 

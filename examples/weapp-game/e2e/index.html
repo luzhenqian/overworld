@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>weapp-game wx-shim harness</title>
+    <!--
+      裸页面:先加载 vendor/weapp-adapter.js,再加载小游戏打包产物 —— 与
+      dist/game.js 在真机上的加载次序一致。window.wx 由 playwright 的
+      addInitScript(e2e/wx-shim.mjs)在任何页面脚本之前注入。
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="/vendor/weapp-adapter.js"></script>
+    <script src="/bundle.js"></script>
+  </body>
+</html>

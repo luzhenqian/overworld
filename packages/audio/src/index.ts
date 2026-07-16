@@ -5,3 +5,5 @@ export type {
   AudioPersistConfig,
   AudioState,
 } from './audioManager'
+export { htmlAudioBackend } from './backend'
+export type { AudioBackend, AudioHandle } from './backend'
