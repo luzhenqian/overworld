@@ -1,0 +1,50 @@
+{
+  "name": "@overworld-engine/relay",
+  "version": "1.2.0",
+  "description": "Reference WebSocket relay server for @overworld-engine/net: room-scoped verbatim broadcast, heartbeat reaping",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "overworld-relay": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@overworld-engine/net": "workspace:*",
+    "@types/node": "^26.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "overworld",
+    "game",
+    "multiplayer",
+    "websocket",
+    "relay"
+  ],
+  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luzhenqian/overworld.git",
+    "directory": "packages/relay"
+  }
+}

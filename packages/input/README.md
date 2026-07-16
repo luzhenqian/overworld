@@ -107,6 +107,7 @@ function Game() {
 | `deadZone` | `0.15` | 死区:模长低于该值时写入 `{0, 0}` |
 | `runThreshold` | `0.85` | 模长达到该值时 `running = true` |
 | `style` / `className` | 固定左下角 | 样式/定位透传,覆盖 `position`/`left`/`bottom` 可改放置位置 |
+| `testId` | `'ow-joystick'` | 稳定 `data-testid`:底盘 = `testId`,摇杆头 = `` `${testId}-thumb` ``,供 Playwright 等 E2E 定位 |
 
 行为细节:
 

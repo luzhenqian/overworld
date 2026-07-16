@@ -52,6 +52,76 @@ wss.on('connection', (socket) => {
 })
 ```
 
+生产可用的参考实现是 **`@overworld-engine/relay`** 包(`npx overworld-relay`,
+或编程 API 挂到既有 http server):按 URL 路径分房间、心跳剔除死连接、
+payload 上限、优雅关闭。
+
+## 线路协议规范(wire protocol)
+
+以下规范精确到可以用**任何语言**实现兼容的中继或权威服务器。协议随 net 1.x
+发布;**2.0 之前只做加法**(新增 `t` 种类),已有信封的字段与语义保持稳定,
+实现方对未知 `t` 应当忽略。
+
+### 传输层信封
+
+- 每条 WebSocket 消息 = 一个 **JSON 文本帧**:`{ "from": string, "data": unknown }`。
+- `from` 是发送方 peerId,**由客户端自行生成**(优先 `crypto.randomUUID()`,
+  否则"计数器 + 时间戳"兜底)。没有握手、没有服务器分配 id:peer 通过第一条
+  消息的 `from` 隐式宣告自己,中继不参与 id 分配。
+- 中继 **MUST**:把每条消息**原样**转发给同一房间内所有**其他** OPEN 连接;
+  **MUST NOT** 回送给发送者(客户端虽有 `msg.from === peerId` 的兜底过滤,
+  但事件中继的防回声依赖"不回送",不能指望兜底)。
+- 中继**不得解析或改写** `data` —— 信封对服务器完全不透明。客户端会静默忽略
+  非文本帧、无法解析的 JSON、以及缺 `from` 的消息。
+
+### 房间
+
+- 房间 = 连接时的 URL 路径:`wss://host/room-a`;省略路径 = 默认房间 `/`。
+- **没有 join/leave 帧**:连接即加入、断开即离开。同房间互转,不同房间隔离。
+
+### 应用层信封(按 `data.t` 多路复用)
+
+`data` 是带判别字段 `t` 的对象;内建种类可共用同一个 transport,自定义信封
+只需选一个不冲突的 `t`(未知 `t` 被各订阅者忽略):
+
+| `t` | 方向 | 其余字段 | 语义 |
+|---|---|---|---|
+| `presence` | peer → 全房间 | `position: [x,y,z]`,`rotationY?: number`(弧度),`meta?: object` | 本地玩家 transform 心跳 |
+| `bye` | peer → 全房间 | — | 优雅离开,接收方立即剔除该 peer |
+| `event` | peer → 全房间 | `event: string`,`payload: unknown` | 总线事件中继,接收方本地 re-emit |
+| `input` | 客户端 → 权威端 | `seq: number`,`input: unknown`,`dtMs: number` | 预测输入上报 |
+| `state` | 权威端 → 客户端 | `state: unknown`,`lastSeq: number` | 权威状态 ack |
+
+**presence 节奏**(以下均为默认值,可配):发送方每 `intervalMs = 100ms` 读一次
+本地 transform,**有变化才发送**,静止时每第 **5** 拍强制发一次 keepalive(即每
+500ms 一包);接收方每收到一个 presence 包刷新该 peer 的 `lastSeenAt`,静默超过
+`staleAfterMs = 3000ms` 即剔除(视同离线);收到 `bye` 立即剔除。首个 presence
+包即宣告加入 —— 没有显式 join。
+
+**event 语义**:emit → 广播 → 各对端 re-emit;re-emit 期间以重入标记抑制转发
+(echo suppression),因此一次 emit 在每个 peer **恰好出现一次**,不放大——
+其前提正是中继不回送给发送者。
+
+**input/state(prediction 通道)语义**:`seq` 由客户端从 1 起单调递增;权威端
+处理输入后以 `lastSeq` =「已处理的最高 seq」回 `state`;客户端收到
+`lastSeq <= 已确认 seq` 的过期/乱序 ack 时整体忽略,否则回退到 `state` 并按序
+重放所有 `seq > lastSeq` 的未确认输入。权威端自定义的额外广播(如
+examples/authority-server 的 `{ t: 'world', players }`)就是"自定义 `t`"的例子。
+
+### 自建兼容中继的最小要求
+
+- [ ] WebSocket 端点,按 URL 路径分房间(至少支持默认房间 `/`)
+- [ ] 把每个文本帧**原样**转发给同房间所有其他 OPEN 连接
+- [ ] **绝不**回送给发送者
+- [ ] 不解析、不改写消息;同一连接的消息保持到达顺序
+- [ ] 连接断开即离开房间;建议 ping/pong 心跳(参考 30s)剔除死连接
+- [ ] 不需要:握手、id 分配、房间管理帧、持久化 —— 协议里都不存在
+
+### 版本与稳定性承诺
+
+信封结构 `{ from, data }`、房间语义与上表内建 `t` 是稳定接口:2.0 之前只会
+**新增** `t` 种类,不改字段、不改语义。
+
 ## 在线状态复制(presence)
 
 ```ts
@@ -67,9 +137,13 @@ const sync = createPresenceSync({
   }),
   intervalMs: 100,      // 心跳间隔(默认)
   staleAfterMs: 3000,   // 超时剔除(默认)
+  // clock: () => number,默认 Date.now;lastSeenAt、超时剔除与插值缓冲共用这一个时基
 })
 sync.start()
 ```
+
+> **确定性**:同 seed 重放/确定性测试需注入 `clock`;引擎值层面无 `Math.random`
+> (peer id 的 `crypto.randomUUID` 兜底可通过各 Transport 配置的 `peerId` 显式指定绕开)。
 
 机制:
 

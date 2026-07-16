@@ -3,6 +3,16 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v1.2 确定性与联机基建
+
+响应首个生产消费方(投资模拟游戏)的需求反馈:
+
+- **确定性注入**:achievements/quest/saveSlots/presence 的 `clock`、toasts 的 `clock + scheduler`(默认不变;重放全等测试背书)
+- **`@overworld-engine/relay`(新包)**:正式中继服务器(npx/编程 API/挂载既有 http server),与 net 客户端真 socket 互操作测试
+- **线路协议规范**:信封/peerId/房间/`t` 多路复用/自建兼容中继检查单,2.0 前只增不改
+- 权威多人接入指南(外部确定性内核作为共享 step)
+- DOM 组件 `data-testid` + 官方测试指南(store 驱动断言);`configureEditorLabels` 文案覆写;持久化互操作指南;npm workspaces 兼容确认
+
 ## v1.1 多端支持
 
 - **新包 `platform`**:平台检测/能力/桥(web/telegram/tauri/capacitor/weapp),`app:paused/resumed/back` 事件

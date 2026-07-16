@@ -231,7 +231,24 @@ GitHub luzhenqian/overworld。
   wx-shim 真浏览器 harness 21 断言,发布包体 1.01MB)。
 - docs/guides/platforms.md:平台矩阵、通用接线、注入对照表、上架红线。
 
-## 版本路线(v1.2+)
+## v1.2 已落地:确定性与联机基建(首个生产消费方驱动)
+
+- 可注入 clock/scheduler:achievements(unlockedAt)/quest(startedAt)/
+  saveSlots(savedAt)/presence(lastSeenAt+清扫+插值时基)/toasts(createdAt+自动过期);
+  默认懒绑定 Date.now 零破坏;各包带同 seed 重放全等测试。状态型与行为型墙钟
+  边界成文(reconnect/防抖/淡入淡出不进状态,刻意保留)。
+- `@overworld-engine/relay`(新):正式中继包(房间=URL 路径、verbatim 广播、
+  心跳收割、payload 上限、优雅停机;bin + 编程 API + http server 挂载),
+  含与 net 客户端的真 socket 互操作测试;examples/ws-server 改为薄包装。
+- 线路协议规范(net 文档):传输信封/peerId 客户端生成/房间语义/应用层 `t`
+  多路复用表/自建兼容中继检查单;2.0 前只增不改。
+- 权威多人指南:外部确定性内核作为共享 step 的推荐接法(引擎不内置游戏状态仲裁)。
+- 可测性:VirtualJoystick/MiniMap/编辑器全套 data-testid(可配前缀);
+  官方测试指南确立 store 驱动断言为推荐路径。
+- editor `configureEditorLabels` 文案全量覆写(全家桶唯一有内置可见文案的包);
+  持久化互操作指南(权威数据不进 persist 守则);npm workspaces 兼容确认。
+
+## 版本路线(v1.3+)
 
 R3F pointer 事件桥(微信射线拾取)、weapp 官方适配器 vendor 与 useGLTF 支持、
 Tauri/Capacitor CI 出包矩阵、TG CloudStorage 存档适配器。

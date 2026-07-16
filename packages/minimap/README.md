@@ -54,6 +54,7 @@ import { playerPositionRef, playerRotationRef } from '@overworld-engine/scene'
 - 按 `refreshMs` 用 `setInterval` 轮询玩家 ref 重绘;标记 store 变化时立即重绘;
   卸载时清理定时器与订阅。
 - 组件在 three.js Canvas **之外**渲染(普通 DOM 覆盖层),支持 `style` / `className`。
+- `<canvas>` 元素带稳定的 `data-testid`(prop `testId`,默认 `'ow-minimap'`),供 E2E 断言存在性/截图。
 
 ## 投影辅助(纯函数)
 

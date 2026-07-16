@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Server-side package: Node globals (from @types/node), no DOM lib.
+    "lib": ["ES2022"]
+  },
+  "include": ["src"]
+}

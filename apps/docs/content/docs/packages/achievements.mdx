@@ -43,8 +43,12 @@ const achievements = createAchievements({
   context,     // 传给奖励效果处理器的上下文
   events,      // 事件总线,默认全局 gameEvents
   persist,     // { name?, version?, prefix?, storage? },传入即开启持久化
+  clock,       // () => number,默认 Date.now,提供 unlockedAt 时间戳
 })
 ```
+
+> **确定性**:同 seed 重放需注入 `clock`(否则 `unlockedAt` 写入墙钟时间,重放无法
+> 逐字节复现);引擎值层面无 `Math.random`。
 
 - `unlock(id)` → `boolean`:手动解锁(`trigger: null` 的唯一解锁方式),幂等
 - `progress(id)` → `{ current, target, unlocked, unlockedAt? }`

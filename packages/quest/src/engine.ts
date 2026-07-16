@@ -46,6 +46,12 @@ export interface QuestEngineConfig<Ctx = unknown> {
    * defaults; object = custom.
    */
   persist?: boolean | QuestPersistConfig
+  /**
+   * Injectable clock returning epoch milliseconds, used for `startedAt`
+   * timestamps. Inject a deterministic clock when replayed sessions must
+   * produce byte-identical state. @default Date.now
+   */
+  clock?: () => number
 }
 
 /** Zustand state and actions of a quest engine. */
@@ -180,6 +186,7 @@ function readAmount(payload: unknown, key: string): number | null {
  */
 export function createQuestEngine<Ctx = unknown>(config: QuestEngineConfig<Ctx>): QuestEngine {
   const bus = config.events ?? gameEvents
+  const clock = config.clock ?? (() => Date.now())
   const resolveContext = (): Ctx =>
     typeof config.context === 'function' ? (config.context as () => Ctx)() : (config.context as Ctx)
   // Objective triggers are dynamic (game-extended) event names, so the bus is
@@ -328,7 +335,7 @@ export function createQuestEngine<Ctx = unknown>(config: QuestEngineConfig<Ctx>)
           objectives[objective.id] = { current: 0, completed: false }
         }
         set((s) => ({
-          active: { ...s.active, [questId]: { questId, startedAt: Date.now(), objectives } },
+          active: { ...s.active, [questId]: { questId, startedAt: clock(), objectives } },
         }))
         bus.emit('quest:started', { questId })
         syncSubscriptions()

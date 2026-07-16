@@ -10,7 +10,15 @@
 ```ts
 import { useToastStore, configureToasts } from '@overworld-engine/notifications'
 
-configureToasts({ max: 5, defaultDuration: 3000 }) // 可选,全局配置
+configureToasts({
+  max: 5,                  // 队列上限,默认 5
+  defaultDuration: 3000,   // 缺省自动消失时长,默认 3000ms
+  clock: () => Date.now(), // 可注入时钟,提供 createdAt 时间戳
+  scheduler: (fn, ms) => { // 可注入调度器,驱动自动消失;返回取消函数
+    const t = setTimeout(fn, ms)
+    return () => clearTimeout(t)
+  },
+}) // 可选,全局配置;各字段可单独覆盖
 
 const id = useToastStore.getState().show({
   message: '任务完成!',
@@ -23,9 +31,13 @@ useToastStore.getState().dismiss(id)
 
 行为:
 
-- `show(options)` 返回 toast id;到时后经 `setTimeout` 自动出队。
-- 队列超过 `max`(默认 5)时丢弃最旧的一条(并清理其定时器)。
-- `dismiss(id)` / `dismissAll()` 手动移除;`resetToastConfig()` 恢复默认配置。
+- `show(options)` 返回 toast id;到时后经配置的 `scheduler`(默认 `setTimeout`)自动出队。
+- 队列超过 `max`(默认 5)时丢弃最旧的一条(并经调度器返回的取消函数清理其定时器)。
+- `dismiss(id)` / `dismissAll()` 手动移除(同样取消未触发的自动消失);
+  `resetToastConfig()` 恢复默认配置。
+
+> **确定性**:同 seed 重放/确定性 e2e 需注入 `clock`(`createdAt`)与 `scheduler`
+> (手动驱动自动消失,消除墙钟抖动);引擎值层面无 `Math.random`。
 
 游戏侧渲染示例:
 

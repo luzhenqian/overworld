@@ -203,6 +203,54 @@ store.importScene(json)            // 逆操作(尽力解析,跳过坏条目;根
 面板的「导出 JSON」按钮会同时复制到剪贴板并下载 `.json` 文件;
 「导入 JSON」从文本框解析,结果(含错误)显示在面板内的状态行上。
 
+## 可测性:稳定 `data-testid`
+
+`<EditorPanel>` / `<EditorToggle>` 的关键交互元素带稳定的 `data-testid`,
+前缀由 `testIdPrefix` prop 配置(默认 `'ow-editor'`,常量
+`DEFAULT_EDITOR_TESTID_PREFIX`):
+
+| 元素 | testid |
+|---|---|
+| 面板根节点 | `ow-editor-panel` |
+| 模式按钮 | `ow-editor-mode-select` / `ow-editor-mode-place` |
+| 工具栏 | `ow-editor-undo` / `-redo` / `-duplicate` / `-delete` |
+| 实体列表行 | `ow-editor-entity-<实体id>`(如 `ow-editor-entity-npc-1`) |
+| 导出 / 导入按钮 | `ow-editor-export` / `ow-editor-import` |
+| 悬浮开关按钮 | `ow-editor-toggle` |
+
+E2E 断言请认 testid 而不是按钮文案(文案可被覆写,见下节);逻辑断言
+推荐直接读 `useEditorStore`(见测试指南)。
+
+## 文案覆写(i18n)
+
+面板与开关按钮的内置文案(默认中文)可整体或部分覆写 ——
+`configureEditorLabels(partial)` 在启动或切换语言时调用,已挂载的面板
+立即重渲染;`resetEditorLabels()` 恢复默认:
+
+```ts
+import { configureEditorLabels } from '@overworld-engine/editor'
+
+configureEditorLabels({
+  undo: 'Undo',
+  redo: 'Redo',
+  modeSelect: 'Select',
+  modePlace: 'Place',
+  toggleLabel: (on) => `Editor ${on ? 'ON' : 'OFF'}`,
+  multiSelectionHint: (n) => `${n} entities selected`,
+})
+```
+
+字典类型为 `EditorLabels`(默认值常量 `DEFAULT_EDITOR_LABELS`):静态标签为
+字符串字段(`undo` / `redo` / `duplicate` / `delete` / `snap` / `grid` /
+`modeSelect` / `modePlace` / `kindNpc` / `kindBuilding` / `kindDecoration` /
+`templateBlank` / `exportJson` / `importJson` / `clearScene` / 各分区标题与
+属性字段名等),参数化消息为函数字段(`multiSelectionHint(count)` /
+`exportedStatus(count)` / `importSuccessStatus(count)` /
+`importFailStatus(error)` / `toggleLabel(enabled)`)。React 侧也可用
+`useEditorLabels()` 订阅当前字典。编辑器是**唯一**内置用户可见文案的
+Overworld 包 —— 其余自渲染 UI(摇杆、小地图)无文字,系统包(通知/对话/
+任务等)文案全部来自游戏内容。
+
 ## 与 @overworld-engine/scene 的关系
 
 按架构分层规则,本包**不 import** `@overworld-engine/scene`。导出的

@@ -40,6 +40,11 @@ export interface MiniMapProps {
   refreshMs?: number
   style?: CSSProperties
   className?: string
+  /**
+   * Stable `data-testid` on the `<canvas>` element for E2E selectors.
+   * Default: `'ow-minimap'`.
+   */
+  testId?: string
 }
 
 const DEFAULT_SIZE = 160
@@ -90,6 +95,7 @@ export function MiniMap(props: MiniMapProps): ReactElement {
     refreshMs = DEFAULT_REFRESH_MS,
     style,
     className,
+    testId = 'ow-minimap',
   } = props
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -169,6 +175,7 @@ export function MiniMap(props: MiniMapProps): ReactElement {
     <canvas
       ref={canvasRef}
       className={className}
+      data-testid={testId}
       style={{ width: size, height: size, borderRadius, ...style }}
     />
   )

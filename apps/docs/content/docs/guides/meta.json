@@ -3,6 +3,9 @@
   "pages": [
     "platforms",
     "i18n",
+    "testing",
+    "persistence-interop",
+    "authoritative-multiplayer",
     "assets",
     "content-hmr",
     "releasing"

@@ -2,13 +2,13 @@
   "name": "ws-server",
   "version": "0.9.0",
   "private": true,
-  "description": "Reference authoritative relay server for @overworld-engine/net WebSocket transport",
+  "description": "Reference relay server for @overworld-engine/net WebSocket transport (thin wrapper around @overworld-engine/relay)",
   "type": "module",
   "scripts": {
     "start": "node server.mjs"
   },
   "dependencies": {
-    "ws": "^8.18.0"
+    "@overworld-engine/relay": "workspace:*"
   },
   "license": "MIT"
 }

@@ -41,5 +41,14 @@ export type {
 export { EditorScene } from './EditorScene'
 export type { EditorSceneProps } from './EditorScene'
 
-export { EditorPanel, EditorToggle } from './EditorPanel'
+export { EditorPanel, EditorToggle, DEFAULT_EDITOR_TESTID_PREFIX } from './EditorPanel'
 export type { EditorPanelProps, EditorToggleProps } from './EditorPanel'
+
+export {
+  configureEditorLabels,
+  resetEditorLabels,
+  useEditorLabels,
+  useEditorLabelsStore,
+  DEFAULT_EDITOR_LABELS,
+} from './editorLabels'
+export type { EditorLabels } from './editorLabels'

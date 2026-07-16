@@ -33,12 +33,28 @@ import {
   type EditorEntityKind,
   type EditorMode,
 } from './editorStore'
+import { useEditorLabels, type EditorLabels } from './editorLabels'
+
+/**
+ * Default `data-testid` prefix for the editor's DOM overlay (panel, buttons,
+ * entity list items, toggle). See {@link EditorPanelProps.testIdPrefix}.
+ */
+export const DEFAULT_EDITOR_TESTID_PREFIX = 'ow-editor'
 
 /** Props for {@link EditorPanel}. */
 export interface EditorPanelProps {
   /** Extra styles merged over the panel's fixed-position defaults. */
   style?: CSSProperties
   className?: string
+  /**
+   * Prefix for the stable `data-testid` attributes on the panel root
+   * (`${prefix}-panel`), mode buttons (`${prefix}-mode-select` /
+   * `${prefix}-mode-place`), toolbar buttons (`${prefix}-undo` / `-redo` /
+   * `-duplicate` / `-delete`), entity list items (`${prefix}-entity-${id}`)
+   * and export/import buttons (`${prefix}-export` / `${prefix}-import`).
+   * Default: `'ow-editor'`.
+   */
+  testIdPrefix?: string
 }
 
 /** Props for {@link EditorToggle}. */
@@ -51,22 +67,35 @@ export interface EditorToggleProps {
   hotkey?: string
   style?: CSSProperties
   className?: string
+  /**
+   * `data-testid` prefix; the button gets `${prefix}-toggle`.
+   * Default: `'ow-editor'`.
+   */
+  testIdPrefix?: string
 }
 
-const KIND_LABELS: Record<EditorEntityKind, string> = {
-  npc: 'NPC',
-  building: '建筑',
-  decoration: '装饰',
+/** Entity-kind display names from the active label dictionary. */
+function kindLabels(labels: EditorLabels): Record<EditorEntityKind, string> {
+  return {
+    npc: labels.kindNpc,
+    building: labels.kindBuilding,
+    decoration: labels.kindDecoration,
+  }
 }
 
-const MODE_LABELS: Record<EditorMode, string> = { select: '选择', place: '放置' }
+/** Mode display names from the active label dictionary. */
+function modeLabels(labels: EditorLabels): Record<EditorMode, string> {
+  return { select: labels.modeSelect, place: labels.modePlace }
+}
 
-/** Toolbar alignment buttons (shared by the 对齐X / 对齐Z rows). */
-const ALIGN_MODES: readonly { mode: AlignMode; label: string }[] = [
-  { mode: 'min', label: 'min' },
-  { mode: 'center', label: '中' },
-  { mode: 'max', label: 'max' },
-]
+/** Toolbar alignment buttons (shared by the align-X / align-Z rows). */
+function alignModes(labels: EditorLabels): readonly { mode: AlignMode; label: string }[] {
+  return [
+    { mode: 'min', label: 'min' },
+    { mode: 'center', label: labels.alignCenter },
+    { mode: 'max', label: 'max' },
+  ]
+}
 
 const panelStyle: CSSProperties = {
   position: 'fixed',
@@ -145,12 +174,19 @@ function Btn(props: {
   children: ReactNode
   danger?: boolean
   disabled?: boolean
+  testId?: string
 }): ReactElement {
   let style = props.active ? activeButtonStyle : buttonStyle
   if (props.danger) style = { ...style, background: '#7f1d1d', borderColor: '#ef4444' }
   if (props.disabled) style = { ...style, opacity: 0.4, cursor: 'default' }
   return (
-    <button type="button" style={style} onClick={props.onClick} disabled={props.disabled}>
+    <button
+      type="button"
+      style={style}
+      data-testid={props.testId}
+      onClick={props.onClick}
+      disabled={props.disabled}
+    >
       {props.children}
     </button>
   )
@@ -232,14 +268,13 @@ function SelectedEntityEditor(): ReactElement | null {
     s.selectedIds.length === 1 ? s.entities.find((e) => e.id === s.selectedIds[0]) : undefined
   )
   const removeEntity = useEditorStore((s) => s.removeEntity)
+  const labels = useEditorLabels()
 
   if (selectedCount > 1) {
     return (
       <div>
-        <div style={sectionTitleStyle}>属性</div>
-        <div style={{ color: '#94a3b8' }}>
-          已选 {selectedCount} 个实体 — 可用工具栏对齐/均分/复制/删除
-        </div>
+        <div style={sectionTitleStyle}>{labels.sectionProperties}</div>
+        <div style={{ color: '#94a3b8' }}>{labels.multiSelectionHint(selectedCount)}</div>
       </div>
     )
   }
@@ -259,44 +294,44 @@ function SelectedEntityEditor(): ReactElement | null {
   return (
     <div key={id} onBlur={() => useEditorStore.getState().commitTransient()}>
       <div style={sectionTitleStyle}>
-        属性 — {id} ({KIND_LABELS[entity.kind]})
+        {labels.sectionProperties} — {id} ({kindLabels(labels)[entity.kind]})
       </div>
       <NumberField label="X" value={entity.position[0]} onCommit={(v) => setPositionAxis(0, v)} />
       <NumberField label="Y" value={entity.position[1]} onCommit={(v) => setPositionAxis(1, v)} />
       <NumberField label="Z" value={entity.position[2]} onCommit={(v) => setPositionAxis(2, v)} />
       <NumberField
-        label="旋转 (°)"
+        label={labels.fieldRotation}
         step={15}
         value={(entity.rotationY * 180) / Math.PI}
         onCommit={(deg) => updateEntity({ rotationY: (deg * Math.PI) / 180 })}
       />
       <NumberField
-        label="缩放"
+        label={labels.fieldScale}
         step={0.1}
         value={entity.scale}
         onCommit={(v) => updateEntity({ scale: v })}
       />
       <TextField
-        label="名称"
+        label={labels.fieldName}
         value={entity.name ?? ''}
-        placeholder="(未命名)"
+        placeholder={labels.unnamedPlaceholder}
         onCommit={(v) => updateEntity({ name: v === '' ? undefined : v })}
       />
       <TextField
-        label="模型路径"
+        label={labels.fieldModelPath}
         value={entity.modelPath ?? ''}
         placeholder="/models/….glb"
         onCommit={(v) => updateEntity({ modelPath: v === '' ? undefined : v })}
       />
       <NumberField
-        label="碰撞半径"
+        label={labels.fieldCollisionRadius}
         step={0.5}
         value={entity.collisionRadius ?? 2}
         onCommit={(v) => updateEntity({ collisionRadius: v })}
       />
       <div style={{ marginTop: 6 }}>
         <Btn danger onClick={() => removeEntity(id)}>
-          删除实体
+          {labels.deleteEntity}
         </Btn>
       </div>
     </div>
@@ -335,8 +370,13 @@ function downloadJSON(text: string, filename: string): void {
  * JSON import/export. Errors are reported on an inline status line — never
  * via `window.alert`.
  */
-export function EditorPanel({ style, className }: EditorPanelProps): ReactElement | null {
+export function EditorPanel({
+  style,
+  className,
+  testIdPrefix = DEFAULT_EDITOR_TESTID_PREFIX,
+}: EditorPanelProps): ReactElement | null {
   const enabled = useEditorStore((s) => s.enabled)
+  const labels = useEditorLabels()
   const mode = useEditorStore((s) => s.mode)
   const placingKind = useEditorStore((s) => s.placingKind)
   const templates = useEditorStore((s) => s.templates)
@@ -349,7 +389,7 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
   const showGrid = useEditorStore((s) => s.showGrid)
 
   const [importText, setImportText] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
+  const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
   const canAlign = selectedIds.length >= 2
 
@@ -397,50 +437,70 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
     const json = JSON.stringify(state.exportScene(), null, 2)
     copyToClipboard(json)
     downloadJSON(json, 'overworld-scene.json')
-    setStatus(`已导出 ${state.entities.length} 个实体(剪贴板 + 下载)`)
-  }, [])
+    setStatus({ kind: 'ok', text: labels.exportedStatus(state.entities.length) })
+  }, [labels])
 
   const handleImport = useCallback(() => {
     try {
       const parsed: unknown = JSON.parse(importText)
       useEditorStore.getState().importScene(parsed)
-      setStatus(`导入成功:${useEditorStore.getState().entities.length} 个实体`)
+      setStatus({
+        kind: 'ok',
+        text: labels.importSuccessStatus(useEditorStore.getState().entities.length),
+      })
     } catch (error) {
-      setStatus(`导入失败:${error instanceof Error ? error.message : String(error)}`)
+      setStatus({
+        kind: 'error',
+        text: labels.importFailStatus(error instanceof Error ? error.message : String(error)),
+      })
     }
-  }, [importText])
+  }, [importText, labels])
 
   if (!enabled) return null
 
-  return (
-    <div style={{ ...panelStyle, ...style }} className={className}>
-      <div style={{ fontWeight: 700, fontSize: 13 }}>Overworld 场景编辑器</div>
+  const kinds = kindLabels(labels)
+  const modes = modeLabels(labels)
+  const aligns = alignModes(labels)
 
-      <div style={sectionTitleStyle}>工具</div>
+  return (
+    <div style={{ ...panelStyle, ...style }} className={className} data-testid={`${testIdPrefix}-panel`}>
+      <div style={{ fontWeight: 700, fontSize: 13 }}>{labels.panelTitle}</div>
+
+      <div style={sectionTitleStyle}>{labels.sectionTools}</div>
       <div style={{ marginBottom: 4 }}>
-        <Btn disabled={!canUndo} onClick={() => useEditorStore.getState().undo()}>
-          撤销
+        <Btn
+          disabled={!canUndo}
+          testId={`${testIdPrefix}-undo`}
+          onClick={() => useEditorStore.getState().undo()}
+        >
+          {labels.undo}
         </Btn>
-        <Btn disabled={!canRedo} onClick={() => useEditorStore.getState().redo()}>
-          重做
+        <Btn
+          disabled={!canRedo}
+          testId={`${testIdPrefix}-redo`}
+          onClick={() => useEditorStore.getState().redo()}
+        >
+          {labels.redo}
         </Btn>
         <Btn
           disabled={selectedIds.length === 0}
+          testId={`${testIdPrefix}-duplicate`}
           onClick={() => useEditorStore.getState().duplicateSelected()}
         >
-          复制
+          {labels.duplicate}
         </Btn>
         <Btn
           danger
           disabled={selectedIds.length === 0}
+          testId={`${testIdPrefix}-delete`}
           onClick={() => useEditorStore.getState().removeSelected()}
         >
-          删除
+          {labels.delete}
         </Btn>
       </div>
       <div style={rowStyle}>
-        <span style={rowLabelStyle}>对齐X</span>
-        {ALIGN_MODES.map(({ mode, label }) => (
+        <span style={rowLabelStyle}>{labels.alignX}</span>
+        {aligns.map(({ mode, label }) => (
           <Btn
             key={mode}
             disabled={!canAlign}
@@ -451,8 +511,8 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         ))}
       </div>
       <div style={rowStyle}>
-        <span style={rowLabelStyle}>对齐Z</span>
-        {ALIGN_MODES.map(({ mode, label }) => (
+        <span style={rowLabelStyle}>{labels.alignZ}</span>
+        {aligns.map(({ mode, label }) => (
           <Btn
             key={mode}
             disabled={!canAlign}
@@ -463,7 +523,7 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         ))}
       </div>
       <div style={rowStyle}>
-        <span style={rowLabelStyle}>均分</span>
+        <span style={rowLabelStyle}>{labels.distribute}</span>
         <Btn disabled={!canAlign} onClick={() => useEditorStore.getState().distributeSelected('x')}>
           X
         </Btn>
@@ -472,13 +532,13 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         </Btn>
       </div>
       <NumberField
-        label="吸附"
+        label={labels.snap}
         step={0.1}
         value={snap}
         onCommit={(v) => useEditorStore.getState().setSnap(v)}
       />
       <label style={{ ...rowStyle, cursor: 'pointer' }}>
-        <span style={rowLabelStyle}>网格</span>
+        <span style={rowLabelStyle}>{labels.grid}</span>
         <input
           type="checkbox"
           checked={showGrid}
@@ -486,38 +546,43 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         />
       </label>
 
-      <div style={sectionTitleStyle}>模式</div>
+      <div style={sectionTitleStyle}>{labels.sectionMode}</div>
       <div>
-        {(Object.keys(MODE_LABELS) as EditorMode[]).map((m) => (
-          <Btn key={m} active={mode === m} onClick={() => useEditorStore.getState().setMode(m)}>
-            {MODE_LABELS[m]}
+        {(Object.keys(modes) as EditorMode[]).map((m) => (
+          <Btn
+            key={m}
+            active={mode === m}
+            testId={`${testIdPrefix}-mode-${m}`}
+            onClick={() => useEditorStore.getState().setMode(m)}
+          >
+            {modes[m]}
           </Btn>
         ))}
       </div>
 
       {mode === 'place' && (
         <>
-          <div style={sectionTitleStyle}>放置类型</div>
+          <div style={sectionTitleStyle}>{labels.sectionPlacingKind}</div>
           <div>
-            {(Object.keys(KIND_LABELS) as EditorEntityKind[]).map((kind) => (
+            {(Object.keys(kinds) as EditorEntityKind[]).map((kind) => (
               <Btn
                 key={kind}
                 active={placingKind === kind}
                 onClick={() => useEditorStore.getState().setPlacingKind(kind)}
               >
-                {KIND_LABELS[kind]}
+                {kinds[kind]}
               </Btn>
             ))}
           </div>
           {templates.length > 0 && (
             <>
-              <div style={sectionTitleStyle}>模板</div>
+              <div style={sectionTitleStyle}>{labels.sectionTemplates}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 <Btn
                   active={activeTemplateId === null}
                   onClick={() => useEditorStore.getState().setActiveTemplate(null)}
                 >
-                  空白
+                  {labels.templateBlank}
                 </Btn>
                 {templates.map((template) => (
                   // setActiveTemplate also switches placingKind to the
@@ -536,7 +601,9 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         </>
       )}
 
-      <div style={sectionTitleStyle}>实体 ({entities.length})</div>
+      <div style={sectionTitleStyle}>
+        {labels.sectionEntities} ({entities.length})
+      </div>
       <div
         style={{
           maxHeight: 150,
@@ -546,11 +613,12 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
         }}
       >
         {entities.length === 0 && (
-          <div style={{ padding: 6, color: '#64748b' }}>(空 — 切到“放置”模式点击地面)</div>
+          <div style={{ padding: 6, color: '#64748b' }}>{labels.emptyEntityList}</div>
         )}
         {entities.map((entity) => (
           <div
             key={entity.id}
+            data-testid={`${testIdPrefix}-entity-${entity.id}`}
             onClick={(event) => {
               const store = useEditorStore.getState()
               if (event.shiftKey) store.toggleSelect(entity.id)
@@ -567,38 +635,42 @@ export function EditorPanel({ style, className }: EditorPanelProps): ReactElemen
             }}
           >
             <span>{entity.id}</span>
-            <span style={{ color: '#94a3b8' }}>{KIND_LABELS[entity.kind]}</span>
+            <span style={{ color: '#94a3b8' }}>{kinds[entity.kind]}</span>
           </div>
         ))}
       </div>
 
       <SelectedEntityEditor />
 
-      <div style={sectionTitleStyle}>导出 / 导入</div>
+      <div style={sectionTitleStyle}>{labels.sectionExportImport}</div>
       <div>
-        <Btn onClick={handleExport}>导出 JSON</Btn>
+        <Btn testId={`${testIdPrefix}-export`} onClick={handleExport}>
+          {labels.exportJson}
+        </Btn>
         <Btn danger onClick={() => useEditorStore.getState().clear()}>
-          清空场景
+          {labels.clearScene}
         </Btn>
       </div>
       <textarea
         style={{ ...inputStyle, height: 64, marginTop: 6, resize: 'vertical' }}
-        placeholder="粘贴场景 JSON…"
+        placeholder={labels.importPlaceholder}
         value={importText}
         onChange={(e) => setImportText(e.target.value)}
       />
       <div style={{ marginTop: 4 }}>
-        <Btn onClick={handleImport}>导入 JSON</Btn>
+        <Btn testId={`${testIdPrefix}-import`} onClick={handleImport}>
+          {labels.importJson}
+        </Btn>
       </div>
       {status !== null && (
         <div
           style={{
             marginTop: 6,
-            color: status.startsWith('导入失败') ? '#f87171' : '#4ade80',
+            color: status.kind === 'error' ? '#f87171' : '#4ade80',
             wordBreak: 'break-all',
           }}
         >
-          {status}
+          {status.text}
         </div>
       )}
     </div>
@@ -628,8 +700,14 @@ const toggleStyle: CSSProperties = {
  * <EditorToggle hotkey="F2" />
  * ```
  */
-export function EditorToggle({ hotkey, style, className }: EditorToggleProps): ReactElement {
+export function EditorToggle({
+  hotkey,
+  style,
+  className,
+  testIdPrefix = DEFAULT_EDITOR_TESTID_PREFIX,
+}: EditorToggleProps): ReactElement {
   const enabled = useEditorStore((s) => s.enabled)
+  const labels = useEditorLabels()
 
   useEffect(() => {
     if (!hotkey || typeof window === 'undefined') return
@@ -654,6 +732,7 @@ export function EditorToggle({ hotkey, style, className }: EditorToggleProps): R
     <button
       type="button"
       className={className}
+      data-testid={`${testIdPrefix}-toggle`}
       style={{
         ...toggleStyle,
         ...(enabled ? { borderColor: '#38bdf8', color: '#38bdf8' } : null),
@@ -664,7 +743,7 @@ export function EditorToggle({ hotkey, style, className }: EditorToggleProps): R
         store.setEnabled(!store.enabled)
       }}
     >
-      编辑器 {enabled ? 'ON' : 'OFF'}
+      {labels.toggleLabel(enabled)}
     </button>
   )
 }

@@ -666,9 +666,9 @@ importers:
 
   examples/ws-server:
     dependencies:
-      ws:
-        specifier: ^8.18.0
-        version: 8.21.1
+      '@overworld-engine/relay':
+        specifier: workspace:*
+        version: link:../../packages/relay
 
   packages/achievements:
     dependencies:
@@ -906,6 +906,19 @@ importers:
       zustand:
         specifier: ^5.0.0
         version: 5.0.14(@types/react@19.2.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+
+  packages/relay:
+    dependencies:
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.1
+    devDependencies:
+      '@overworld-engine/net':
+        specifier: workspace:*
+        version: link:../net
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
 
   packages/scene:
     dependencies:

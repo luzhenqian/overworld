@@ -61,7 +61,7 @@ create<State>()(persist(initializer, persistOptions({ name: 'inventory', version
 
 - `createMemoryStorage()` — 测试 / SSR 用内存存储,同时满足 `StateStorage` 与 `EnumerableStorage`。
 - `createRestStorage(config)` — 异步 REST 云存档适配器(按 key 尾沿防抖、404=null、`flush()` 关页前落盘)。
-- `createSaveSlots(config)` — 多存档位:live 快照/恢复与命名槽位(`saveTo/loadFrom/listSlots/deleteSlot/clearCurrent`),槽位存于 `overworld:slots:<name>`。
+- `createSaveSlots(config)` — 多存档位:live 快照/恢复与命名槽位(`saveTo/loadFrom/listSlots/deleteSlot/clearCurrent`),槽位存于 `overworld:slots:<name>`。可注入 `clock`(`() => number`,默认 `Date.now`)提供 `savedAt` 时间戳——同 seed 重放需注入 clock;引擎值层面无 `Math.random`。
 
 ## 公共类型
 

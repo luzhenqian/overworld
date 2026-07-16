@@ -34,6 +34,12 @@ export interface AchievementsConfig<Ctx = unknown> {
    * disabled; `true` = enabled with defaults; object = custom.
    */
   persist?: boolean | AchievementsPersistConfig
+  /**
+   * Injectable clock returning epoch milliseconds, used for `unlockedAt`
+   * timestamps. Inject a deterministic clock when replayed sessions must
+   * produce byte-identical state. @default Date.now
+   */
+  clock?: () => number
 }
 
 /** The headless achievement engine returned by {@link createAchievements}. */
@@ -97,6 +103,7 @@ export function createAchievements<Ctx = unknown>(
   const effects = config.effects ?? createEffectRegistry<Ctx>()
   const events = config.events ?? gameEvents
   const context = config.context as Ctx
+  const clock = config.clock ?? (() => Date.now())
   // The bus is typed against the framework event map; triggers may reference
   // any (game-extended) event name, so subscribe through a loose view.
   const anyBus = events as unknown as EventBus<Record<string, unknown>>
@@ -123,7 +130,7 @@ export function createAchievements<Ctx = unknown>(
   const doUnlock = (definition: AchievementDefinition): boolean => {
     if (isUnlocked(definition.id)) return false
     store.setState((state) => ({
-      unlocked: { ...state.unlocked, [definition.id]: Date.now() },
+      unlocked: { ...state.unlocked, [definition.id]: clock() },
     }))
     runEffects(effects, definition.rewards, context)
     events.emit('achievement:unlocked', { achievementId: definition.id })

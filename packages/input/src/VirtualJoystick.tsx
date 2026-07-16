@@ -41,6 +41,11 @@ export interface VirtualJoystickProps {
    * `right`/`position` here to place it elsewhere.
    */
   style?: CSSProperties
+  /**
+   * Stable `data-testid` for E2E selectors: the base element gets `testId`,
+   * the thumb gets `` `${testId}-thumb` ``. Default: `'ow-joystick'`.
+   */
+  testId?: string
 }
 
 /**
@@ -61,6 +66,7 @@ export function VirtualJoystick({
   runThreshold = DEFAULT_RUN_THRESHOLD,
   className,
   style,
+  testId = 'ow-joystick',
 }: VirtualJoystickProps) {
   const baseRef = useRef<HTMLDivElement>(null)
   const thumbRef = useRef<HTMLDivElement>(null)
@@ -178,6 +184,7 @@ export function VirtualJoystick({
       ref={baseRef}
       className={className}
       style={baseStyle}
+      data-testid={testId}
       role="application"
       aria-label="Virtual joystick"
       onPointerDown={handlePointerDown}
@@ -186,7 +193,7 @@ export function VirtualJoystick({
       onPointerCancel={handlePointerEnd}
       onLostPointerCapture={handlePointerEnd}
     >
-      <div ref={thumbRef} style={thumbStyle} />
+      <div ref={thumbRef} style={thumbStyle} data-testid={`${testId}-thumb`} />
     </div>
   )
 }

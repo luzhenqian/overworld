@@ -1,0 +1,115 @@
+---
+title: 测试指南
+description: store 驱动断言(官方推荐)、内置 data-testid 一览与确定性测试要点
+---
+
+## 官方推荐路径:直接读 store,而不是抓 DOM
+
+Overworld 的所有运行时状态都放在**可导入的 zustand store / 引擎对象**里,
+这是框架的第一断言面。通知、对话、任务等系统本身是**无头**的(引擎只管队列
+与状态,渲染完全由游戏实现),因此"当前有哪些 toast / 对话选项"这类问题,
+标准答案是读 store,而不是查询 DOM:
+
+| 系统 | 断言入口 | 典型断言 |
+|---|---|---|
+| 通知 toast | `useToastStore.getState().toasts` | 队列长度、`message` / `variant` |
+| alert / confirm | `useAlertStore.getState().current` / `.queue` | 当前对话框、`resolveCurrent(true)` 驱动确认 |
+| 对话 | `dialogue.store.getState()`(`createDialogueEngine` 返回值) | 当前节点、可选响应列表 |
+| 任务 | `quests.store.getState()`(`createQuestEngine` 返回值) | `active` 进度、`completed` 集合 |
+| 场景 | `useSceneStore.getState()` | 当前场景、附近可交互实体 |
+| 编辑器 | `useEditorStore.getState()` | 实体工作集、选择集、undo/redo 栈 |
+| 小地图 | `useMinimapStore.getState().markers` | 标记注册/位置 |
+| 键盘层 | `useKeyboardStore.getState()` | 活跃层、`isKeyBlocked` |
+
+单测里直接 import 即可;组件测试也一样 —— 断言 store,渲染层只是投影。
+
+## Playwright:暴露 debug 句柄 + `page.evaluate`
+
+E2E 里拿不到模块作用域,推荐模式是游戏在 dev/test 构建里把 store 挂到
+`window` 上(一次装配,处处可测):
+
+```ts
+// game/debug.ts —— 仅在 dev / E2E 构建中引入
+import { useToastStore, useAlertStore } from '@overworld-engine/notifications'
+import { useSceneStore } from '@overworld-engine/scene'
+import { quests, dialogue } from './engines'
+
+if (import.meta.env.MODE !== 'production') {
+  ;(window as any).__ow = { useToastStore, useAlertStore, useSceneStore, quests, dialogue }
+}
+```
+
+```ts
+// e2e/quest.spec.ts
+const completed = await page.evaluate(() =>
+  (window as any).__ow.quests.store.getState().completed
+)
+expect(completed).toContain('welcome')
+
+// 驱动交互也走同一条路:确认当前 confirm 对话框
+await page.evaluate(() => (window as any).__ow.useAlertStore.getState().resolveCurrent(true))
+```
+
+这条路径对时序不敏感(不用等动画/渲染),是我们对"零人工全自动化验收"
+的官方建议。纯 DOM 断言(元素确实渲染出来了、位置/可点性)再用下面的 testid。
+
+## DOM 断言:内置 `data-testid` 一览
+
+引擎**自渲染**的 DOM 元素(自绘覆盖层)都带稳定的 `data-testid`,前缀可配:
+
+| 包 | 组件 | prop(默认值) | testid |
+|---|---|---|---|
+| input | `<VirtualJoystick>` | `testId`(`ow-joystick`) | 底盘 `ow-joystick`;摇杆头 `ow-joystick-thumb` |
+| minimap | `<MiniMap>` | `testId`(`ow-minimap`) | `<canvas>` 元素 `ow-minimap` |
+| editor | `<EditorPanel>` | `testIdPrefix`(`ow-editor`) | 面板 `ow-editor-panel`;模式 `ow-editor-mode-select` / `ow-editor-mode-place`;工具 `ow-editor-undo` / `-redo` / `-duplicate` / `-delete`;实体行 `ow-editor-entity-<id>`;导出/导入 `ow-editor-export` / `ow-editor-import` |
+| editor | `<EditorToggle>` | `testIdPrefix`(`ow-editor`) | 按钮 `ow-editor-toggle` |
+
+```ts
+await page.getByTestId('ow-editor-toggle').click()
+await expect(page.getByTestId('ow-editor-panel')).toBeVisible()
+await page.getByTestId('ow-editor-mode-place').click()
+```
+
+其余系统(toast/alert/对话/任务 UI)由**游戏自己渲染**,testid 由游戏自己加;
+场景内 3D 元素(NPC 提示、指示器)是 canvas 绘制,不产生 DOM,请用 store 断言
+(`useSceneStore` 的邻近状态)。编辑器面板文案可整体覆写
+(`configureEditorLabels`,见 i18n 指南),**断言请认 testid,不要认文案**。
+
+## 确定性:注入时钟 / 调度器 / 总线 / 存储 / 传输
+
+可复现测试的要点是把所有"环境源"换成注入版:
+
+- **时钟**:`createQuestEngine({ clock })` 控制 `startedAt`;
+  `configureToasts({ clock })` 控制 `createdAt`。自 v1.2 起,框架内其余
+  取时间的系统同样接受注入时钟(与本指南并行发布的确定性注入工作),
+  测试里传一个手动递增的计数器即可获得字节级可复现状态。
+- **调度器**:`configureToasts({ scheduler })` 接管 toast 自动过期 ——
+  测试里捕获回调、手动触发,不再和真实 `setTimeout` 赛跑。
+- **事件总线**:`createQuestEngine` / `createDialogueEngine` 均接受
+  `events: EventBus`。每个测试 new 一个总线,天然隔离,不共享全局 `gameEvents`。
+- **存储**:所有 `persist` 配置接受 `storage: () => StateStorage`;测试用
+  `createMemoryStorage()`(`@overworld-engine/core`),无 localStorage、无跨用例污染。
+- **网络**:`createLocalTransportHub()`(`@overworld-engine/net`)的消息投递是
+  **同步**的,多人逻辑可以在单进程内做确定性单测,无需 flush 或 sleep。
+
+```ts
+import { EventBus, createMemoryStorage, type OverworldEventMap } from '@overworld-engine/core'
+
+let now = 0
+const engine = createQuestEngine({
+  quests: QUESTS,
+  conditions,
+  effects,
+  events: new EventBus<OverworldEventMap>(), // 每用例独立总线
+  clock: () => ++now,                        // 确定性时间
+  persist: { storage: () => createMemoryStorage() },
+})
+```
+
+## 惯例小结
+
+1. 逻辑断言 → store;存在性/可交互断言 → testid;文案断言 → 尽量不做
+   (文案可被 i18n 覆写)。
+2. 每个用例重置全局单例:`useToastStore.getState().dismissAll()`、
+   `resetToastConfig()`、`useEditorStore.getState().clear()` 等。
+3. E2E 的 debug 句柄只进 dev/test 构建,不进生产包。

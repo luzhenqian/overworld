@@ -76,6 +76,13 @@ export interface PresenceSyncConfig {
    * @default false
    */
   interpolation?: { delayMs?: number } | false
+  /**
+   * Injectable clock returning epoch milliseconds. Used as the single
+   * timebase for `lastSeenAt` timestamps, the stale sweep, and the
+   * interpolation buffers — inject a deterministic clock for replay-exact
+   * tests without fake timers. @default Date.now
+   */
+  clock?: () => number
 }
 
 /** An interpolated remote transform, returned by `PresenceSync.samplePeer`. */
@@ -155,6 +162,7 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
   const intervalMs = config.intervalMs ?? 100
   const staleAfterMs = config.staleAfterMs ?? 3000
   const events: PresenceEventSink = config.events ?? gameEvents
+  const clock = config.clock ?? (() => Date.now())
   const interpolation = config.interpolation ?? false
   const interpolationEnabled = interpolation !== false
   const interpolationDelayMs = interpolationEnabled ? (interpolation.delayMs ?? 120) : 120
@@ -204,18 +212,18 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
       peerId: msg.from,
       position: [data.position[0], data.position[1], data.position[2]],
       rotationY: data.rotationY ?? 0,
-      lastSeenAt: Date.now(),
+      lastSeenAt: clock(),
       ...(data.meta !== undefined && { meta: data.meta }),
     }
     store.setState({ [msg.from]: peer })
     if (buffers) {
       let buffer = buffers.get(msg.from)
       if (!buffer) {
-        // Date.now() (not performance.now) so timestamps share the timebase
-        // of lastSeenAt and behave under test fake timers.
+        // The presence clock (not performance.now) so timestamps share the
+        // timebase of lastSeenAt and behave under injected/fake clocks.
         buffer = createSnapshotBuffer<PeerSample>({
           delayMs: interpolationDelayMs,
-          now: () => Date.now(),
+          now: clock,
         })
         buffers.set(msg.from, buffer)
       }
@@ -232,7 +240,7 @@ export function createPresenceSync(config: PresenceSyncConfig): PresenceSync {
   }
 
   const tick = () => {
-    sweep(Date.now())
+    sweep(clock())
     const local = getLocal()
     const envelope: PresenceEnvelope = {
       t: 'presence',

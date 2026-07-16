@@ -52,6 +52,12 @@ export interface SaveSlotsConfig {
    * outside `${prefix}:` are never read, written or deleted.
    */
   prefix?: string
+  /**
+   * Injectable clock returning epoch milliseconds, used for `savedAt`
+   * timestamps. Inject a deterministic clock for replay/anti-cheat setups
+   * where snapshots must be byte-identical. @default Date.now
+   */
+  clock?: () => number
 }
 
 /** Save-slot manager; see {@link createSaveSlots}. */
@@ -139,6 +145,7 @@ function defaultStorage(): EnumerableStorage {
 export function createSaveSlots(config?: SaveSlotsConfig): SaveSlots {
   const storage = config?.storage ?? defaultStorage()
   const prefix = config?.prefix ?? 'overworld'
+  const clock = config?.clock ?? (() => Date.now())
   const livePrefix = `${prefix}:`
   const slotPrefix = `${prefix}:slots:`
 
@@ -171,7 +178,7 @@ export function createSaveSlots(config?: SaveSlotsConfig): SaveSlots {
       const value = storage.getItem(key)
       if (value !== null) entries[key] = value
     }
-    return { savedAt: Date.now(), entries }
+    return { savedAt: clock(), entries }
   }
 
   const clearCurrent = (): void => {

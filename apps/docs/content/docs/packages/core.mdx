@@ -257,7 +257,10 @@ slots.listSlots()                 // [{ slot: 'slot-1', savedAt: 1710000000000 }
   仍持有内存中的旧状态,需要刷新页面或逐个调用该 store 的 `persist.rehydrate()`
   才会反映恢复的数据。
 - `SaveSlotsConfig`:`storage`(默认 `localStorage`,非浏览器环境必须显式传入)、
-  `prefix`(默认 `'overworld'`,与 `persistOptions` 共用;前缀之外的键永不读写删)。
+  `prefix`(默认 `'overworld'`,与 `persistOptions` 共用;前缀之外的键永不读写删)、
+  `clock`(`() => number`,默认 `Date.now`,提供 `savedAt` 时间戳)。
+- **确定性**:同 seed 重放需注入 `clock`(否则 `savedAt` 写入墙钟时间,重放无法逐字节
+  复现);引擎值层面无 `Math.random`。
 - `EnumerableStorage` 是能枚举键的最小同步存储接口(`getItem` / `setItem` /
   `removeItem` / `keys`),与 zustand `StateStorage` 结构兼容;
   `fromWebStorage(storage)` 可把 DOM `Storage`(localStorage / sessionStorage)包装成它。

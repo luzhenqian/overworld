@@ -31,15 +31,41 @@ export interface Toast {
   createdAt: number
 }
 
+/**
+ * Schedules `fn` to run after `ms` milliseconds and returns a cancel
+ * function. The default wraps `setTimeout`/`clearTimeout`; inject a manual
+ * scheduler for deterministic tests (capture `fn` and fire it yourself).
+ */
+export type ToastScheduler = (fn: () => void, ms: number) => () => void
+
 /** Global toast queue configuration; see {@link configureToasts}. */
 export interface ToastConfig {
   /** Maximum queue length; the oldest toast is dropped when exceeded. */
   max: number
   /** Auto-dismiss delay (ms) used when `show` omits `duration`. */
   defaultDuration: number
+  /**
+   * Injectable clock returning epoch milliseconds, used for `createdAt`.
+   * Inject a deterministic clock for replay-exact tests. @default Date.now
+   */
+  clock: () => number
+  /**
+   * Scheduler driving auto-expiry. @default wraps `setTimeout`/`clearTimeout`
+   */
+  scheduler: ToastScheduler
 }
 
-const DEFAULT_CONFIG: ToastConfig = { max: 5, defaultDuration: 3000 }
+const defaultScheduler: ToastScheduler = (fn, ms) => {
+  const timer = setTimeout(fn, ms)
+  return () => clearTimeout(timer)
+}
+
+const DEFAULT_CONFIG: ToastConfig = {
+  max: 5,
+  defaultDuration: 3000,
+  clock: () => Date.now(),
+  scheduler: defaultScheduler,
+}
 
 let config: ToastConfig = { ...DEFAULT_CONFIG }
 
@@ -54,12 +80,13 @@ export function resetToastConfig(): void {
 }
 
 let idCounter = 0
-const timers = new Map<string, ReturnType<typeof setTimeout>>()
+/** Per-toast auto-expire cancellers, as returned by the configured scheduler. */
+const timers = new Map<string, () => void>()
 
 function clearTimer(id: string): void {
-  const timer = timers.get(id)
-  if (timer !== undefined) {
-    clearTimeout(timer)
+  const cancel = timers.get(id)
+  if (cancel !== undefined) {
+    cancel()
     timers.delete(id)
   }
 }
@@ -95,7 +122,7 @@ export const useToastStore = create<ToastState>()((set, get) => ({
       variant: options.variant ?? 'info',
       duration: options.duration ?? config.defaultDuration,
       icon: options.icon,
-      createdAt: Date.now(),
+      createdAt: config.clock(),
     }
 
     set((state) => {
@@ -111,7 +138,7 @@ export const useToastStore = create<ToastState>()((set, get) => ({
     if (toast.duration > 0) {
       timers.set(
         id,
-        setTimeout(() => get().dismiss(id), toast.duration)
+        config.scheduler(() => get().dismiss(id), toast.duration)
       )
     }
 
@@ -124,7 +151,7 @@ export const useToastStore = create<ToastState>()((set, get) => ({
   },
 
   dismissAll: () => {
-    for (const timer of timers.values()) clearTimeout(timer)
+    for (const cancel of timers.values()) cancel()
     timers.clear()
     set({ toasts: [] })
   },

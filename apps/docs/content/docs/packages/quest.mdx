@@ -76,11 +76,15 @@ const quests = createQuestEngine({
   context: () => gameContext,   // 传给条件/效果处理器,支持惰性求值
   events: gameEvents,           // 默认即全局总线,可换成自建 EventBus
   // persist: 省略/false=不持久化;true=默认配置;或 { name?, version?, storage? }
+  // clock: () => number,默认 Date.now,提供 startedAt 时间戳
 })
 
 quests.startQuest('walk-the-city')
 // 玩家移动系统只需:gameEvents.emit('player:moved', { position, distance })
 ```
+
+> **确定性**:同 seed 重放需注入 `clock`(否则 `startedAt` 写入墙钟时间,重放无法
+> 逐字节复现);引擎值层面无 `Math.random`。
 
 ## API
 
