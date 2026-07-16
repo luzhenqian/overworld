@@ -1,6 +1,6 @@
 {
   "name": "@overworld/input",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Keyboard input priority layers for Overworld games",
   "type": "module",
   "main": "./dist/index.js",

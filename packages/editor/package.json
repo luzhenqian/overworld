@@ -1,7 +1,7 @@
 {
-  "name": "@overworld/analytics",
+  "name": "@overworld/editor",
   "version": "0.4.0",
-  "description": "Pluggable analytics providers (GA4, Clarity, console)",
+  "description": "In-game scene editor overlay for Overworld games: place/move entities, export scene JSON",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,12 +25,15 @@
     "@overworld/core": "workspace:*"
   },
   "peerDependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0",
+    "zustand": "^5.0.0",
+    "three": ">=0.160.0",
+    "@react-three/fiber": "^8.0.0"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/NoahLu/overworld.git",
-    "directory": "packages/analytics"
+    "directory": "packages/editor"
   }
 }

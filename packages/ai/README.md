@@ -1,7 +1,8 @@
 # @overworld/ai
 
-网格 A* 寻路 + NPC 转向行为(巡逻/游荡/跟随)。纯函数的网格与寻路、
-无头 agent 引擎,加上可选的 R3F 驱动组件 —— 视觉模型由游戏注入。
+网格 A* 寻路 + NPC 转向行为(巡逻/游荡/跟随/前往)。纯函数的网格与寻路、
+无头 agent 引擎、日程系统与动态避障,加上可选的 R3F 驱动组件 ——
+视觉模型由游戏注入。
 
 ## 安装
 
@@ -68,7 +69,75 @@ function Guard() {
   `{ current: [x, y, z] }` 形状的引用(结构化兼容 scene 的 `playerPositionRef`)
   或 `() => [x, z]` 函数;最多每 `repathMs`(默认 500)且目标移动超过约 0.1
   单位时才重寻路;进入 `stopDistance`(默认 1)即停,目标走远后自动恢复。
+- `goTo(point)` — 走到 `point` 后自动转入 `idle`(到达帧 `arrived = 0`);
+  途中 `behavior` 报告 `'goTo'`。寻路失败时 `findPath` 会先回退到最近可走格;
+  连回退都失败(完全不可达)则停顿 500ms 重试,3 次后放弃转入 `idle`。
 - `idle()` — 停在原地,保留朝向。`position` / `speed` 均可运行期直接改写。
+
+## 日程系统(`createSchedule`)
+
+把**阶段名(纯字符串)**映射到声明式行为,随阶段切换驱动 agent ——
+键刻意不绑定任何环境包的类型,任何阶段词汇表都可用。
+
+```ts
+import { createSchedule, bindScheduleToBus } from '@overworld/ai'
+
+const schedule = createSchedule({
+  agent: guard,
+  entries: {
+    day:   { type: 'patrol', waypoints: [[4, 4], [20, 4]], pauseMs: 800 },
+    dusk:  { type: 'goTo', point: [12, 8] },
+    night: { type: 'wander', center: [12, 8], radius: 3, pauseMsRange: [500, 1500] },
+  },
+  initialPhase: 'day',       // 省略则保持现状,等第一个阶段到来
+})
+
+// 挂到事件总线(默认监听 'environment:phase-changed',取 payload.phase)
+const unbind = bindScheduleToBus(schedule, bus)
+```
+
+- `ScheduleBehavior` — 与 agent 行为一一对应的声明式联合类型:
+  `patrol` / `wander` / `follow` / `goTo` / `idle`(字段同各行为的选项)。
+- `createSchedule({ agent, entries, initialPhase? })` → `Schedule`:
+  `applyPhase(phase)` 把该阶段的行为应用到 agent(重复应用同一阶段会重启该
+  行为;未知阶段为 no-op,**每个阶段名只警告一次**)、`currentPhase`
+  (最近成功应用的阶段,初始 `null`)、`dispose()`(之后 `applyPhase`
+  全部静默忽略)。
+- `bindScheduleToBus(schedule, bus, { event?, phaseFrom? })` → 解绑函数。
+  `event` 默认 `'environment:phase-changed'`,`phaseFrom` 默认取
+  `payload.phase`(非字符串忽略)。实现走 `bus.onAny` 按事件名过滤 ——
+  **零类型耦合**:本包不 import `@overworld/environment`,任何带兼容
+  `onAny` 的总线(`ScheduleBusLike`)均可。
+
+## 动态避障(`createAgent({ avoid })`)
+
+对每一步做**局部转向**绕开运行期移动的障碍 —— 只扰动当前帧的位移,
+**绝不改写已规划的路径**;完全确定性(无随机)。
+
+```ts
+const npc = createAgent({
+  grid, position: [4, 4], speed: 2,
+  avoid: {
+    obstacles: () => movingCrowd,   // 每步查询 { x, z, radius }[]
+    lookahead: 1.5,                 // 前探距离(世界单位,默认 1.5)
+    agentRadius: 0.4,               // 障碍膨胀半径(默认 0.4)
+    stuckAfterMs: 1200,             // 完全被堵多久后重寻路(默认 1200)
+  },
+})
+```
+
+- 每步沿移动方向前探 `min(到路点距离, lookahead)` 的线段,与
+  (膨胀 `agentRadius` 后的)动态障碍求交;畅通则照常前进
+  (单步位移封顶在已验证的前探长度内)。
+- 被挡则按 **+30° / −30° / +60° / −60° / +90° / −90°** 的固定顺序尝试偏转,
+  取第一个前探畅通的方向走这一步;下一步重新朝路点瞄准。
+- 全部方向被堵:原地不动并累计被堵时间;累计满 `stuckAfterMs` 且配置了
+  `grid` 时,向当前目的地重寻路(游戏可先把堵点同步进网格),仍失败则
+  继续等待并每 `stuckAfterMs` 重试;一旦动起来计时清零。行为层的兜底
+  (如 patrol 跳过不可达路点)照常生效。
+- 纯几何辅助函数可独立测试:`segmentHitsCircle(ax, az, bx, bz, cx, cz, r)`
+  (相切算命中)、`deflect(dirX, dirZ, angle)`(按 heading 增长方向旋转)、
+  `steerStep(obstacles, x, z, dirX, dirZ, probeLength, agentRadius)`。
 
 ## R3F 组件
 
@@ -85,5 +154,5 @@ function Guard() {
 ## 测试
 
 ```bash
-pnpm test        # vitest,44 个用例覆盖栅格化/A*/平滑/巡逻/游荡/跟随
+pnpm test        # vitest,67 个用例覆盖栅格化/A*/平滑/巡逻/游荡/跟随/前往/日程/避障
 ```

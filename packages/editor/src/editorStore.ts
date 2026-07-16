@@ -1,0 +1,423 @@
+/**
+ * Headless editor state: the entity working set, edit mode and JSON
+ * import/export. No React/three dependency — fully unit-testable.
+ *
+ * The exported JSON shapes (`EditorNPCJSON` / `EditorBuildingJSON` /
+ * `EditorDecorationInstanceJSON`) are **structural copies** of
+ * `@overworld/scene`'s `NPCConfig` / `BuildingConfig` / `DecorationInstance`.
+ * Per the architecture rules, system packages never import each other; the
+ * editor's output plugs into `<SceneShell>` purely via structural typing.
+ */
+import { create } from 'zustand'
+import type { Vec3 } from '@overworld/core'
+
+/** Entity categories the editor can place. */
+export type EditorEntityKind = 'npc' | 'building' | 'decoration'
+
+/** Editor interaction mode: pick/move existing entities, or place new ones. */
+export type EditorMode = 'select' | 'place'
+
+/**
+ * One entity in the editor working set. A deliberately flat shape — richer
+ * per-kind fields only appear in the exported JSON.
+ *
+ * `rotationY` is stored in **radians** (three.js convention); the panel UI
+ * converts to/from degrees.
+ */
+export interface EditorEntity {
+  id: string
+  kind: EditorEntityKind
+  position: Vec3
+  /** Y-axis rotation in radians. */
+  rotationY: number
+  scale: number
+  /** Display name; doubles as the decoration group key on export. */
+  name?: string
+  /** GLTF/GLB model URL; exported as `''` when unset. */
+  modelPath?: string
+  /** Circular collider radius (buildings / decoration groups). */
+  collisionRadius?: number
+}
+
+/** Fields accepted by {@link EditorState.addEntity}; everything is optional. */
+export type NewEditorEntity = Partial<Omit<EditorEntity, 'id'>>
+
+/** Structurally compatible with `@overworld/scene`'s `NPCConfig`. */
+export interface EditorNPCJSON {
+  id: string
+  modelPath: string
+  position: Vec3
+  rotation: Vec3
+  scale?: number
+  name?: string
+}
+
+/** Structurally compatible with `@overworld/scene`'s `BuildingConfig`. */
+export interface EditorBuildingJSON {
+  id: string
+  name: string
+  modelPath: string
+  position: Vec3
+  rotation: Vec3
+  scale: number
+  collisionRadius: number
+}
+
+/** Structurally compatible with `@overworld/scene`'s `DecorationInstance`. */
+export interface EditorDecorationInstanceJSON {
+  position: Vec3
+  rotation?: Vec3
+  scale?: number
+}
+
+/**
+ * A decoration group: repeated instances of one prop plus a shared collider
+ * radius. Structurally compatible with `@overworld/scene`'s
+ * `DecorationCollisionGroup`.
+ */
+export interface EditorDecorationGroupJSON {
+  instances: EditorDecorationInstanceJSON[]
+  radius: number
+}
+
+/** The full scene document produced by {@link exportEntities}. */
+export interface EditorSceneJSON {
+  npcs: EditorNPCJSON[]
+  buildings: EditorBuildingJSON[]
+  decorations: Record<string, EditorDecorationGroupJSON>
+}
+
+/** Default collider radius for buildings and decoration groups. */
+export const DEFAULT_COLLISION_RADIUS = 2
+
+/** Group key used for decorations that have no `name`. */
+const DEFAULT_DECORATION_GROUP = 'decoration'
+
+const ALL_KINDS: readonly EditorEntityKind[] = ['npc', 'building', 'decoration']
+
+type Counters = Record<EditorEntityKind, number>
+
+function emptyCounters(): Counters {
+  return { npc: 0, building: 0, decoration: 0 }
+}
+
+/** Rebuild the per-kind auto-id counters from ids shaped like `npc-3`. */
+function countersFrom(entities: readonly EditorEntity[]): Counters {
+  const counters = emptyCounters()
+  for (const entity of entities) {
+    const match = /^(npc|building|decoration)-(\d+)$/.exec(entity.id)
+    const kind = match?.[1] as EditorEntityKind | undefined
+    const num = match?.[2]
+    if (kind !== undefined && num !== undefined) {
+      const n = Number(num)
+      if (n > counters[kind]) counters[kind] = n
+    }
+  }
+  return counters
+}
+
+/**
+ * Convert the editor working set into a scene JSON document:
+ *
+ * - `npcs` — `modelPath` defaults to `''`, `rotation` is `[0, rotationY, 0]`,
+ *   `scale`/`name` included only when meaningful.
+ * - `buildings` — `name` defaults to the id, `collisionRadius` defaults to
+ *   {@link DEFAULT_COLLISION_RADIUS}.
+ * - `decorations` — grouped by `name` (or `'decoration'` when unnamed); the
+ *   group `radius` is the last defined `collisionRadius` in the group, else
+ *   {@link DEFAULT_COLLISION_RADIUS}.
+ *
+ * Pure function; exported for headless use (e.g. CI content pipelines).
+ */
+export function exportEntities(entities: readonly EditorEntity[]): EditorSceneJSON {
+  const npcs: EditorNPCJSON[] = []
+  const buildings: EditorBuildingJSON[] = []
+  const decorations: Record<string, EditorDecorationGroupJSON> = {}
+
+  for (const entity of entities) {
+    const position: Vec3 = [entity.position[0], entity.position[1], entity.position[2]]
+    const rotation: Vec3 = [0, entity.rotationY, 0]
+
+    if (entity.kind === 'npc') {
+      const npc: EditorNPCJSON = {
+        id: entity.id,
+        modelPath: entity.modelPath ?? '',
+        position,
+        rotation,
+      }
+      if (entity.scale !== 1) npc.scale = entity.scale
+      if (entity.name !== undefined) npc.name = entity.name
+      npcs.push(npc)
+    } else if (entity.kind === 'building') {
+      buildings.push({
+        id: entity.id,
+        name: entity.name ?? entity.id,
+        modelPath: entity.modelPath ?? '',
+        position,
+        rotation,
+        scale: entity.scale,
+        collisionRadius: entity.collisionRadius ?? DEFAULT_COLLISION_RADIUS,
+      })
+    } else {
+      const key = entity.name || DEFAULT_DECORATION_GROUP
+      let group = decorations[key]
+      if (!group) {
+        group = { instances: [], radius: DEFAULT_COLLISION_RADIUS }
+        decorations[key] = group
+      }
+      if (entity.collisionRadius !== undefined) group.radius = entity.collisionRadius
+      const instance: EditorDecorationInstanceJSON = { position }
+      if (entity.rotationY !== 0) instance.rotation = rotation
+      if (entity.scale !== 1) instance.scale = entity.scale
+      group.instances.push(instance)
+    }
+  }
+
+  return { npcs, buildings, decorations }
+}
+
+function toVec3(value: unknown): Vec3 | null {
+  if (!Array.isArray(value) || value.length !== 3) return null
+  const [x, y, z] = value
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') return null
+  return [x, y, z]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Best-effort inverse of {@link exportEntities}: parse a scene JSON document
+ * back into editor entities. Malformed entries (missing/invalid `position`,
+ * non-object rows, ...) are skipped; only a non-object root throws.
+ * `exportEntities(importEntities(exportEntities(set)))` is stable.
+ */
+export function importEntities(json: unknown): EditorEntity[] {
+  if (!isRecord(json)) {
+    throw new Error('scene JSON must be an object with npcs/buildings/decorations')
+  }
+
+  const entities: EditorEntity[] = []
+  const usedIds = new Set<string>()
+  const counters = emptyCounters()
+
+  const claimId = (kind: EditorEntityKind, requested: unknown): string => {
+    if (typeof requested === 'string' && requested !== '' && !usedIds.has(requested)) {
+      usedIds.add(requested)
+      return requested
+    }
+    let id: string
+    do {
+      counters[kind] += 1
+      id = `${kind}-${counters[kind]}`
+    } while (usedIds.has(id))
+    usedIds.add(id)
+    return id
+  }
+
+  if (Array.isArray(json.npcs)) {
+    for (const raw of json.npcs) {
+      if (!isRecord(raw)) continue
+      const position = toVec3(raw.position)
+      if (!position) continue
+      const rotation = toVec3(raw.rotation)
+      const entity: EditorEntity = {
+        id: claimId('npc', raw.id),
+        kind: 'npc',
+        position,
+        rotationY: rotation ? rotation[1] : 0,
+        scale: typeof raw.scale === 'number' ? raw.scale : 1,
+      }
+      if (typeof raw.name === 'string') entity.name = raw.name
+      if (typeof raw.modelPath === 'string' && raw.modelPath !== '') {
+        entity.modelPath = raw.modelPath
+      }
+      entities.push(entity)
+    }
+  }
+
+  if (Array.isArray(json.buildings)) {
+    for (const raw of json.buildings) {
+      if (!isRecord(raw)) continue
+      const position = toVec3(raw.position)
+      if (!position) continue
+      const rotation = toVec3(raw.rotation)
+      const id = claimId('building', raw.id)
+      const entity: EditorEntity = {
+        id,
+        kind: 'building',
+        position,
+        rotationY: rotation ? rotation[1] : 0,
+        scale: typeof raw.scale === 'number' ? raw.scale : 1,
+        name: typeof raw.name === 'string' ? raw.name : id,
+        collisionRadius:
+          typeof raw.collisionRadius === 'number'
+            ? raw.collisionRadius
+            : DEFAULT_COLLISION_RADIUS,
+      }
+      if (typeof raw.modelPath === 'string' && raw.modelPath !== '') {
+        entity.modelPath = raw.modelPath
+      }
+      entities.push(entity)
+    }
+  }
+
+  if (isRecord(json.decorations)) {
+    for (const [groupName, rawGroup] of Object.entries(json.decorations)) {
+      if (!isRecord(rawGroup) || !Array.isArray(rawGroup.instances)) continue
+      const radius =
+        typeof rawGroup.radius === 'number' ? rawGroup.radius : DEFAULT_COLLISION_RADIUS
+      for (const raw of rawGroup.instances) {
+        if (!isRecord(raw)) continue
+        const position = toVec3(raw.position)
+        if (!position) continue
+        const rotation = toVec3(raw.rotation)
+        const entity: EditorEntity = {
+          id: claimId('decoration', undefined),
+          kind: 'decoration',
+          position,
+          rotationY: rotation ? rotation[1] : 0,
+          scale: typeof raw.scale === 'number' ? raw.scale : 1,
+          collisionRadius: radius,
+        }
+        if (groupName !== DEFAULT_DECORATION_GROUP) entity.name = groupName
+        entities.push(entity)
+      }
+    }
+  }
+
+  return entities
+}
+
+/** Editor store state and actions. See {@link useEditorStore}. */
+export interface EditorState {
+  /** Master switch; `<EditorScene>`/`<EditorPanel>` render nothing when false. */
+  enabled: boolean
+  mode: EditorMode
+  /** Kind placed by the next place-mode click. */
+  placingKind: EditorEntityKind
+  entities: EditorEntity[]
+  selectedId: string | null
+  /** @internal Per-kind auto-id counters (`npc-1`, `npc-2`, ...). */
+  counters: Counters
+
+  setEnabled: (enabled: boolean) => void
+  setMode: (mode: EditorMode) => void
+  setPlacingKind: (kind: EditorEntityKind) => void
+  /**
+   * Add an entity. `kind` defaults to `placingKind`; the id is generated from
+   * an incrementing per-kind counter (skipping ids already in use). Returns
+   * the created entity.
+   */
+  addEntity: (partial?: NewEditorEntity) => EditorEntity
+  /** Shallow-merge a patch into one entity. Unknown ids are a no-op. */
+  updateEntity: (id: string, patch: Partial<Omit<EditorEntity, 'id'>>) => void
+  /** Remove an entity (deselects it if selected). Unknown ids are a no-op. */
+  removeEntity: (id: string) => void
+  /** Select an entity by id, or `null` to deselect. */
+  select: (id: string | null) => void
+  /** Replace the whole working set (resets selection, re-seeds id counters). */
+  loadEntities: (entities: EditorEntity[]) => void
+  /** Remove all entities and reset selection + id counters. */
+  clear: () => void
+  /** Snapshot the working set as scene JSON. See {@link exportEntities}. */
+  exportScene: () => EditorSceneJSON
+  /**
+   * Replace the working set from scene JSON (best effort). Throws when the
+   * root is not an object. See {@link importEntities}.
+   */
+  importScene: (json: unknown) => void
+}
+
+/**
+ * Global editor store (zustand singleton). Never persisted — the editor is a
+ * dev tool; its output is the exported JSON, not a save game.
+ *
+ * ```ts
+ * const { setEnabled, addEntity, exportScene } = useEditorStore.getState()
+ * setEnabled(true)
+ * addEntity({ kind: 'npc', position: [4, 0, -2], name: 'Guide' })
+ * const json = exportScene()
+ * ```
+ */
+export const useEditorStore = create<EditorState>()((set, get) => ({
+  enabled: false,
+  mode: 'select',
+  placingKind: 'npc',
+  entities: [],
+  selectedId: null,
+  counters: emptyCounters(),
+
+  setEnabled: (enabled) => set({ enabled }),
+  setMode: (mode) => set({ mode }),
+  setPlacingKind: (placingKind) => {
+    if (!ALL_KINDS.includes(placingKind)) return
+    set({ placingKind })
+  },
+
+  addEntity: (partial = {}) => {
+    const state = get()
+    const kind = partial.kind ?? state.placingKind
+    const counters = { ...state.counters }
+    let id: string
+    do {
+      counters[kind] += 1
+      id = `${kind}-${counters[kind]}`
+    } while (state.entities.some((e) => e.id === id))
+
+    const entity: EditorEntity = {
+      id,
+      kind,
+      position: partial.position ?? [0, 0, 0],
+      rotationY: partial.rotationY ?? 0,
+      scale: partial.scale ?? 1,
+    }
+    if (partial.name !== undefined) entity.name = partial.name
+    if (partial.modelPath !== undefined) entity.modelPath = partial.modelPath
+    if (partial.collisionRadius !== undefined) entity.collisionRadius = partial.collisionRadius
+
+    set({ entities: [...state.entities, entity], counters })
+    return entity
+  },
+
+  updateEntity: (id, patch) =>
+    set((state) => {
+      const index = state.entities.findIndex((e) => e.id === id)
+      const current = state.entities[index]
+      if (!current) return state
+      const entities = [...state.entities]
+      entities[index] = { ...current, ...patch, id: current.id }
+      return { entities }
+    }),
+
+  removeEntity: (id) =>
+    set((state) => {
+      if (!state.entities.some((e) => e.id === id)) return state
+      return {
+        entities: state.entities.filter((e) => e.id !== id),
+        selectedId: state.selectedId === id ? null : state.selectedId,
+      }
+    }),
+
+  select: (id) =>
+    set((state) => {
+      if (id !== null && !state.entities.some((e) => e.id === id)) return state
+      return { selectedId: id }
+    }),
+
+  loadEntities: (entities) =>
+    set({
+      entities: [...entities],
+      selectedId: null,
+      counters: countersFrom(entities),
+    }),
+
+  clear: () => set({ entities: [], selectedId: null, counters: emptyCounters() }),
+
+  exportScene: () => exportEntities(get().entities),
+
+  importScene: (json) => {
+    get().loadEntities(importEntities(json))
+  },
+}))

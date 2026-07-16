@@ -1,8 +1,9 @@
 /**
- * Headless NPC steering agent: patrol / wander / follow / idle behaviors on
- * the X/Z plane, driven by `update(deltaMs)`. When constructed with a
- * {@link NavGrid} the agent routes every leg through {@link findPath};
- * otherwise it walks straight lines.
+ * Headless NPC steering agent: patrol / wander / follow / goTo / idle
+ * behaviors on the X/Z plane, driven by `update(deltaMs)`. When constructed
+ * with a {@link NavGrid} the agent routes every leg through {@link findPath};
+ * otherwise it walks straight lines. With `config.avoid` set, each step is
+ * additionally steered around dynamic obstacles (see {@link AvoidOptions}).
  *
  * Conventions:
  * - `speed` is in **world units per second** (not per frame).
@@ -12,10 +13,11 @@
  */
 import type { Vec3 } from '@overworld/core'
 import { findPath, type PathPoint } from './astar'
+import { steerStep, type AvoidOptions } from './avoidance'
 import type { NavGrid } from './grid'
 
 /** The active behavior mode of an {@link Agent}. */
-export type AgentBehaviorName = 'idle' | 'patrol' | 'wander' | 'follow'
+export type AgentBehaviorName = 'idle' | 'patrol' | 'wander' | 'follow' | 'goTo'
 
 /** Snapshot returned by {@link Agent.update} after each tick. */
 export interface AgentStatus {
@@ -29,7 +31,7 @@ export interface AgentStatus {
   isMoving: boolean
   /**
    * Set on the update in which a behavior-level destination was reached:
-   * the patrol waypoint index, or `0` for wander/follow arrivals.
+   * the patrol waypoint index, or `0` for wander/follow/goTo arrivals.
    */
   arrived?: number
 }
@@ -86,6 +88,12 @@ export interface AgentConfig {
   grid?: NavGrid
   /** Default random source for `wander`. @default Math.random */
   random?: () => number
+  /**
+   * Steer each step around dynamic obstacles. A local, deterministic
+   * perturbation of the frame's movement only — the planned path is never
+   * mutated. See {@link AvoidOptions}.
+   */
+  avoid?: AvoidOptions
 }
 
 /** The headless steering agent returned by {@link createAgent}. */
@@ -111,6 +119,13 @@ export interface Agent {
   wander(options: WanderOptions): void
   /** Chase `target`, repathing at a throttled interval, stopping at `stopDistance`. */
   follow(target: FollowTarget, options?: FollowOptions): void
+  /**
+   * Walk to `point` (via the grid when configured), then switch to `idle`.
+   * When no path exists, {@link findPath} first falls back to the nearest
+   * walkable cell; if even that fails the agent pauses briefly and retries,
+   * giving up to `idle` after a few attempts.
+   */
+  goTo(point: [number, number]): void
   /** Stop and hold position (heading is kept). */
   idle(): void
 }
@@ -120,8 +135,16 @@ const EPSILON = 1e-6
 const REPATH_MIN_MOVE = 0.1
 /** Retry delay after a failed wander/patrol plan, ms. */
 const PLAN_RETRY_MS = 500
+/** Failed goTo plans tolerated (with a retry pause between) before idling. */
+const GOTO_MAX_RETRIES = 3
 /** Safety cap on arrival/pause transitions handled inside one update. */
 const MAX_TRANSITIONS = 32
+/** Default {@link AvoidOptions.lookahead}, world units. */
+const AVOID_LOOKAHEAD = 1.5
+/** Default {@link AvoidOptions.agentRadius}, world units. */
+const AVOID_AGENT_RADIUS = 0.4
+/** Default {@link AvoidOptions.stuckAfterMs}, ms. */
+const AVOID_STUCK_AFTER_MS = 1200
 
 interface PatrolState {
   waypoints: [number, number][]
@@ -146,6 +169,19 @@ interface FollowState {
   goal: [number, number] | null
 }
 
+interface GoToState {
+  point: [number, number]
+  retries: number
+}
+
+/** `AvoidOptions` with defaults resolved. */
+interface AvoidState {
+  obstacles: () => ReadonlyArray<{ x: number; z: number; radius: number }>
+  lookahead: number
+  agentRadius: number
+  stuckAfterMs: number
+}
+
 /**
  * Create a headless steering agent. Drive it with `update(deltaMs)` — from
  * `<NPCWalker>` / `useAgentDriver` inside a R3F canvas, or any game loop.
@@ -153,6 +189,14 @@ interface FollowState {
 export function createAgent(config: AgentConfig = {}): Agent {
   const grid = config.grid
   const defaultRandom = config.random ?? Math.random
+  const avoidState: AvoidState | null = config.avoid
+    ? {
+        obstacles: config.avoid.obstacles,
+        lookahead: config.avoid.lookahead ?? AVOID_LOOKAHEAD,
+        agentRadius: config.avoid.agentRadius ?? AVOID_AGENT_RADIUS,
+        stuckAfterMs: config.avoid.stuckAfterMs ?? AVOID_STUCK_AFTER_MS,
+      }
+    : null
 
   let mode: AgentBehaviorName = 'idle'
   let heading = 0
@@ -160,10 +204,15 @@ export function createAgent(config: AgentConfig = {}): Agent {
   let path: PathPoint[] | null = null
   let pathIndex = 0
   let pauseRemainingMs = 0
+  /** Set by `advance` when avoidance found no clear direction this step. */
+  let avoidStalled = false
+  /** Consecutive fully-blocked time, for the stuck re-path threshold. */
+  let avoidBlockedMs = 0
 
   let patrolState: PatrolState | null = null
   let wanderState: WanderState | null = null
   let followState: FollowState | null = null
+  let goToState: GoToState | null = null
 
   const position: [number, number] = [
     config.position?.[0] ?? 0,
@@ -216,6 +265,40 @@ export function createAgent(config: AgentConfig = {}): Agent {
       if (distance <= EPSILON) {
         pathIndex++
         if (pathIndex >= path.length) path = null
+        continue
+      }
+      if (avoidState) {
+        // Local dynamic-obstacle steering: probe ahead (never past the
+        // waypoint), deflect this step's direction when blocked. The planned
+        // path is untouched — the next iteration re-aims at the waypoint.
+        const probeLength = Math.min(distance, avoidState.lookahead)
+        const direction = steerStep(
+          avoidState.obstacles(),
+          position[0],
+          position[1],
+          dx / distance,
+          dz / distance,
+          probeLength,
+          avoidState.agentRadius
+        )
+        if (!direction) {
+          avoidStalled = true // every candidate blocked: hold position
+          break
+        }
+        // Only the probed length is proven clear, so cap the move at it.
+        const moveLength = Math.min(remaining, probeLength)
+        heading = Math.atan2(direction[0], direction[1])
+        const forward = direction[0] === dx / distance && direction[1] === dz / distance
+        if (forward && moveLength === distance) {
+          position[0] = target[0]
+          position[1] = target[1]
+          pathIndex++
+          if (pathIndex >= path.length) path = null
+        } else {
+          position[0] += direction[0] * moveLength
+          position[1] += direction[1] * moveLength
+        }
+        remaining -= moveLength
         continue
       }
       heading = Math.atan2(dx, dz)
@@ -273,6 +356,22 @@ export function createAgent(config: AgentConfig = {}): Agent {
         state.timerMs = 0
         return true
       }
+      case 'goTo': {
+        const state = goToState
+        if (!state) return false
+        if (plan(state.point)) return true
+        // Unreachable point: `findPath` already fell back to the nearest
+        // walkable cell, so a null plan means no route at all. Pause and
+        // retry a few times (the world may change), then give up to idle.
+        state.retries++
+        if (state.retries >= GOTO_MAX_RETRIES) {
+          mode = 'idle'
+          goToState = null
+          return false
+        }
+        pauseRemainingMs = PLAN_RETRY_MS
+        return true
+      }
       case 'idle':
         return false
     }
@@ -315,6 +414,11 @@ export function createAgent(config: AgentConfig = {}): Agent {
         }
         return 0
       }
+      case 'goTo': {
+        mode = 'idle'
+        goToState = null
+        return 0
+      }
       default:
         return 0
     }
@@ -338,6 +442,7 @@ export function createAgent(config: AgentConfig = {}): Agent {
       let arrived: number | undefined
       let movedAny = false
       let dt = Math.max(0, deltaMs)
+      avoidStalled = false
 
       // Throttled follow repath, at most once per update.
       if (mode === 'follow' && followState && path) {
@@ -368,6 +473,7 @@ export function createAgent(config: AgentConfig = {}): Agent {
         const leftover = advance(budget)
         if (leftover < budget - EPSILON) movedAny = true
         dt = (leftover / agent.speed) * 1000
+        if (avoidStalled) break // fully blocked by dynamic obstacles
 
         if (mode === 'follow' && followState) {
           const state = followState
@@ -380,6 +486,26 @@ export function createAgent(config: AgentConfig = {}): Agent {
           if (!path) break // hold until the target moves away again
         } else if (!path) {
           arrived = onDestinationReached()
+        }
+      }
+
+      if (avoidState) {
+        if (movedAny) {
+          avoidBlockedMs = 0
+        } else if (avoidStalled) {
+          avoidBlockedMs += Math.max(0, deltaMs)
+          if (avoidBlockedMs >= avoidState.stuckAfterMs) {
+            // Stuck: with a grid, re-plan to the current destination (the
+            // game may have synced the blockage into it). When the plan
+            // still fails — or there is no grid — keep waiting and retry
+            // every stuckAfterMs; behavior-level logic (e.g. patrol's
+            // unreachable-waypoint skip) applies as usual on the next plan.
+            avoidBlockedMs = 0
+            if (grid && path) {
+              const goal = path[path.length - 1]
+              if (goal) plan(goal)
+            }
+          }
         }
       }
 
@@ -398,6 +524,7 @@ export function createAgent(config: AgentConfig = {}): Agent {
       clearMovement()
       wanderState = null
       followState = null
+      goToState = null
       patrolState = {
         waypoints: waypoints.map((w) => [w[0], w[1]]),
         loop: options.loop ?? true,
@@ -412,6 +539,7 @@ export function createAgent(config: AgentConfig = {}): Agent {
       clearMovement()
       patrolState = null
       followState = null
+      goToState = null
       wanderState = {
         center: [options.center[0], options.center[1]],
         radius: options.radius,
@@ -425,6 +553,7 @@ export function createAgent(config: AgentConfig = {}): Agent {
       clearMovement()
       patrolState = null
       wanderState = null
+      goToState = null
       followState = {
         target,
         stopDistance: options.stopDistance ?? 1,
@@ -434,12 +563,22 @@ export function createAgent(config: AgentConfig = {}): Agent {
       }
     },
 
+    goTo(point) {
+      mode = 'goTo'
+      clearMovement()
+      patrolState = null
+      wanderState = null
+      followState = null
+      goToState = { point: [point[0], point[1]], retries: 0 }
+    },
+
     idle() {
       mode = 'idle'
       clearMovement()
       patrolState = null
       wanderState = null
       followState = null
+      goToState = null
     },
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "@overworld/ai",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Grid A* pathfinding and NPC steering behaviors (patrol/wander/follow) for Overworld games",
   "type": "module",
   "main": "./dist/index.js",

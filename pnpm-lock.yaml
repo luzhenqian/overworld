@@ -65,6 +65,9 @@ importers:
       '@overworld/dialogue':
         specifier: workspace:*
         version: link:../../packages/dialogue
+      '@overworld/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@overworld/environment':
         specifier: workspace:*
         version: link:../../packages/environment
@@ -192,6 +195,24 @@ importers:
       react:
         specifier: ^18.0.0
         version: 18.3.1
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.14(@types/react@18.3.31)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+
+  packages/editor:
+    dependencies:
+      '@overworld/core':
+        specifier: workspace:*
+        version: link:../core
+      '@react-three/fiber':
+        specifier: ^8.0.0
+        version: 8.18.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.170.0)
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      three:
+        specifier: '>=0.160.0'
+        version: 0.170.0
       zustand:
         specifier: ^5.0.0
         version: 5.0.14(@types/react@18.3.31)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))

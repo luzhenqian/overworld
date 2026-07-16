@@ -19,6 +19,20 @@ export type {
   WanderOptions,
 } from './behaviors'
 
+// Dynamic obstacle avoidance (pure geometry + steering)
+export { segmentHitsCircle, deflect, steerStep } from './avoidance'
+export type { AvoidOptions } from './avoidance'
+
+// NPC schedules (phase name -> behavior, optionally bus-driven)
+export { createSchedule, bindScheduleToBus } from './schedule'
+export type {
+  BindScheduleOptions,
+  Schedule,
+  ScheduleBehavior,
+  ScheduleBusLike,
+  ScheduleConfig,
+} from './schedule'
+
 // R3F components
 export { NPCWalker, useAgentDriver } from './NPCWalker'
 export type { AgentDriverOptions, NPCWalkerProps } from './NPCWalker'

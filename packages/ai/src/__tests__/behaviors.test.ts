@@ -278,3 +278,63 @@ describe('createAgent — follow', () => {
     )
   })
 })
+
+describe('createAgent — goTo', () => {
+  it('reports goTo with heading/isMoving in transit, then idles at the point', () => {
+    const agent = createAgent({ position: [0, 0], speed: 2 })
+    agent.goTo([3, 0])
+    const transit = agent.update(500) // 1 of 3 units
+    expect(transit.behavior).toBe('goTo')
+    expect(transit.isMoving).toBe(true)
+    expect(agent.heading).toBeCloseTo(Math.PI / 2)
+    expect(agent.position[0]).toBeCloseTo(1)
+
+    const arrival = agent.update(1500) // covers the remaining 2 units + spare
+    expect(arrival.arrived).toBe(0)
+    expect(agent.position).toEqual([3, 0])
+    expect(agent.behavior).toBe('idle')
+
+    const after = agent.update(1000)
+    expect(after.isMoving).toBe(false)
+    expect(agent.position).toEqual([3, 0])
+  })
+
+  it('routes through the grid and idles on arrival', () => {
+    const grid = createNavGrid({
+      bounds: { minX: 0, maxX: 20, minZ: 0, maxZ: 20 },
+      obstacles: [{ x: 10, z: 10, radius: 2 }],
+      agentRadius: 0.5,
+    })
+    const agent = createAgent({ position: [10.5, 2.5], speed: 4, grid })
+    agent.goTo([10.5, 17.5])
+    for (let i = 0; i < 300; i++) {
+      agent.update(16)
+      expect(Math.hypot(agent.position[0] - 10, agent.position[1] - 10)).toBeGreaterThan(
+        2.5 - Math.SQRT1_2
+      )
+    }
+    expect(Math.hypot(agent.position[0] - 10.5, agent.position[1] - 17.5)).toBeLessThan(0.01)
+    expect(agent.behavior).toBe('idle')
+  })
+
+  it('gives up to idle after a few retries when the point is unreachable', () => {
+    // A huge circle splits the grid into disconnected corner pockets: no
+    // route exists from the bottom-left corner to the top-right one.
+    const grid = createNavGrid({
+      bounds: { minX: 0, maxX: 10, minZ: 0, maxZ: 10 },
+      obstacles: [{ x: 5, z: 5, radius: 4.6 }],
+      agentRadius: 0.5,
+    })
+    const agent = createAgent({ position: [0.5, 0.5], speed: 2, grid })
+    agent.goTo([9.5, 9.5])
+
+    agent.update(100) // plan #1 fails -> 500ms retry pause
+    expect(agent.behavior).toBe('goTo')
+    expect(agent.isMoving).toBe(false)
+    agent.update(500) // pause runs out, plan #2 fails -> another pause
+    expect(agent.behavior).toBe('goTo')
+    agent.update(500) // plan #3 fails -> gives up
+    expect(agent.behavior).toBe('idle')
+    expect(agent.position).toEqual([0.5, 0.5])
+  })
+})

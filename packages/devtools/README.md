@@ -59,6 +59,69 @@ if (import.meta.env.DEV) assertValidContent({ dialogues, quests }) // 有 error 
 `endsDialogue` 节点上的 `next` 永远不会被走到(`advance()` 先判
 `endsDialogue`),会得到 warning,且不算作可达性的边。
 
+## JSON Schema(外部内容文件)
+
+面向把内容写成 **`.json` 文件**的游戏,devtools 导出一组手写的
+**JSON Schema(draft 2020-12)**,描述真实的内容类型:`DialogueTree` /
+`QuestDefinition` / `ItemDefinition` / `AchievementDefinition` 与
+`EffectRef` / `ConditionRef`。
+
+- 单对象:`dialogueTreeSchema`、`questDefinitionSchema`、`itemDefinitionSchema`、
+  `achievementDefinitionSchema`、`effectRefSchema`、`conditionRefSchema`
+- 数组(整份内容文件的形状,`$id` 带 `-list` 后缀):`dialogueTreesSchema`、
+  `questDefinitionsSchema`、`itemDefinitionsSchema`、`achievementDefinitionsSchema`
+- `contentBundleSchema`:`{ dialogues?, quests?, items?, achievements? }`
+  整包(与 `validateContent` 的输入同形)
+- `allContentSchemas`:按名字迭代所有 schema;`schemaFor('quests')` 等
+  直接取某一分区的数组 schema
+
+每个 schema 都**自包含**(共享形状内嵌在各自的 `$defs` 里)、带唯一
+`$id`(如 `https://overworld.dev/schemas/dialogue-tree.json`),可以单独交给
+任何校验器或编辑器。
+
+### 与 ajv 一起使用
+
+devtools **不依赖 ajv**——schema 只是普通数据。在你自己的构建/CI 里装
+ajv(draft 2020-12 要从 `ajv/dist/2020` 导入):
+
+```ts
+import Ajv from 'ajv/dist/2020'
+import { schemaFor } from '@overworld/devtools'
+import { readFileSync } from 'node:fs'
+
+const ajv = new Ajv({ allErrors: true })
+const validate = ajv.compile(schemaFor('quests'))
+const quests = JSON.parse(readFileSync('content/quests.json', 'utf8'))
+if (!validate(quests)) console.error(validate.errors)
+```
+
+### 编辑器提示($schema)
+
+把 schema 写到磁盘后,在内容 JSON 顶部加 `$schema` 即可获得编辑器内的
+自动补全与即时校验(VS Code 原生支持;`additionalProperties: true`,多出的
+`$schema` 字段不会校验失败):
+
+```jsonc
+// content/quests.json 若是单个对象;数组文件请在 VS Code 的
+// json.schemas 设置里把文件模式映射到对应的 *-list schema
+{ "$schema": "./schemas/quest-definition.json", "id": "welcome", ... }
+```
+
+### 保真度说明
+
+- **`additionalProperties: true`**:TypeScript 接口是结构化开放的,内容类型
+  本来就允许游戏扩展额外字段(如 `ItemDefinition.metadata`),schema 不会
+  拒绝它们。
+- **number 而非 integer**:`target` / `count` / `maxStack` 在 TS 里是
+  `number`,校验器也只检查 `>= 1`,schema 与之一致。
+- **`minimum: 1`** 只加在校验器判为 **error** 的地方:任务目标 `target`
+  与成就 `trigger.count`(`maxStack < 1` 只是 warning,schema 不硬性限制)。
+- 成就的 **`trigger` 为必填**,取值 `AchievementTrigger | null`
+  (`oneOf: [trigger, null]`),与真实 `AchievementDefinition` 一致——
+  `null` 显式表示仅手动解锁。
+- 跨对象规则(id 唯一、`next` 悬空、前置循环……)超出 JSON Schema 能力,
+  解析后请继续用 `validateContent` 检查。
+
 ## 事件日志
 
 ```ts

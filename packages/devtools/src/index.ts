@@ -24,3 +24,19 @@ export { validateContent, assertValidContent } from './validateContent'
 export type { ContentBundle, ContentValidationOptions } from './validateContent'
 export { bindEventLogger, createEventRecorder } from './eventLogger'
 export type { EventLoggerOptions, EventRecorder, RecordedEvent } from './eventLogger'
+export {
+  achievementDefinitionSchema,
+  achievementDefinitionsSchema,
+  allContentSchemas,
+  conditionRefSchema,
+  contentBundleSchema,
+  dialogueTreeSchema,
+  dialogueTreesSchema,
+  effectRefSchema,
+  itemDefinitionSchema,
+  itemDefinitionsSchema,
+  questDefinitionSchema,
+  questDefinitionsSchema,
+  schemaFor,
+} from './jsonSchemas'
+export type { ContentKind, JsonSchema } from './jsonSchemas'

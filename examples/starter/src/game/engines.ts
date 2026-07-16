@@ -10,7 +10,8 @@ import { createAchievements } from '@overworld/achievements'
 import { useToastStore } from '@overworld/notifications'
 import { KEYBOARD_PRIORITY, createMovementInput, useKeyboardStore } from '@overworld/input'
 import { createEnvironment } from '@overworld/environment'
-import { createAgent, createNavGrid } from '@overworld/ai'
+import { bindScheduleToBus, createAgent, createNavGrid, createSchedule } from '@overworld/ai'
+import { playerPositionRef } from '@overworld/scene'
 import { ACHIEVEMENTS, DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
 
@@ -59,16 +60,38 @@ const navGrid = createNavGrid({
   bounds: { minX: -18, maxX: 18, minZ: -18, maxZ: 18 },
   obstacles: [{ x: 6, z: 6, radius: 1.5 }],
 })
-export const villagerAgent = createAgent({ position: [-6, 6], speed: 1.4, grid: navGrid })
-villagerAgent.patrol(
-  [
-    [-6, 6],
-    [-6, 13],
-    [4, 13],
-    [8, 2],
-  ],
-  { pauseMs: 900 }
-)
+export const villagerAgent = createAgent({
+  position: [-6, 6],
+  speed: 1.4,
+  grid: navGrid,
+  // 动态避障:把玩家当作移动障碍物,村民会绕着玩家走
+  avoid: {
+    obstacles: () => [
+      { x: playerPositionRef.current[0], z: playerPositionRef.current[2], radius: 0.6 },
+    ],
+  },
+})
+
+const VILLAGER_HOME: [number, number] = [-6, 6]
+const VILLAGER_ROUTE: [number, number][] = [
+  [-6, 6],
+  [-6, 13],
+  [4, 13],
+  [8, 2],
+]
+
+/** NPC 日程:昼夜相位驱动行为切换(environment 发事件,ai 包零耦合消费) */
+export const villagerSchedule = createSchedule({
+  agent: villagerAgent,
+  entries: {
+    dawn: { type: 'wander', center: VILLAGER_HOME, radius: 3 },
+    day: { type: 'patrol', waypoints: VILLAGER_ROUTE, pauseMs: 900 },
+    dusk: { type: 'goTo', point: VILLAGER_HOME },
+    night: { type: 'goTo', point: VILLAGER_HOME },
+  },
+  initialPhase: 'day',
+})
+bindScheduleToBus(villagerSchedule, gameEvents)
 
 // ---- Effects & conditions the content refers to -------------------------
 
@@ -140,8 +163,12 @@ if (import.meta.env.DEV) {
 
 // 开发期调试句柄(生产构建自动剔除)
 if (import.meta.env.DEV) {
-  void Promise.all([import('@overworld/scene'), import('@react-three/fiber')]).then(
-    ([scene, fiber]) => {
+  void Promise.all([
+    import('@overworld/scene'),
+    import('@react-three/fiber'),
+    import('@overworld/editor'),
+  ]).then(([scene, fiber, editor]) => {
+    {
       ;(window as unknown as Record<string, unknown>).__game = {
         gameEvents,
         dialogue,
@@ -154,9 +181,11 @@ if (import.meta.env.DEV) {
         environment,
         movementInput,
         villagerAgent,
+        villagerSchedule,
+        editorStore: editor.useEditorStore,
         // 后台标签页 RAF 被暂停时可手动驱动渲染帧(自动化验证用)
         advance: fiber.advance,
       }
     }
-  )
+  })
 }
