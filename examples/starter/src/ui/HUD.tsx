@@ -1,4 +1,5 @@
 import { useStore } from 'zustand'
+import { useTranslation } from 'react-i18next'
 import { useToastStore } from '@overworld/notifications'
 import { playerPositionRef, playerRotationRef, useSceneStore } from '@overworld/scene'
 import { MiniMap } from '@overworld/minimap'
@@ -18,8 +19,9 @@ const panelStyle: React.CSSProperties = {
   pointerEvents: 'auto',
 }
 
-/** 任务追踪器 —— 订阅任务引擎状态渲染进度 */
+/** 任务追踪器 —— 订阅任务引擎状态渲染进度;title/description 是 i18n key,渲染时翻译 */
 function QuestTracker() {
+  const { t } = useTranslation()
   const active = useStore(quests, (s) => s.active)
   const definitions = useStore(quests, (s) => s.definitions)
   const entries = Object.values(active)
@@ -27,20 +29,21 @@ function QuestTracker() {
 
   return (
     <div style={{ ...panelStyle, width: 240 }}>
-      <div style={{ fontWeight: 700, marginBottom: 6, color: '#facc15' }}>任务</div>
+      <div style={{ fontWeight: 700, marginBottom: 6, color: '#facc15' }}>{t('hud.quests')}</div>
       {entries.map((quest) => {
         const def = definitions[quest.questId]
         if (!def) return null
         return (
           <div key={quest.questId} style={{ marginBottom: 8 }}>
-            <div style={{ fontWeight: 600 }}>{def.title}</div>
+            <div style={{ fontWeight: 600 }}>{def.title ? t(def.title) : def.id}</div>
             {def.objectives.map((obj) => {
               const progress = quest.objectives[obj.id]
               const current = Math.floor(progress?.current ?? 0)
               const done = progress?.completed
               return (
                 <div key={obj.id} style={{ opacity: done ? 0.55 : 1, marginTop: 2 }}>
-                  {done ? '✅' : '▫️'} {obj.description}({Math.min(current, obj.target)}/
+                  {done ? '✅' : '▫️'} {obj.description ? t(obj.description) : obj.id}(
+                  {Math.min(current, obj.target)}/
                   {obj.target})
                 </div>
               )
@@ -53,19 +56,36 @@ function QuestTracker() {
 }
 
 function StatusBar() {
+  const { i18n } = useTranslation()
   const gold = useGoldStore((s) => s.gold)
   const unlocked = useStore(achievements.store, (s) => s.unlocked)
   return (
-    <div style={{ ...panelStyle, display: 'flex', gap: 16 }}>
+    <div style={{ ...panelStyle, display: 'flex', gap: 16, alignItems: 'center' }}>
       <span>💰 {gold}</span>
       <span>
         🏆 {Object.keys(unlocked).length}/{ACHIEVEMENTS.length}
       </span>
+      <button
+        id="lang-toggle"
+        onClick={() => void i18n.changeLanguage(i18n.language === 'zh' ? 'en' : 'zh')}
+        style={{
+          background: '#1c2740',
+          color: '#cfe0ff',
+          border: '1px solid #35548f',
+          borderRadius: 6,
+          padding: '2px 8px',
+          cursor: 'pointer',
+          fontSize: 12,
+        }}
+      >
+        {i18n.language === 'zh' ? 'EN' : '中文'}
+      </button>
     </div>
   )
 }
 
 function InventoryBar() {
+  const { t } = useTranslation()
   const slots = useStore(inventory.store, (s) => s.slots)
   if (slots.length === 0) return null
   return (
@@ -74,7 +94,7 @@ function InventoryBar() {
         const def = inventory.getDefinition(slot.itemId)
         return (
           <span key={i}>
-            🔹 {def?.name ?? slot.itemId} ×{slot.quantity}
+            🔹 {def?.name ? t(def.name) : slot.itemId} ×{slot.quantity}
           </span>
         )
       })}
@@ -82,8 +102,22 @@ function InventoryBar() {
   )
 }
 
+/** Toast message 是 { key, params } 结构;title/name 参数本身也是 key,在此翻译 */
 function Toasts() {
+  const { t } = useTranslation()
   const toasts = useToastStore((s) => s.toasts)
+  const render = (m: unknown): string => {
+    if (m && typeof m === 'object' && 'key' in m) {
+      const { key, params } = m as { key: string; params?: Record<string, unknown> }
+      const resolved: Record<string, unknown> = { ...params }
+      for (const field of ['title', 'name']) {
+        const value = resolved[field]
+        if (typeof value === 'string') resolved[field] = t(value)
+      }
+      return t(key, resolved)
+    }
+    return String(m)
+  }
   const colors: Record<string, string> = {
     info: '#38bdf8',
     success: '#4ade80',
@@ -112,7 +146,7 @@ function Toasts() {
             pointerEvents: 'none',
           }}
         >
-          {String(toast.message)}
+          {render(toast.message)}
         </div>
       ))}
     </div>
@@ -120,6 +154,7 @@ function Toasts() {
 }
 
 function InteractHint() {
+  const { t } = useTranslation()
   const nearbyNpcId = useSceneStore((s) => s.nearbyNpcId)
   if (!nearbyNpcId) return null
   return (
@@ -133,12 +168,13 @@ function InteractHint() {
         pointerEvents: 'none',
       }}
     >
-      按 <b>E</b> 交谈
+      {t('hud.talkHint')}
     </div>
   )
 }
 
 export function HUD() {
+  const { t } = useTranslation()
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       <div style={{ position: 'absolute', top: 16, left: 16 }}>
@@ -184,7 +220,7 @@ export function HUD() {
           opacity: 0.8,
         }}
       >
-        WASD/方向键 移动 · Shift 跑 · E 交互
+        {t('hud.controls')}
       </div>
       <Toasts />
       <InteractHint />

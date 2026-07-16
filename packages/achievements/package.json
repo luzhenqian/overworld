@@ -1,6 +1,6 @@
 {
   "name": "@overworld/achievements",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Headless achievement engine driven by the event bus",
   "type": "module",
   "main": "./dist/index.js",

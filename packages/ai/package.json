@@ -1,0 +1,38 @@
+{
+  "name": "@overworld/ai",
+  "version": "0.3.0",
+  "description": "Grid A* pathfinding and NPC steering behaviors (patrol/wander/follow) for Overworld games",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@overworld/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "three": ">=0.160.0",
+    "@react-three/fiber": "^8.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NoahLu/overworld.git",
+    "directory": "packages/ai"
+  }
+}

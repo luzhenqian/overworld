@@ -1,6 +1,6 @@
 {
   "name": "@overworld/scene",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "3D world layer: scene shell, player controller, collision, proximity, model loading",
   "type": "module",
   "main": "./dist/index.js",

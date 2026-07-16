@@ -10,9 +10,18 @@ import {
 } from '@overworld/scene'
 import { DayNightLighting, EnvironmentTick } from '@overworld/environment'
 import { useMinimapStore } from '@overworld/minimap'
+import { NPCWalker } from '@overworld/ai'
 import { useStore } from 'zustand'
+import { useTranslation } from 'react-i18next'
 import { CRYSTAL_SPOTS, NPCS } from './game/content'
-import { environment, inventory, isGameInputBlocked, movementInput, quests } from './game/engines'
+import {
+  environment,
+  inventory,
+  isGameInputBlocked,
+  movementInput,
+  quests,
+  villagerAgent,
+} from './game/engines'
 
 const PICKUP_DISTANCE = 1.8
 const WORLD_BOUNDS = { minX: -18, maxX: 18, minZ: -18, maxZ: 18 }
@@ -61,8 +70,46 @@ function Crystals() {
   )
 }
 
+/** 巡逻村民:@overworld/ai 驱动移动,视觉与小地图跟踪由游戏提供 */
+function Villager() {
+  const minimapAcc = useRef(0)
+
+  useEffect(() => {
+    const { registerMarker, unregisterMarker } = useMinimapStore.getState()
+    registerMarker({
+      id: 'npc:villager',
+      kind: 'npc',
+      position: [villagerAgent.position[0], 0, villagerAgent.position[1]],
+      color: '#4ade80',
+    })
+    return () => unregisterMarker('npc:villager')
+  }, [])
+
+  // 每 ~100ms 同步一次小地图标记位置(NPCWalker 自己驱动 agent.update)
+  useFrame((_, delta) => {
+    minimapAcc.current += delta
+    if (minimapAcc.current < 0.1) return
+    minimapAcc.current = 0
+    useMinimapStore
+      .getState()
+      .setMarkerPosition('npc:villager', [villagerAgent.position[0], 0, villagerAgent.position[1]])
+  })
+
+  return (
+    <NPCWalker agent={villagerAgent}>
+      <mesh position={[0, 1, 0]} castShadow>
+        <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
+        <meshStandardMaterial color="#4ade80" emissive="#166534" emissiveIntensity={0.5} />
+      </mesh>
+    </NPCWalker>
+  )
+}
+
 export function World() {
+  const { t } = useTranslation()
   useInteractKey('e', { isInputBlocked: isGameInputBlocked })
+  // NPC 的 name 字段存的是 i18n key,3D 名牌渲染前翻译
+  const localizedNpcs = NPCS.map((npc) => ({ ...npc, name: npc.name ? t(npc.name) : npc.name }))
 
   // NPC 标到小地图上
   useEffect(() => {
@@ -87,7 +134,7 @@ export function World() {
 
   return (
     <SceneShell
-      npcs={NPCS}
+      npcs={localizedNpcs}
       npcIndicators={npcIndicators}
       player={
         <Player
@@ -108,6 +155,7 @@ export function World() {
       <gridHelper args={[40, 40, '#334155', '#334155']} position={[0, 0.01, 0]} />
       <fog attach="fog" args={['#0b0e1a', 30, 60]} />
       <Crystals />
+      <Villager />
     </SceneShell>
   )
 }

@@ -54,6 +54,42 @@ function LoadTracker() {
 任务,加载器空闲后自动 `completeTask`,并返回 drei 的原始进度快照
 `{ active, progress, item, loaded, total }`。
 
+## 资产清单(Asset Manifest)
+
+把场景/游戏用到的资产声明成纯数据,按场景拆分、可组合、可提前预热:
+
+```ts
+import { defineAssetManifest, mergeManifests, preloadManifest } from '@overworld/loading'
+
+// 每个场景一份清单(defineAssetManifest 是恒等函数,只提供类型推断)
+export const VILLAGE_ASSETS = defineAssetManifest({
+  models: ['/models/characters/guide.glb', '/models/props/crystal.glb'],
+  audio: ['/audio/bgm/village.mp3'],
+  images: ['/images/village-map.png'],
+})
+
+// 组合多份清单(按类别去重、保持首次出现顺序)
+const ALL_ASSETS = mergeManifests(VILLAGE_ASSETS, DUNGEON_ASSETS)
+
+// 启动时(或进场景前)发起浏览器预加载
+preloadManifest(ALL_ASSETS)
+preloadManifest(VILLAGE_ASSETS, { categories: ['models'] }) // 只预热部分类别
+```
+
+`preloadManifest` 的行为:
+
+- `models` → drei `useGLTF.preload`(与场景组件共享同一 GLTF 缓存);
+- `images` → `new Image().src`;
+- `audio` → `new Audio()` 且 `preload = 'auto'`;
+- `fonts` → **跳过**,仅作清单记录(drei `<Text>` 自行加载字体,CSS 字体请用
+  `@font-face` / `<link rel="preload">`);
+- 每个 URL 每会话只预热一次;Node/SSR(无 `window`)环境下为 no-op。
+
+**设计说明:`preloadManifest` 不写 loading store、不上报进度。** 这些预加载 API
+(`useGLTF.preload` / `Image` / `Audio`)本身不提供细粒度进度,注册假任务只会骗 UI。
+真实的模型加载进度由 three.js 加载管理器产生,在场景挂载后经
+`useSceneLoadProgress` 桥接进 store——清单负责"尽早开始",进度显示交给那个 Hook。
+
 ## 依赖
 
 peerDependencies:`react`、`zustand`、`@react-three/drei`。

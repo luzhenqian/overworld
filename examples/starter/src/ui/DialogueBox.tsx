@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { KEYBOARD_PRIORITY, useHotkey, useKeyboardLayer } from '@overworld/input'
 import { dialogue } from '../game/engines'
 
@@ -7,6 +8,7 @@ import { dialogue } from '../game/engines'
  * isInputBlocked consults the layer stack).
  */
 function DialoguePanel() {
+  const { t } = useTranslation()
   const currentNode = dialogue((s) => s.currentNode)
   const responses = dialogue((s) => s.availableResponses)
 
@@ -40,10 +42,10 @@ function DialoguePanel() {
     >
       {currentNode.speaker && (
         <div style={{ color: '#facc15', fontWeight: 700, marginBottom: 6 }}>
-          {currentNode.speaker}
+          {t(currentNode.speaker)}
         </div>
       )}
-      <div style={{ lineHeight: 1.6, marginBottom: 12 }}>{currentNode.text}</div>
+      <div style={{ lineHeight: 1.6, marginBottom: 12 }}>{t(currentNode.text)}</div>
       {responses.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {responses.map((response) => (
@@ -61,7 +63,7 @@ function DialoguePanel() {
                 fontSize: 14,
               }}
             >
-              ▸ {response.text}
+              ▸ {t(response.text)}
             </button>
           ))}
         </div>
@@ -77,7 +79,7 @@ function DialoguePanel() {
             cursor: 'pointer',
           }}
         >
-          继续(E)
+          {t('dlg.continue')}
         </button>
       )}
     </div>

@@ -1,6 +1,6 @@
 {
   "name": "overworld",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Overworld — a modular web 3D RPG game development framework (React + three.js + zustand)",
   "scripts": {
