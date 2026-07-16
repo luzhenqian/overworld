@@ -392,8 +392,8 @@ export function World() {
   }, [])
 
   // 任务状态 → 幽灵头顶指示器
-  const active = useStore(quests, (s) => s.active)
-  const completed = useStore(quests, (s) => s.completed)
+  const active = useStore(quests.store, (s) => s.active)
+  const completed = useStore(quests.store, (s) => s.completed)
   const npcIndicators: Record<string, NPCIndicator> = {}
   if (completed.includes('open-chest')) npcIndicators['ghost'] = 'quest-complete'
   else if (active['find-key'] || active['open-chest']) npcIndicators['ghost'] = 'quest-in-progress'

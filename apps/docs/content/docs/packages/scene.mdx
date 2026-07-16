@@ -20,7 +20,8 @@ import 本包即可响应玩家移动、场景切换与交互。
 | `player:moved` | 玩家累计移动约 0.5 米(可配)时,携带位置与移动距离 |
 | `scene:changed` | `useSceneStore.setScene(id)` 切换场景时 |
 | `proximity:enter` / `proximity:leave` | 玩家进入 / 离开 NPC 或建筑的交互半径时 |
-| `interact` | 附近有实体且按下交互键(`useInteractKey` / `interact()`)时 |
+| `entity:interact` | 附近有实体且按下交互键(`useInteractKey` / `interact()`)时 |
+| `interact`(**已弃用**) | 与 `entity:interact` 同载荷双发,仅为过渡期兼容,2.0 移除 |
 
 ## 核心组件 / API
 
@@ -52,8 +53,14 @@ import 本包即可响应玩家移动、场景切换与交互。
   每帧找出最近的在半径内实体,写入 sceneStore 并发出 proximity 事件
   (SceneShell 已内置调用)。
 - **`useModelLoader` / `preloadSceneModels`** — GLTF 加载(克隆 + 阴影配置)与预加载。
+  加载中会 **Suspense 挂起**(挂起的 promise 会重新抛出,不会被吞),必须在
+  `<Suspense>` 边界之下调用——`BaseNPC` / `BaseBuilding` / `Player` 已内置
+  `<Suspense>` + `ModelErrorBoundary`(按模型 URL 作 key,改路径即重试);
+  加载中与加载失败都显示主题化占位体,失败只打一条 `console.error`。
+  `preloadSceneModels` 因此只是性能优化(缓存命中时同步解析),不再是正确性前提。
 - **`interact()` / `useInteractKey(key = 'e', { isInputBlocked })`** —
-  把"按 E 交互"翻译成总线上的 `interact` 事件。
+  把"按 E 交互"翻译成总线上的 `entity:interact` 事件(过渡期同载荷双发已弃用的
+  `interact`,2.0 移除)。
 - **`defaultSceneTheme` / `createSceneTheme(partial)`** — 中性默认主题与深合并辅助。
 
 ## 最小使用示例
@@ -79,7 +86,7 @@ const npcs: NPCConfig[] = [
 ]
 
 // 任意系统都可以订阅交互事件,无需 import 场景组件
-gameEvents.on('interact', ({ kind, id }) => {
+gameEvents.on('entity:interact', ({ kind, id }) => {
   if (kind === 'npc') console.log('开始对话:', id)
 })
 
@@ -163,5 +170,21 @@ function World() {
 
 ## 注意事项
 
-无美术资产也能跑:省略 `modelUrl` / 模型加载失败时,玩家与 NPC 会分别回退为胶囊体、
-建筑回退为盒体、传送门回退为发光圆环。
+### 模型加载语义
+
+无美术资产也能跑:省略 `modelUrl` / `modelPath` 时,玩家与 NPC 回退为胶囊体、
+建筑回退为盒体、传送门回退为发光圆环。有模型路径时的完整语义:
+
+- **加载中** — 显示同一个主题化占位体(`BaseNPC` / `BaseBuilding` / `Player`
+  内置 `<Suspense>`,`useModelLoader` 会正常挂起而不是吞掉 promise),
+  加载完成后模型自动出现,**无需**预加载。
+- **加载失败**(404 / 解析错误)— 打印**一条** `console.error` 并永久显示占位体;
+  组件内部的 `ModelErrorBoundary` 按模型 URL 作 key,修改路径即可重试。
+- **`preloadSceneModels`** — 纯性能优化:预加载后 `useGLTF` 从缓存同步解析,
+  跳过占位体闪现;不预加载也完全正确。
+
+NPC 回退胶囊与名牌 / 角标 / 交互气泡高度随 `scale` 等比缩放(基准:NPC 默认
+`scale = 2.5`,建筑基准 `scale = 1`,默认值下与旧版完全一致);
+`labelHeight` prop 可覆盖名牌高度(角标与气泡保持其上方的比例间距)。
+纯数学部分以 `npcVisualHeights(scale, labelHeight?)` /
+`buildingVisualHeights(scale, labelHeight?)` 导出。

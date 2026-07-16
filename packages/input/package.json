@@ -1,6 +1,6 @@
 {
   "name": "@overworld/input",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Keyboard input priority layers for Overworld games",
   "keywords": [
     "overworld",

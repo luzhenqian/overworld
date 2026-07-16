@@ -7,7 +7,7 @@
  * `scene:changed`). i18n, preloader wiring and district flavor stay in the
  * game layer.
  */
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { Text, Billboard } from '@react-three/drei'
@@ -15,6 +15,7 @@ import type { Vec3 } from '@overworld/core'
 import { useSceneStore } from './sceneStore'
 import { playerPositionRef } from './playerStore'
 import { useModelLoader } from './useModelLoader'
+import { ModelErrorBoundary } from './ModelErrorBoundary'
 
 const DEFAULT_INTERACTION_DISTANCE = 6
 const DEFAULT_COLOR = '#7dd3fc'
@@ -152,7 +153,17 @@ export function Portal({
         onPointerOut={() => setHovered(false)}
       >
         {modelUrl ? (
-          <PortalModel url={modelUrl} scale={scale} color={color} />
+          // Key by URL so editing modelUrl resets a previous load failure.
+          // The torus renders while the model loads and on load failure.
+          <ModelErrorBoundary
+            key={modelUrl}
+            modelPath={modelUrl}
+            fallback={<PortalFallback color={color} />}
+          >
+            <Suspense fallback={<PortalFallback color={color} />}>
+              <PortalModel url={modelUrl} scale={scale} color={color} />
+            </Suspense>
+          </ModelErrorBoundary>
         ) : (
           <PortalFallback color={color} />
         )}

@@ -19,8 +19,14 @@ export interface UseModelLoaderOptions {
  * Load a GLTF model and return a shadow-configured clone, or null when the
  * model failed to load (callers render a themed fallback in that case).
  *
- * Note: models should be preloaded (see `preloadSceneModels`) so `useGLTF`
- * resolves synchronously from cache.
+ * Suspense semantics: while the model is still loading this hook
+ * **suspends** (the pending promise thrown by `useGLTF` is re-thrown, never
+ * swallowed), so callers must render it below a `<Suspense>` boundary —
+ * `BaseNPC`/`BaseBuilding` do this for you. Once the load settles, either
+ * the model renders or a real load error is logged once and `null` is
+ * returned. Preloading (see `preloadSceneModels`) is therefore a perf
+ * optimization (models resolve synchronously from cache), not a correctness
+ * requirement.
  */
 export function useModelLoader({
   modelPath,
@@ -32,7 +38,10 @@ export function useModelLoader({
   try {
     gltf = useGLTF(modelPath)
   } catch (error) {
-    console.error(`Failed to load model: ${modelPath}`, error)
+    // A thenable is Suspense signalling "still loading" — re-throw it so the
+    // nearest <Suspense> boundary handles it; only real errors are caught.
+    if (typeof (error as PromiseLike<unknown> | null)?.then === 'function') throw error
+    console.error(`[overworld] failed to load model: ${modelPath}`, error)
   }
 
   const model = useMemo(() => {

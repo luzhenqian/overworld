@@ -20,7 +20,8 @@ Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协
 | `player:moved` | `{ position: Vec3; distance: number }` |
 | `scene:changed` | `{ from: string \| null; to: string }` |
 | `proximity:enter` / `proximity:leave` | `{ kind: EntityKind; id: string }` |
-| `interact` | `{ kind: EntityKind; id: string }` |
+| `entity:interact` | `{ kind: EntityKind; id: string }` |
+| `interact`(**已弃用**,改用 `entity:interact`;过渡期 `scene` 的 `interact()` 双发两者,2.0 移除) | `{ kind: EntityKind; id: string }` |
 | `dialogue:started` | `{ npcId: string; dialogueId: string }` |
 | `dialogue:ended` | `{ npcId: string; dialogueId: string; nodeId: string }` |
 | `quest:started` / `quest:completed` | `{ questId: string }` |

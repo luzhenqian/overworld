@@ -56,7 +56,7 @@ const effects = createEffectRegistry<GameCtx>()
 conditions.register('minLevel', (params, ctx) => ctx.player.level >= (params.level as number))
 effects.register('wallet.addGold', (params, ctx) => ctx.wallet.add(params.amount as number))
 
-const useQuests = createQuestEngine({
+const quests = createQuestEngine({
   quests: [
     {
       id: 'walk-the-city',
@@ -75,7 +75,7 @@ const useQuests = createQuestEngine({
   // persist: 省略/false=不持久化;true=默认配置;或 { name?, version?, storage? }
 })
 
-useQuests.getState().startQuest('walk-the-city')
+quests.startQuest('walk-the-city')
 // 玩家移动系统只需:gameEvents.emit('player:moved', { position, distance })
 ```
 
@@ -83,15 +83,26 @@ useQuests.getState().startQuest('walk-the-city')
 
 | 成员 | 说明 |
 | --- | --- |
+| `store` | 底层 zustand vanilla store(`StoreApi<QuestEngineState>`),可直接 `subscribe`,React 里配合 `useStore` |
+| `getState()` | 当前状态快照(等价于 `store.getState()`) |
 | `registerQuests(...quests)` | 运行期增量注册;`autoStart` 任务满足前置即自动开始 |
 | `startQuest(id)` | 校验前置(已完成集合 + 条件注册表),emit `quest:started`;未知 id 警告并返回 `false` |
 | `reportProgress(questId, objectiveId, amount?)` | 手动推进(默认 +1),适合无事件可订阅的目标;非活跃任务被忽略,进度在 `target` 处截断 |
 | `completeQuest(id)` | 全部目标完成时自动触发;发奖励 → emit `quest:completed` → 自动开始满足前置的 `chainNext` |
-| `active` / `completed` | 活跃任务(含每目标进度)/ 已完成 id 列表 |
 | `canStartQuest(id)` / `getAvailableQuests()` | 前置判定 / 当前可开始的任务定义 |
 | `isActive(id)` / `isCompleted(id)` | 状态查询 |
 | `resubscribe()` | 重挂活跃任务的触发器订阅(常规场景自动处理) |
 | `dispose()` | 解除全部总线订阅,停止自动推进(`resubscribe()` 可恢复) |
+
+状态字段(`active` 活跃任务(含每目标进度)、`completed` 已完成 id 列表、`definitions`)
+通过 `engine.getState()` 快照读取,或订阅 `engine.store`。React 里用 zustand 的 `useStore`:
+
+```tsx
+import { useStore } from 'zustand'
+
+const active = useStore(quests.store, (s) => s.active)
+const completed = useStore(quests.store, (s) => s.completed)
+```
 
 ## 与事件总线的交互
 

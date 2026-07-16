@@ -18,6 +18,12 @@ export interface OverworldEventMap {
   'scene:changed': { from: string | null; to: string }
   'proximity:enter': { kind: EntityKind; id: string }
   'proximity:leave': { kind: EntityKind; id: string }
+  'entity:interact': { kind: EntityKind; id: string }
+  /**
+   * @deprecated Use `'entity:interact'` instead. This is the legacy,
+   * unprefixed name; `@overworld/scene`'s `interact()` emits both during the
+   * transition. The legacy emit (and this entry) will be removed in 2.0.
+   */
   interact: { kind: EntityKind; id: string }
   'dialogue:started': { npcId: string; dialogueId: string }
   'dialogue:ended': { npcId: string; dialogueId: string; nodeId: string }

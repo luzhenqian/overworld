@@ -190,7 +190,7 @@ const toast = (
 ) => useToastStore.getState().show({ message, variant })
 
 // E 键交互:NPC → 对话;宝箱 → 开箱逻辑
-gameEvents.on('interact', ({ kind, id }) => {
+gameEvents.on('entity:interact', ({ kind, id }) => {
   if (kind === 'npc') {
     const dialogueId = NPC_DIALOGUES[id]
     if (dialogueId) dialogue.getState().start(dialogueId, id)

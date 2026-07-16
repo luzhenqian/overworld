@@ -1,4 +1,5 @@
 import { KEYBOARD_PRIORITY, useHotkey, useKeyboardLayer } from '@overworld/input'
+import { useStore } from 'zustand'
 import { dialogue } from '../game/engines'
 
 /**
@@ -7,17 +8,17 @@ import { dialogue } from '../game/engines'
  * 文案是中文字面量,直接渲染(对比 starter 的 i18n key 路径)。
  */
 function DialoguePanel() {
-  const currentNode = dialogue((s) => s.currentNode)
-  const responses = dialogue((s) => s.availableResponses)
+  const currentNode = useStore(dialogue.store, (s) => s.currentNode)
+  const responses = useStore(dialogue.store, (s) => s.availableResponses)
 
   useKeyboardLayer('dialogue', KEYBOARD_PRIORITY.NPC_DIALOGUE)
-  useHotkey('escape', () => dialogue.getState().end(), {
+  useHotkey('escape', () => dialogue.end(), {
     priority: KEYBOARD_PRIORITY.NPC_DIALOGUE,
   })
   useHotkey(
     'e',
     () => {
-      if (dialogue.getState().availableResponses.length === 0) dialogue.getState().advance()
+      if (dialogue.getState().availableResponses.length === 0) dialogue.advance()
     },
     { priority: KEYBOARD_PRIORITY.NPC_DIALOGUE }
   )
@@ -53,7 +54,7 @@ function DialoguePanel() {
           {responses.map((response) => (
             <button
               key={response.id}
-              onClick={() => dialogue.getState().choose(response.id)}
+              onClick={() => dialogue.choose(response.id)}
               style={{
                 textAlign: 'left',
                 background: '#1c2740',
@@ -71,7 +72,7 @@ function DialoguePanel() {
         </div>
       ) : (
         <button
-          onClick={() => dialogue.getState().advance()}
+          onClick={() => dialogue.advance()}
           style={{
             background: '#1c2740',
             color: '#cfe0ff',
@@ -89,7 +90,7 @@ function DialoguePanel() {
 }
 
 export function DialogueBox() {
-  const active = dialogue((s) => s.activeDialogue)
+  const active = useStore(dialogue.store, (s) => s.activeDialogue)
   // 条件挂载:键盘层只在对话进行中注册
   return active ? <DialoguePanel /> : null
 }

@@ -8,16 +8,21 @@
  * from the `name` prop, quest badges from the `indicator` prop, and
  * "am I nearby?" from the scene store (populated by `useProximityDetection`,
  * which SceneShell runs for you).
+ *
+ * Model loading: the model subtree is wrapped in `<Suspense>` plus a
+ * {@link ModelErrorBoundary} (keyed by `modelPath`, so changing the path
+ * retries). The themed fallback capsule renders while the model loads, when
+ * it fails to load, and when `modelPath` is omitted.
  */
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { Text, Billboard, Float } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Vec3 } from '@overworld/core'
 import { useSceneStore } from './sceneStore'
 import { useModelLoader } from './useModelLoader'
+import { ModelErrorBoundary } from './ModelErrorBoundary'
+import { npcVisualHeights, DEFAULT_NPC_SCALE } from './visualHeights'
 import type { NPCTheme, NPCIndicator } from './types'
-
-const DEFAULT_NPC_SCALE = 2.5
 
 const INDICATOR_STYLE: Record<NPCIndicator, { symbol: string; color: string }> = {
   'quest-available': { symbol: '!', color: '#F59E0B' },
@@ -27,8 +32,8 @@ const INDICATOR_STYLE: Record<NPCIndicator, { symbol: string; color: string }> =
 
 export interface BaseNPCProps {
   npcId: string
-  /** GLTF/GLB model URL. */
-  modelPath: string
+  /** GLTF/GLB model URL. When omitted, the themed fallback capsule renders. */
+  modelPath?: string
   position: Vec3
   rotation?: Vec3
   scale?: number
@@ -49,8 +54,59 @@ export interface BaseNPCProps {
   interactHint?: (id: string) => React.ReactNode
   /** Optional font URL for labels (drei `Text` default font when omitted). */
   labelFont?: string
+  /**
+   * Name-label height in world units, overriding the scale-proportional
+   * default (`4.2 × scale / 2.5`). The indicator badge and interaction
+   * bubble keep their offset above it. See {@link npcVisualHeights}.
+   */
+  labelHeight?: number
   /** Optional callback to modify each mesh after clone (e.g. transparency). */
   modifyMaterial?: (child: THREE.Mesh) => void
+}
+
+/** Themed placeholder capsule: loading state, load failure and no-model NPCs. */
+function NPCFallback({
+  theme,
+  isNearby,
+  fallbackScale,
+}: {
+  theme: NPCTheme
+  isNearby: boolean
+  fallbackScale: number
+}) {
+  return (
+    <group scale={fallbackScale}>
+      <mesh position={[0, 2.5, 0]} castShadow receiveShadow>
+        <capsuleGeometry args={[1, 4, 4, 8]} />
+        <meshStandardMaterial
+          color={theme.fallbackColor ?? theme.primaryColor}
+          emissive={theme.fallbackEmissive ?? theme.primaryColor}
+          emissiveIntensity={isNearby ? 0.8 : 0.5}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+/**
+ * The suspending part: `useModelLoader` suspends while loading (handled by
+ * the parent `<Suspense>`) and returns null on a real load failure, in which
+ * case the shared fallback renders.
+ */
+function NPCModel({
+  modelPath,
+  scale,
+  modifyMaterial,
+  fallback,
+}: {
+  modelPath: string
+  scale: number
+  modifyMaterial?: (child: THREE.Mesh) => void
+  fallback: React.ReactNode
+}) {
+  const model = useModelLoader({ modelPath, modifyMaterial })
+  if (!model) return <>{fallback}</>
+  return <primitive object={model} scale={scale} />
 }
 
 export function BaseNPC({
@@ -68,38 +124,44 @@ export function BaseNPC({
   interactLabel = 'E',
   interactHint,
   labelFont,
+  labelHeight,
   modifyMaterial,
 }: BaseNPCProps) {
   const groupRef = useRef<THREE.Group>(null)
 
-  const model = useModelLoader({ modelPath, modifyMaterial })
   const isNearby = useSceneStore((state) => state.nearbyNpcId === npcId)
 
   const indicatorStyle = indicator ? INDICATOR_STYLE[indicator] : null
+  const heights = npcVisualHeights(scale, labelHeight)
+
+  const fallback = (
+    <NPCFallback theme={theme} isNearby={isNearby} fallbackScale={heights.fallbackScale} />
+  )
 
   return (
     <group ref={groupRef} position={position}>
-      {/* NPC model with rotation */}
+      {/* NPC model with rotation (fallback capsule while loading / on failure) */}
       <group rotation={rotation}>
-        {model ? (
-          <primitive object={model} scale={scale} />
-        ) : (
-          <group>
-            <mesh position={[0, 2.5, 0]} castShadow receiveShadow>
-              <capsuleGeometry args={[1, 4, 4, 8]} />
-              <meshStandardMaterial
-                color={theme.fallbackColor ?? theme.primaryColor}
-                emissive={theme.fallbackEmissive ?? theme.primaryColor}
-                emissiveIntensity={isNearby ? 0.8 : 0.5}
+        {modelPath ? (
+          // Key by URL so editing modelPath resets a previous load failure.
+          <ModelErrorBoundary key={modelPath} modelPath={modelPath} fallback={fallback}>
+            <Suspense fallback={fallback}>
+              <NPCModel
+                modelPath={modelPath}
+                scale={scale}
+                modifyMaterial={modifyMaterial}
+                fallback={fallback}
               />
-            </mesh>
-          </group>
+            </Suspense>
+          </ModelErrorBoundary>
+        ) : (
+          fallback
         )}
       </group>
 
       {/* NPC name label */}
       {isNearby && name && (
-        <Billboard position={[0, 4.2, 0]} follow={true}>
+        <Billboard position={[0, heights.labelY, 0]} follow={true}>
           <group>
             <mesh position={[0, 0, -0.01]}>
               <planeGeometry args={[name.length * 0.25 + 0.5, 0.6]} />
@@ -123,7 +185,7 @@ export function BaseNPC({
       {/* Indicator badge (e.g. quest "!") */}
       {showQuestIndicator && indicatorStyle && (
         <Float speed={3} rotationIntensity={0} floatIntensity={0.5}>
-          <Billboard position={[0, 5, 0]} follow={true}>
+          <Billboard position={[0, heights.indicatorY, 0]} follow={true}>
             <group>
               <mesh position={[0, 0, -0.02]}>
                 <circleGeometry args={[0.5, 32]} />
@@ -146,7 +208,12 @@ export function BaseNPC({
 
       {/* Glow effect */}
       {showGlow && isNearby && (
-        <pointLight position={[0, 3, 0]} color={theme.glowColor} intensity={15} distance={10} />
+        <pointLight
+          position={[0, heights.glowY, 0]}
+          color={theme.glowColor}
+          intensity={15}
+          distance={10}
+        />
       )}
 
       {/* Interaction hint */}
@@ -155,7 +222,7 @@ export function BaseNPC({
           interactHint(npcId)
         ) : (
           showEBubble && (
-            <Billboard position={[0, 5.5, 0]} follow={true}>
+            <Billboard position={[0, heights.bubbleY, 0]} follow={true}>
               <group>
                 <mesh position={[0, 0, -0.01]}>
                   <circleGeometry args={[0.45, 32]} />

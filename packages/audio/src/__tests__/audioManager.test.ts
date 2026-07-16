@@ -41,7 +41,7 @@ function makeManager(overrides: Partial<AudioManagerConfig> = {}) {
     tracks: TRACKS,
     sceneTracks: { plaza: 'town', crypt: 'dungeon' },
     fadeDuration: 0, // Keep tests synchronous — no fade intervals.
-    persist: false,
+    // `persist` omitted: disabled by framework convention.
     bus: new EventBus<OverworldEventMap>(),
     ...overrides,
   })
@@ -282,6 +282,35 @@ describe('autoplay policy unlock', () => {
     await vi.waitFor(() => expect(manager.getState().unlocked).toBe(true))
     expect(MockAudio.instances.at(-1)!.paused).toBe(false)
     expect(listeners.size).toBe(0) // Listeners removed after retry.
+  })
+})
+
+describe('persist config convention', () => {
+  it('is disabled when omitted and enabled via persist: true', () => {
+    // omitted -> no persist wrapper -> no `persist` API on the store
+    const off = makeManager()
+    expect((off.store as unknown as { persist?: unknown }).persist).toBeUndefined()
+
+    // `true` -> enabled with defaults (memory storage in Node).
+    const on = makeManager({ persist: true })
+    expect((on.store as unknown as { persist?: unknown }).persist).toBeDefined()
+    on.setVolume(0.3)
+    expect(on.store.getState().volume).toBe(0.3)
+  })
+})
+
+describe('store exposure', () => {
+  it('exposes the vanilla store: getState() matches and subscribe() sees changes', () => {
+    const manager = makeManager()
+    expect(manager.store.getState()).toBe(manager.getState())
+
+    const muted: boolean[] = []
+    const unsubscribe = manager.store.subscribe((state) => muted.push(state.muted))
+    manager.toggleMute()
+    manager.toggleMute()
+    unsubscribe()
+    manager.toggleMute()
+    expect(muted).toEqual([true, false])
   })
 })
 

@@ -3,6 +3,16 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v0.9(破坏性变更收官)
+
+- **P1** store 形态统一:dialogue/quest/audio 全部改为 `{ store, ...方法 }`(React 端 `useStore(engine.store, sel)`),全框架 8 个引擎形态一致
+- **P2** `interact` → `entity:interact`(双发过渡,旧名 2.0 移除)
+- **P3** audio persist 默认对齐约定(省略 = 关闭)
+- **P11** `NPCWalker` 新增 `driven`/`tree`,行为树组合不再双步进
+- **P12** BaseNPC/BaseBuilding 回退几何体与标签高度尊重 `scale`(默认值下视觉不变)
+- **P13** 模型加载改为标准 Suspense + 错误边界;顺带修复 Player/Portal 无边界导致的潜在整树挂起
+- **P14** `blockCell`/`createNavGridFromCells` 格子级建网格(tile 地图一等公民)
+
 ## v0.8
 
 - **第二款示例游戏 `examples/dungeon`**:种子化程序地牢、行为树敌人(巡逻→追击→回岗)、钥匙宝箱任务链、HPA* 引路点、心心/击退/通关计时 —— 验证框架泛化性,并带回 6 个 1.0 前待修阻力点

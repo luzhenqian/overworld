@@ -68,11 +68,24 @@ export interface NavGrid {
    * `(x, z)`. Use for dynamic obstacles added after creation.
    */
   blockCircle(x: number, z: number, radius: number): void
+  /**
+   * Mark exactly cell `(cx, cz)` blocked — no inflation, no neighbors.
+   * Out-of-bounds coordinates are a no-op. Use for tile maps where each
+   * tile maps 1:1 to a cell (see {@link createNavGridFromCells}).
+   */
+  blockCell(cx: number, cz: number): void
+  /**
+   * Mark exactly cell `(cx, cz)` walkable again. Out-of-bounds coordinates
+   * are a no-op. Counterpart of {@link NavGrid.blockCell}.
+   */
+  unblockCell(cx: number, cz: number): void
   /** Clear every blocked cell (including the config obstacles). */
   unblockAll(): void
   /**
    * Clear the grid and re-rasterize `obstacles` (defaults to the obstacles
    * passed at creation). Use when the obstacle set changes wholesale.
+   * Grids from {@link createNavGridFromCells} additionally re-evaluate
+   * their cell source on every rebuild.
    */
   rebuild(obstacles?: Obstacle[]): void
 }
@@ -139,6 +152,16 @@ export function createNavGrid(config: NavGridConfig): NavGrid {
       }
     },
 
+    blockCell(cx, cz) {
+      if (cx < 0 || cz < 0 || cx >= cols || cz >= rows) return
+      blocked[cz * cols + cx] = 1
+    },
+
+    unblockCell(cx, cz) {
+      if (cx < 0 || cz < 0 || cx >= cols || cz >= rows) return
+      blocked[cz * cols + cx] = 0
+    },
+
     unblockAll() {
       blocked.fill(0)
     },
@@ -150,6 +173,91 @@ export function createNavGrid(config: NavGridConfig): NavGrid {
   }
 
   for (const o of initialObstacles) grid.blockCircle(o.x, o.z, o.radius)
+  return grid
+}
+
+/**
+ * Cell source for {@link createNavGridFromCells}: either a predicate
+ * `(cx, cz) => blocked`, or a 2D array indexed `cells[cz][cx]` (**row = z**,
+ * column = x) where `1`/`true` means BLOCKED. Missing rows/entries count as
+ * walkable.
+ */
+export type NavGridCellSource =
+  | ((cx: number, cz: number) => boolean)
+  | ReadonlyArray<ReadonlyArray<0 | 1>>
+
+/** Configuration for {@link createNavGridFromCells}. */
+export interface NavGridFromCellsConfig {
+  /** World-space extent of the grid (same convention as {@link createNavGrid}). */
+  bounds: NavGridBounds
+  /** Cell edge length in world units. @default 1 */
+  cellSize?: number
+  /**
+   * Which cells are blocked: a predicate `(cx, cz) => boolean`, or a 2D array
+   * `cells[cz][cx]` (row = z) of `0 | 1` — `1`/`true` = BLOCKED.
+   *
+   * Cell values are **absolute**: `agentRadius` does NOT inflate them (unlike
+   * circular obstacles). For tile maps this means one array entry blocks
+   * exactly one cell — no `blockCircle` radius tuning.
+   */
+  cells: NavGridCellSource
+  /**
+   * Obstacle inflation radius for **circle-based** operations only
+   * (`blockCircle`, `rebuild(obstacles)`); it never affects `cells`.
+   * @default 0.5
+   */
+  agentRadius?: number
+}
+
+/**
+ * Create a {@link NavGrid} directly from per-cell data — the tile-map path
+ * that {@link createNavGrid}'s circular obstacles don't cover.
+ *
+ * ```ts
+ * // 1 = wall. Orientation: cells[cz][cx] — each inner array is one row
+ * // of constant z, read left-to-right in +x.
+ * const grid = createNavGridFromCells({
+ *   bounds: { minX: 0, maxX: 4, minZ: 0, maxZ: 3 },
+ *   cells: [
+ *     [1, 1, 1, 1], // z = 0
+ *     [1, 0, 0, 1], // z = 1
+ *     [1, 1, 1, 1], // z = 2
+ *   ],
+ * })
+ * ```
+ *
+ * The source is kept by reference: `rebuild()` clears the grid and
+ * re-evaluates it (predicate re-run, array re-read), so mutate the array or
+ * the predicate's captured state and call `rebuild()` to refresh.
+ * `rebuild(obstacles)` additionally rasterizes the circles on top — both
+ * construction modes stay coherent on one grid.
+ *
+ * `agentRadius` interplay: cell values are **absolute** (one entry = exactly
+ * one cell, never inflated); `agentRadius` only applies to circle-based calls
+ * like `blockCircle`.
+ */
+export function createNavGridFromCells(config: NavGridFromCellsConfig): NavGrid {
+  const { cells, ...rest } = config
+  const grid = createNavGrid(rest)
+
+  const isBlocked: (cx: number, cz: number) => boolean =
+    typeof cells === 'function' ? cells : (cx, cz) => Boolean(cells[cz]?.[cx])
+
+  const applyCells = (): void => {
+    for (let cz = 0; cz < grid.rows; cz++) {
+      for (let cx = 0; cx < grid.cols; cx++) {
+        if (isBlocked(cx, cz)) grid.blockCell(cx, cz)
+      }
+    }
+  }
+
+  const rebuildCircles = grid.rebuild
+  grid.rebuild = (obstacles) => {
+    rebuildCircles(obstacles) // clears, then rasterizes obstacles (default: none)
+    applyCells()
+  }
+
+  applyCells()
   return grid
 }
 

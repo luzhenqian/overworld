@@ -1,6 +1,13 @@
 // Navigation grid
-export { createNavGrid, collidersToObstacles } from './grid'
-export type { NavGrid, NavGridBounds, NavGridConfig, Obstacle } from './grid'
+export { createNavGrid, createNavGridFromCells, collidersToObstacles } from './grid'
+export type {
+  NavGrid,
+  NavGridBounds,
+  NavGridCellSource,
+  NavGridConfig,
+  NavGridFromCellsConfig,
+  Obstacle,
+} from './grid'
 
 // A* pathfinding + smoothing (pure)
 export { findPath, smoothPath, hasLineOfSight, nearestWalkableCell } from './astar'
@@ -62,6 +69,8 @@ export type {
   ScheduleConfig,
 } from './schedule'
 
-// R3F components
+// Frame-loop driving (pure helper + R3F components)
+export { stepAgent } from './driver'
+export type { StepAgentOptions } from './driver'
 export { NPCWalker, useAgentDriver } from './NPCWalker'
 export type { AgentDriverOptions, NPCWalkerProps } from './NPCWalker'

@@ -4,7 +4,7 @@
  * events. Everything game-specific from the source controller (model path,
  * world bounds, quest hooks, keyboard priority store) is parameterized.
  */
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Vector3 } from 'three'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
@@ -13,6 +13,7 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 import { gameEvents, type Vec3 } from '@overworld/core'
 import { useCollisionStore } from './collisionStore'
 import { playerPositionRef, playerRotationRef, consumePlayerTeleport } from './playerStore'
+import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { FollowCamera } from './FollowCamera'
 
 const DEFAULT_SPEED = 0.15
@@ -66,7 +67,10 @@ export interface PlayerBounds {
 }
 
 export interface PlayerProps {
-  /** GLTF/GLB model URL. When omitted, a capsule placeholder is rendered. */
+  /**
+   * GLTF/GLB model URL. When omitted, a capsule placeholder is rendered;
+   * the same capsule shows while the model loads and when loading fails.
+   */
   modelUrl?: string
   /**
    * Animation clip names in the model. When omitted, clips are picked by the
@@ -353,12 +357,22 @@ export function Player({
     <>
       <group ref={characterRef} position={initialPosition}>
         {modelUrl ? (
-          <PlayerModel
-            modelUrl={modelUrl}
-            animationMap={animationMap}
-            movement={movement}
-            scale={modelScale}
-          />
+          // Key by URL so editing modelUrl resets a previous load failure.
+          // The capsule renders while the model loads and on load failure.
+          <ModelErrorBoundary
+            key={modelUrl}
+            modelPath={modelUrl}
+            fallback={<PlayerFallback isMoving={movement !== 'idle'} />}
+          >
+            <Suspense fallback={<PlayerFallback isMoving={movement !== 'idle'} />}>
+              <PlayerModel
+                modelUrl={modelUrl}
+                animationMap={animationMap}
+                movement={movement}
+                scale={modelScale}
+              />
+            </Suspense>
+          </ModelErrorBoundary>
         ) : (
           <PlayerFallback isMoving={movement !== 'idle'} />
         )}

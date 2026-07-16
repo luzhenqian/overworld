@@ -123,8 +123,8 @@ export function World() {
   }, [])
 
   // 任务引擎状态 → NPC 头顶指示器(游戏侧推导,场景包不认识任务系统)
-  const active = useStore(quests, (s) => s.active)
-  const completed = useStore(quests, (s) => s.completed)
+  const active = useStore(quests.store, (s) => s.active)
+  const completed = useStore(quests.store, (s) => s.completed)
   const npcIndicators: Record<string, NPCIndicator> = {}
   if (active['welcome'] && !active['welcome'].objectives['talk']?.completed) {
     npcIndicators['guide'] = 'quest-available'

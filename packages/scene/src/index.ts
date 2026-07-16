@@ -33,9 +33,20 @@ export type { PlayerProps, PlayerAnimationMap, PlayerBounds, MovementInputRef } 
 export { FollowCamera } from './FollowCamera'
 export type { FollowCameraProps } from './FollowCamera'
 
+// Visual layout helpers (pure math, testable without GL)
+export {
+  npcVisualHeights,
+  buildingVisualHeights,
+  DEFAULT_NPC_SCALE,
+  DEFAULT_BUILDING_SCALE,
+} from './visualHeights'
+export type { NPCVisualHeights, BuildingVisualHeights } from './visualHeights'
+
 // Hooks
 export { useModelLoader } from './useModelLoader'
 export type { UseModelLoaderOptions } from './useModelLoader'
+export { ModelErrorBoundary } from './ModelErrorBoundary'
+export type { ModelErrorBoundaryProps } from './ModelErrorBoundary'
 export { useProximityDetection } from './useProximityDetection'
 export type { ProximityEntity, UseProximityDetectionOptions } from './useProximityDetection'
 

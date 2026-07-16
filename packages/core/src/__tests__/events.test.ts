@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { EventBus } from '../events'
+import { EventBus, type OverworldEventMap } from '../events'
 
 interface TestMap {
   ping: { n: number }
@@ -68,5 +68,22 @@ describe('EventBus', () => {
     bus.clear('ping')
     bus.emit('ping', { n: 1 })
     expect(fn).not.toHaveBeenCalled()
+  })
+})
+
+describe('OverworldEventMap', () => {
+  it('carries entity:interact and the deprecated interact with the same payload', () => {
+    const bus = new EventBus<OverworldEventMap>()
+    const modern = vi.fn()
+    const legacy = vi.fn()
+    bus.on('entity:interact', modern)
+    bus.on('interact', legacy)
+
+    const payload = { kind: 'npc', id: 'guide' } as const
+    bus.emit('entity:interact', payload)
+    bus.emit('interact', payload)
+
+    expect(modern).toHaveBeenCalledWith(payload)
+    expect(legacy).toHaveBeenCalledWith(payload)
   })
 })

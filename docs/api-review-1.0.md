@@ -41,6 +41,8 @@
 
 ### P1(重点)store 暴露形态统一 —— 建议 1.0 前
 
+> **状态:已执行(v0.9)** —— dialogue / quest / audio 已统一为 B 形态 `{ store: StoreApi(vanilla), ...方法 }`(`DialogueEngine`/`QuestEngine` 由 hook 别名改为接口,audio 的 `useStore` 更名为 `store` 且无兼容别名);examples 的下游适配另行处理。
+
 **现状**,三种形态并存:
 
 | 形态 | 包 | 返回值 |
@@ -55,14 +57,16 @@
 
 **建议时机**:1.0 前。若 1.0 排期不允许,至少在 dialogue/quest 上附加 `.store` 属性(hook 对象上挂 vanilla 引用,附加不破坏),把 A 形态"降级"为兼容层,2.0 收口。
 
-### P2(重点)`interact` 事件更名为 `entity:interact` —— 建议 1.0 前
+### P2(重点)`interact` 事件更名为 `entity:interact` —— ✅ 已执行(v0.9)
 
 **现状**:`OverworldEventMap` 中唯一无 domain 前缀的事件(`packages/core/src/events.ts`),由 `packages/scene/src/interaction.ts` 的 `interact()` 发出,载荷 `{ kind: EntityKind; id: string }`。
 **提案**:事件表新增 `'entity:interact'`(同载荷);`scene.interact()` 双发一个过渡版本(或 pre-1.0 直接更名不双发);1.0 冻结时移除裸 `interact`。docs 站 core 页事件表同步。
 **影响面**:所有订阅 `interact` 的游戏代码(starter、示例、外部早期用户);框架内部无消费者(grep 确认只有 scene 发、无包订阅)。
-**建议时机**:1.0 前(更名窗口关闭在即;若拖到 2.0 则必须走双发弃用周期)。
+**执行情况(v0.9)**:事件表已新增 `'entity:interact'`,裸 `interact` 保留并标 `@deprecated`;`scene.interact()` 过渡期双发同一载荷(测试断言两者各触发一次),2.0 移除旧名;core/scene 的 docs 页与 README 事件表已同步。
 
 ### P3 audio `persist` 默认值对齐约定 —— 建议 1.0 前
+
+> **状态:已执行(v0.9)** —— audio `persist` 改为省略 = 关闭,与全框架约定一致;README / docs 页已同步。
 
 **现状**:架构文档约定"`persist` 省略或 `false` = 不持久化",7 个引擎中 6 个遵守;audio 是 `config.persist ?? true`(默认**开启**,键 `overworld:audio`)。本次已把文档改为如实描述,但约定违背仍在。
 **提案**:1.0 改为省略 = 关闭,与全框架一致;starter/模板中显式传 `persist: true` 保持体验。
@@ -114,8 +118,8 @@ audio 与 notifications 从 `'zustand'`(React 入口,内部 `useSyncExternalStor
 
 | 包 | 值导出 | 类型导出 | 测试数 | README | docs 页 | 就绪度 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 13 | 21 | 34 | ✅(本次新增) | ✅ | ✅ 就绪 | `interact` 事件更名待决(P2) |
-| scene | 27 | 30 | 38 | ✅ | ✅ | ⚠️ 待决 | `interact()` 双发(P2)、`DeepPartial`(P10) |
+| core | 13 | 21 | 35 | ✅(本次新增) | ✅ | ✅ 就绪 | `entity:interact` 已落地、旧名双发弃用(P2 已执行 v0.9) |
+| scene | 32 | 33 | 48 | ✅ | ✅ | ✅ 就绪 | P2/P12/P13 已执行(v0.9);`DeepPartial`(P10)待 2.0 |
 | input | 11 | 7 | 30 | ✅ | ✅ | ✅ 就绪 | 单例模式,归类清晰 |
 | dialogue | 2 | 8 | 14 | ✅ | ✅ | ⚠️ 待决 | A 形态 hook 直返(P1)、registries 必填(P7) |
 | quest | 1 | 10 | 19 | ✅ | ✅ | ⚠️ 待决 | 同 dialogue |
@@ -147,14 +151,27 @@ audio 与 notifications 从 `'zustand'`(React 入口,内部 `useSyncExternalStor
 
 开发 examples/dungeon 过程中记录的框架摩擦,按优先级并入 1.0 待办:
 
-1. **P11(1.0 前)** `NPCWalker` 与行为树组合会双步进(两者都调 `agent.update`)——
+1. **P11(1.0 前)✅ 已执行(v0.9)** `NPCWalker` 与行为树组合会双步进(两者都调 `agent.update`)——
    给 NPCWalker 加 `driven?: boolean` 或 `tree` prop。
-2. **P12(1.0 前)** `BaseNPC` 回退胶囊硬编码 6 单位高且无视 `scale` prop —— 回退几何体应用 scale。
-3. **P13(1.0 前)** `useModelLoader` 把 Suspense promise 当错误捕获,晚加载的模型不触发重渲染
+   → 已加 `driven?`(默认 true)与 `tree?` prop(`tree` 时改调 `tickTreeWithAgent`,
+   单一调用点;`driven=false` 纯渲染且优先于 `tree`,每棵树警告一次);
+   `useAgentDriver` 同步支持,共用纯函数 `stepAgent(agent, deltaMs, { driven?, tree? })`(已导出)。
+2. **P12(1.0 前)✅ 已执行(v0.9)** `BaseNPC` 回退胶囊硬编码 6 单位高且无视 `scale` prop —— 回退几何体应用 scale。
+   已按 `scale / 2.5`(NPC 默认 scale)归一化回退胶囊,名牌/角标/气泡高度随 scale 等比
+   (默认值下与旧版逐像素一致),新增 `labelHeight` 覆盖 prop;`BaseBuilding` 回退盒体
+   同样处理(基准 scale = 1);纯数学抽为 `npcVisualHeights` / `buildingVisualHeights`(带单测)。
+3. **P13(1.0 前)✅ 已执行(v0.9)** `useModelLoader` 把 Suspense promise 当错误捕获,晚加载的模型不触发重渲染
    永不出现;唯一缓解是模块级 `preloadSceneModels`(连 starter 自己都没调)——
    区分 promise 与 Error,或文档强制预加载。
-4. **P14(1.0 前)** `NavGrid` 缺格子级 API —— tile 地图要用调参过的 `blockCircle` 才能精确
+   已改为 thenable 重抛(正常 Suspense 挂起)、真错误打一条日志后返回 null;
+   `BaseNPC` / `BaseBuilding` / `Player` 内置 `<Suspense>` + 共享 `ModelErrorBoundary`
+   (按模型 URL 作 key,占位体三态共用);`preloadSceneModels` 降级为纯性能优化,文档已同步。
+4. **P14(1.0 前)✅ 已执行(v0.9)** `NavGrid` 缺格子级 API —— tile 地图要用调参过的 `blockCircle` 才能精确
    封一格;应提供 `blockCell(cx, cz)` / `fromCells()`。
+   → 已加 `blockCell` / `unblockCell`(精确一格、越界 no-op)与
+   `createNavGridFromCells({ bounds, cellSize?, cells, agentRadius? })`
+   (谓词或 2D 数组 `cells[cz][cx]`,1/true = 阻塞;格子值绝对、不受 `agentRadius`
+   膨胀;`rebuild()` 重新求值数据源,`rebuild(obstacles)` 在其上叠加圆形障碍)。
 5. **P15(2.0 可)** `BuildingConfig.modelPath` 必填且无回退友好路径;BaseNPC 名牌/徽章高度
    假设大胶囊,小模型徽章悬空。
 6. 文档补充:SceneShell 的 buildings-only 邻近通道与自定义可交互物的组合方式。

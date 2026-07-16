@@ -1,8 +1,8 @@
 # @overworld/audio
 
 BGM / 音效管理器:单例 HTMLAudio 池、切曲淡入淡出、浏览器自动播放策略处理
-(首次用户交互后自动重试)、音量与静音设置持久化,并可订阅事件总线上的
-`scene:changed` 事件自动切换场景 BGM。
+(首次用户交互后自动重试)、可选的音量与静音设置持久化(经 `persist` 显式开启),
+并可订阅事件总线上的 `scene:changed` 事件自动切换场景 BGM。
 
 包内**零游戏内容**:曲目表、场景映射全部由配置注入。所有浏览器 API 均有守卫,
 在 Node / SSR / 测试环境中导入和创建不会崩溃(仅记录状态、不实际播放)。
@@ -36,11 +36,20 @@ audio.playSfx('pickup') // 一次性音效
 | `volume` / `sfxVolume` | `0.7` | 初始 BGM / 音效音量(0–1) |
 | `fadeDuration` | `1000` | 切曲淡入淡出时长(ms),`0` 表示立即切换 |
 | `loop` | `true` | BGM 是否循环 |
-| `persist` | `true`(开启) | 省略或 `true` 用默认配置持久化音量/静音(键 `overworld:audio`);`false` 关闭;可传对象自定义。注意:与其他引擎“省略 = 关闭”的约定不同 |
+| `persist` | 省略(关闭) | 框架统一约定:省略或 `false` 不持久化;`true` 用默认配置持久化音量/静音(键 `overworld:audio`);可传对象自定义。v0.9 起省略即关闭(此前默认开启),依赖持久化请显式传 `persist: true` |
 
 ## Manager API
 
-- `useStore` — zustand hook,响应式读取 `{ volume, sfxVolume, muted, currentTrackId, unlocked }`
+- `store` — 底层 zustand vanilla store(`StoreApi<AudioState>`),状态为
+  `{ volume, sfxVolume, muted, currentTrackId, unlocked }`;`getState()` 取快照,
+  React 里用 zustand 的 `useStore`:
+
+  ```tsx
+  import { useStore } from 'zustand'
+
+  const muted = useStore(audio.store, (s) => s.muted)
+  ```
+
 - `playTrack(trackId)` / `stopTrack()` — 播放 / 停止 BGM(带淡入淡出)
 - `playSceneTrack(sceneId)` — 按场景映射播放;`resolveSceneTrack(sceneId)` 仅做解析
 - `playSfx(trackId)` — 一次性音效

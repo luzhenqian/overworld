@@ -3,21 +3,28 @@
  * Handles: model loading, nearby highlighting, name label, glow effect and
  * interaction hint bubble. Nearby state is read from the scene store
  * (populated by `useProximityDetection`).
+ *
+ * Model loading: the model subtree is wrapped in `<Suspense>` plus a
+ * {@link ModelErrorBoundary} (keyed by `modelPath`, so changing the path
+ * retries). The themed fallback box renders while the model loads, when it
+ * fails to load, and when `modelPath` is omitted.
  */
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { Text, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Vec3 } from '@overworld/core'
 import { useSceneStore } from './sceneStore'
 import { useModelLoader } from './useModelLoader'
+import { ModelErrorBoundary } from './ModelErrorBoundary'
+import { buildingVisualHeights } from './visualHeights'
 import type { BuildingTheme } from './types'
 
 export interface BaseBuildingProps {
   buildingId: string
   /** Display name shown above the building when nearby. */
   name: string
-  /** GLTF/GLB model URL. */
-  modelPath: string
+  /** GLTF/GLB model URL. When omitted, the themed fallback box renders. */
+  modelPath?: string
   position: Vec3
   rotation: Vec3
   scale: number
@@ -28,6 +35,53 @@ export interface BaseBuildingProps {
   interactHint?: (id: string) => React.ReactNode
   /** Optional font URL for labels (drei `Text` default font when omitted). */
   labelFont?: string
+  /**
+   * Name-label height in world units, overriding the scale-proportional
+   * default (`6 × scale`). The interaction bubble keeps its offset above it.
+   * See {@link buildingVisualHeights}.
+   */
+  labelHeight?: number
+}
+
+/** Themed placeholder box: loading state, load failure and no-model buildings. */
+function BuildingFallback({
+  theme,
+  fallbackScale,
+}: {
+  theme: BuildingTheme
+  fallbackScale: number
+}) {
+  return (
+    <mesh castShadow receiveShadow scale={fallbackScale}>
+      <boxGeometry args={[8, 12, 8]} />
+      <meshStandardMaterial
+        color={theme.fallbackBoxColor}
+        emissive={theme.fallbackEmissive}
+        emissiveIntensity={0.3}
+        metalness={0.5}
+        roughness={0.5}
+      />
+    </mesh>
+  )
+}
+
+/**
+ * The suspending part: `useModelLoader` suspends while loading (handled by
+ * the parent `<Suspense>`) and returns null on a real load failure, in which
+ * case the shared fallback renders.
+ */
+function BuildingModel({
+  modelPath,
+  scale,
+  fallback,
+}: {
+  modelPath: string
+  scale: number
+  fallback: React.ReactNode
+}) {
+  const model = useModelLoader({ modelPath })
+  if (!model) return <>{fallback}</>
+  return <primitive object={model} scale={scale} />
 }
 
 export function BaseBuilding({
@@ -41,35 +95,35 @@ export function BaseBuilding({
   interactLabel = 'E',
   interactHint,
   labelFont,
+  labelHeight,
 }: BaseBuildingProps) {
   const groupRef = useRef<THREE.Group>(null)
 
-  const model = useModelLoader({ modelPath })
   const isNearby = useSceneStore((state) => state.nearbyBuildingId === buildingId)
+
+  const heights = buildingVisualHeights(scale, labelHeight)
+
+  const fallback = <BuildingFallback theme={theme} fallbackScale={heights.fallbackScale} />
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Building model with rotation */}
+      {/* Building model with rotation (fallback box while loading / on failure) */}
       <group rotation={rotation}>
-        {model ? (
-          <primitive object={model} scale={scale} />
+        {modelPath ? (
+          // Key by URL so editing modelPath resets a previous load failure.
+          <ModelErrorBoundary key={modelPath} modelPath={modelPath} fallback={fallback}>
+            <Suspense fallback={fallback}>
+              <BuildingModel modelPath={modelPath} scale={scale} fallback={fallback} />
+            </Suspense>
+          </ModelErrorBoundary>
         ) : (
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[8, 12, 8]} />
-            <meshStandardMaterial
-              color={theme.fallbackBoxColor}
-              emissive={theme.fallbackEmissive}
-              emissiveIntensity={0.3}
-              metalness={0.5}
-              roughness={0.5}
-            />
-          </mesh>
+          fallback
         )}
       </group>
 
       {/* Building name label */}
       {isNearby && (
-        <Billboard position={[0, 6, 0]} follow={true}>
+        <Billboard position={[0, heights.labelY, 0]} follow={true}>
           <group>
             <mesh position={[0, 0, -0.01]}>
               <planeGeometry args={[name.length * 0.3 + 1, 0.8]} />
@@ -92,7 +146,12 @@ export function BaseBuilding({
 
       {/* Glow effect */}
       {isNearby && (
-        <pointLight position={[0, 4, 0]} color={theme.glowColor} intensity={20} distance={15} />
+        <pointLight
+          position={[0, heights.glowY, 0]}
+          color={theme.glowColor}
+          intensity={20}
+          distance={15}
+        />
       )}
 
       {/* Interaction hint */}
@@ -100,7 +159,7 @@ export function BaseBuilding({
         (interactHint ? (
           interactHint(buildingId)
         ) : (
-          <Billboard position={[0, 7.5, 0]} follow={true}>
+          <Billboard position={[0, heights.bubbleY, 0]} follow={true}>
             <group>
               <mesh position={[0, 0, -0.01]}>
                 <circleGeometry args={[0.55, 32]} />

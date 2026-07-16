@@ -19,8 +19,8 @@ const panelStyle: React.CSSProperties = {
 
 /** 任务追踪器 —— 订阅任务引擎;title/description 是中文字面量,直接渲染。 */
 function QuestTracker() {
-  const active = useStore(quests, (s) => s.active)
-  const definitions = useStore(quests, (s) => s.definitions)
+  const active = useStore(quests.store, (s) => s.active)
+  const definitions = useStore(quests.store, (s) => s.definitions)
   const entries = Object.values(active)
   if (entries.length === 0) return null
 

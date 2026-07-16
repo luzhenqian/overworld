@@ -8,8 +8,8 @@ import {
   type EventBus,
   type OverworldEventMap,
 } from '@overworld/core'
-import { create, type StateCreator, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, type StateStorage } from 'zustand/middleware'
+import { createStore, type StateCreator, type StoreApi } from 'zustand/vanilla'
 import type { ActiveDialogue, DialogueNode, DialogueResponse, DialogueTree } from './types'
 
 /** Persistence settings for the dialogue engine. */
@@ -91,10 +91,43 @@ export interface DialogueEngineState {
 }
 
 /**
- * A dialogue engine: a zustand hook that can also be used outside React via
- * `engine.getState()` / `engine.subscribe()`.
+ * The dialogue engine returned by {@link createDialogueEngine}: methods on the
+ * object drive the conversation, the underlying zustand vanilla store carries
+ * the reactive state — subscribe directly, or via `useStore(engine.store,
+ * selector)` in React.
  */
-export type DialogueEngine = UseBoundStore<StoreApi<DialogueEngineState>>
+export interface DialogueEngine {
+  /** Underlying zustand vanilla store — subscribe directly or via `useStore` in React. */
+  store: StoreApi<DialogueEngineState>
+  /** Add or replace dialogue trees at runtime. */
+  registerDialogues(...dialogues: DialogueTree[]): void
+  /**
+   * Begin a conversation. Ends any conversation already in progress. Emits
+   * `dialogue:started`. Returns `false` (with a warning) for unknown ids.
+   */
+  start(dialogueId: string, npcId?: string): boolean
+  /**
+   * Pick one of `availableResponses` by id: runs its effects, then follows
+   * `next` or ends the dialogue. Returns `false` if the response is unknown
+   * or its conditions filtered it out.
+   */
+  choose(responseId: string): boolean
+  /**
+   * Advance a linear node (no available responses): follows `next`, or ends
+   * the dialogue on terminal nodes. Returns `false` when a choice is pending.
+   */
+  advance(): boolean
+  /** Close the conversation immediately. Emits `dialogue:ended`. */
+  end(): void
+  /** Add `delta` to the relationship value for `npcId` (unclamped). */
+  adjustRelationship(npcId: string, delta: number): void
+  /** Whether the dialogue has ever been started. */
+  hasSeen(dialogueId: string): boolean
+  /** Whether the dialogue has ever reached a terminal node. */
+  hasCompleted(dialogueId: string): boolean
+  /** Snapshot of the current state — convenience for `store.getState()`. */
+  getState(): DialogueEngineState
+}
 
 interface DialoguePersistedState {
   relationships: Record<string, number>
@@ -111,8 +144,8 @@ interface DialoguePersistedState {
  * `dialogue:started` / `dialogue:ended` events on the bus.
  *
  * ```ts
- * const useDialogue = createDialogueEngine({ dialogues, conditions, effects })
- * useDialogue.getState().start('guide-intro', 'guide')
+ * const dialogue = createDialogueEngine({ dialogues, conditions, effects })
+ * dialogue.start('guide-intro', 'guide')
  * ```
  */
 export function createDialogueEngine<Ctx = unknown>(
@@ -287,24 +320,38 @@ export function createDialogueEngine<Ctx = unknown>(
     }
   }
 
+  let store: StoreApi<DialogueEngineState>
   if (!config.persist) {
-    return create<DialogueEngineState>()(initializer)
+    store = createStore<DialogueEngineState>()(initializer)
+  } else {
+    const persistConfig = config.persist === true ? {} : config.persist
+    store = createStore<DialogueEngineState>()(
+      persist(
+        initializer,
+        persistOptions<DialogueEngineState, DialoguePersistedState>({
+          name: persistConfig.name ?? 'dialogue',
+          version: persistConfig.version,
+          storage: persistConfig.storage,
+          partialize: (state) => ({
+            relationships: state.relationships,
+            seenDialogues: state.seenDialogues,
+            completedDialogues: state.completedDialogues,
+          }),
+        })
+      )
+    )
   }
 
-  const persistConfig = config.persist === true ? {} : config.persist
-  return create<DialogueEngineState>()(
-    persist(
-      initializer,
-      persistOptions<DialogueEngineState, DialoguePersistedState>({
-        name: persistConfig.name ?? 'dialogue',
-        version: persistConfig.version,
-        storage: persistConfig.storage,
-        partialize: (state) => ({
-          relationships: state.relationships,
-          seenDialogues: state.seenDialogues,
-          completedDialogues: state.completedDialogues,
-        }),
-      })
-    )
-  ) as DialogueEngine
+  return {
+    store,
+    registerDialogues: (...trees) => store.getState().registerDialogues(...trees),
+    start: (dialogueId, npcId) => store.getState().start(dialogueId, npcId),
+    choose: (responseId) => store.getState().choose(responseId),
+    advance: () => store.getState().advance(),
+    end: () => store.getState().end(),
+    adjustRelationship: (npcId, delta) => store.getState().adjustRelationship(npcId, delta),
+    hasSeen: (dialogueId) => store.getState().hasSeen(dialogueId),
+    hasCompleted: (dialogueId) => store.getState().hasCompleted(dialogueId),
+    getState: () => store.getState(),
+  }
 }

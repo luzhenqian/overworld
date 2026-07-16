@@ -29,7 +29,7 @@ export function relationshipEffects(
         )
         return
       }
-      engine.getState().adjustRelationship(npcId, delta)
+      engine.adjustRelationship(npcId, delta)
     },
   }
 }

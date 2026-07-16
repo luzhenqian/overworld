@@ -1,6 +1,6 @@
 {
   "name": "@overworld/audio",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "BGM/SFX manager with scene-track mapping and autoplay policy handling",
   "keywords": [
     "overworld",

@@ -9,7 +9,9 @@
 - 对话内容(树)与行为(条件/效果处理器)彻底分离,引擎零内容、零玩法依赖。
 - 跨系统通信只走事件总线:开始时 emit `dialogue:started`,结束时 emit `dialogue:ended`
   (任务系统可以据此完成"与某 NPC 对话"目标,无需互相 import)。
-- 基于 zustand:返回值既是 React hook,也可通过 `getState()/subscribe()` 在 React 之外使用。
+- 基于 zustand(vanilla store):引擎对象上是方法(`engine.start(...)`),响应式状态在
+  `engine.store` 上 —— React 里用 `useStore(engine.store, selector)`,React 之外用
+  `engine.getState()` / `engine.store.subscribe()`。
 
 ## 数据 Schema
 
@@ -52,7 +54,7 @@ const effects = createEffectRegistry<GameCtx>()
 conditions.register('minLevel', (params, ctx) => ctx.player.level >= (params.level as number))
 effects.register('wallet.addGold', (params, ctx) => ctx.wallet.add(params.amount as number))
 
-const useDialogue = createDialogueEngine({
+const dialogue = createDialogueEngine({
   dialogues: [guideTree],          // 对话树数据
   conditions,
   effects,
@@ -61,30 +63,38 @@ const useDialogue = createDialogueEngine({
   // persist: 省略/false=不持久化;true=默认配置;或 { name?, version?, storage? }
 })
 
+dialogue.start('guide-intro', 'guide')
+
 // 内置的关系值效果:注册后内容里即可写
 // { type: 'dialogue.adjustRelationship', params: { npcId: 'guide', delta: 5 } }
-effects.registerAll(relationshipEffects(useDialogue))
+effects.registerAll(relationshipEffects(dialogue))
 ```
 
 ## API
 
 | 成员 | 说明 |
 | --- | --- |
+| `store` | 底层 zustand vanilla store(`StoreApi<DialogueEngineState>`),可直接 `subscribe`,React 里配合 `useStore` |
+| `getState()` | 当前状态快照(等价于 `store.getState()`) |
 | `registerDialogues(...trees)` | 运行期增量注册/覆盖对话树 |
 | `start(dialogueId, npcId?)` | 开始对话,emit `dialogue:started`;未知 id 警告并返回 `false` |
-| `activeDialogue` / `currentNode` | 当前会话与当前节点(空闲时为 `null`) |
-| `availableResponses` | 当前节点通过条件过滤后的选项(每次节点切换重新计算) |
 | `choose(responseId)` | 选择选项:执行其效果,随 `next` 跳转或结束对话 |
 | `advance()` | 推进线性节点(无可选项时):走 `next`,终止节点上结束对话 |
 | `end()` | 立即关闭对话,emit `dialogue:ended` |
-| `relationships` / `adjustRelationship(npcId, delta)` | 通用 NPC 关系值切片(不设上下限,含义由游戏定义) |
+| `adjustRelationship(npcId, delta)` | 通用 NPC 关系值切片(不设上下限,含义由游戏定义) |
 | `hasSeen(id)` / `hasCompleted(id)` | 该对话是否开始过 / 是否到达过终止节点 |
 
-在 React 中直接把返回值当 hook 用:
+状态字段(`activeDialogue` / `currentNode`(空闲时为 `null`)、`availableResponses`
+(每次节点切换重新计算)、`relationships`、`seenDialogues`、`completedDialogues`)
+通过 `engine.getState()` 快照读取,或订阅 `engine.store`。
+
+在 React 中用 zustand 的 `useStore` 订阅:
 
 ```tsx
-const node = useDialogue((s) => s.currentNode)
-const responses = useDialogue((s) => s.availableResponses)
+import { useStore } from 'zustand'
+
+const node = useStore(dialogue.store, (s) => s.currentNode)
+const responses = useStore(dialogue.store, (s) => s.availableResponses)
 ```
 
 ## 与事件总线的交互

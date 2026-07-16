@@ -1,6 +1,6 @@
-import { create, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { StateStorage } from 'zustand/middleware'
+import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
   createMemoryStorage,
   gameEvents,
@@ -47,13 +47,14 @@ export interface AudioManagerConfig {
   /** Loop BGM tracks. Defaults to `true`. */
   loop?: boolean
   /**
-   * Persist volume/mute settings. `true` (default) uses localStorage under
-   * `overworld:audio`; pass an object to customize, or `false` to disable.
+   * Persist volume/mute settings (localStorage under `overworld:audio`).
+   * Framework convention: omitted or `false` = disabled; `true` = enabled
+   * with defaults; object = custom.
    */
   persist?: boolean | AudioPersistConfig
 }
 
-/** Reactive audio state exposed via `manager.useStore`. */
+/** Reactive audio state exposed via `manager.store`. */
 export interface AudioState {
   /** BGM volume, 0–1. Persisted. */
   volume: number
@@ -69,8 +70,8 @@ export interface AudioState {
 
 /** The audio manager returned by {@link createAudioManager}. */
 export interface AudioManager {
-  /** zustand hook for reactive access to {@link AudioState}. */
-  useStore: UseBoundStore<StoreApi<AudioState>>
+  /** Underlying zustand vanilla store of {@link AudioState} — subscribe directly or via `useStore` in React. */
+  store: StoreApi<AudioState>
   /** Snapshot of the current state (non-reactive). */
   getState: () => AudioState
   /** Play a BGM track by id, fading out the previous one. */
@@ -105,15 +106,15 @@ type PersistedAudioState = Pick<AudioState, 'volume' | 'sfxVolume' | 'muted'>
 function createAudioStore(
   persistConfig: AudioManagerConfig['persist'],
   initial: AudioState
-): UseBoundStore<StoreApi<AudioState>> {
+): StoreApi<AudioState> {
   if (!persistConfig) {
-    return create<AudioState>()(() => initial)
+    return createStore<AudioState>()(() => initial)
   }
   const cfg = typeof persistConfig === 'object' ? persistConfig : {}
   const storage =
     cfg.storage ??
     (() => (typeof localStorage !== 'undefined' ? localStorage : createMemoryStorage()))
-  return create<AudioState>()(
+  return createStore<AudioState>()(
     persist(
       () => initial,
       persistOptions<AudioState, PersistedAudioState>({
@@ -133,7 +134,8 @@ function createAudioStore(
 /**
  * Create an audio manager: a singleton HTMLAudio BGM pool with fade in/out
  * on track switches, browser autoplay-policy handling (playback retries
- * after the first user interaction) and persisted volume/mute settings.
+ * after the first user interaction) and optional persisted volume/mute
+ * settings (opt in via `persist`, like every other engine).
  *
  * All browser APIs are guarded, so the manager is safe to create (and its
  * pure logic testable) in Node/SSR — it simply tracks state without playing.
@@ -157,7 +159,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
   // `events` is the canonical config name; `bus` is the pre-1.0 alias.
   const bus = config.events ?? config.bus ?? gameEvents
 
-  const useStore = createAudioStore(config.persist ?? true, {
+  const store = createAudioStore(config.persist, {
     volume: clamp01(config.volume ?? 0.7),
     sfxVolume: clamp01(config.sfxVolume ?? 0.7),
     muted: false,
@@ -220,7 +222,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     if (unlockCleanup || typeof window === 'undefined') return
     const retry = () => {
       cleanup()
-      const { currentTrackId, muted } = useStore.getState()
+      const { currentTrackId, muted } = store.getState()
       if (disposed || muted || !currentTrackId) return
       const url = tracks[currentTrackId]
       if (url) void startPlayback(url)
@@ -249,8 +251,8 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
         teardown(audio)
         return
       }
-      useStore.setState({ unlocked: true })
-      fadeTo(audio, useStore.getState().volume, {
+      store.setState({ unlocked: true })
+      fadeTo(audio, store.getState().volume, {
         isCancelled: () => currentAudio !== audio,
       })
     } catch {
@@ -268,11 +270,11 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
       console.warn(`[overworld/audio] unknown track "${trackId}"`)
       return
     }
-    const state = useStore.getState()
+    const state = store.getState()
     if (state.currentTrackId === trackId && currentAudio && !currentAudio.paused) return
 
     stopCurrent(true)
-    useStore.setState({ currentTrackId: trackId })
+    store.setState({ currentTrackId: trackId })
 
     // While muted only remember the track; it resumes on unmute.
     if (state.muted) return
@@ -294,7 +296,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
 
   function stopTrack(): void {
     stopCurrent(true)
-    useStore.setState({ currentTrackId: null })
+    store.setState({ currentTrackId: null })
   }
 
   function playSfx(trackId: string): void {
@@ -303,7 +305,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
       console.warn(`[overworld/audio] unknown track "${trackId}"`)
       return
     }
-    const { muted, sfxVolume } = useStore.getState()
+    const { muted, sfxVolume } = store.getState()
     if (muted || typeof Audio === 'undefined') return
     const audio = new Audio(url)
     audio.volume = sfxVolume
@@ -314,18 +316,18 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
 
   function setVolume(volume: number): void {
     const clamped = clamp01(volume)
-    useStore.setState({ volume: clamped })
+    store.setState({ volume: clamped })
     if (currentAudio && !currentAudio.paused) currentAudio.volume = clamped
   }
 
   function setSfxVolume(volume: number): void {
-    useStore.setState({ sfxVolume: clamp01(volume) })
+    store.setState({ sfxVolume: clamp01(volume) })
   }
 
   function setMuted(muted: boolean): void {
-    const state = useStore.getState()
+    const state = store.getState()
     if (state.muted === muted) return
-    useStore.setState({ muted })
+    store.setState({ muted })
     if (muted) {
       currentAudio?.pause()
       return
@@ -341,7 +343,7 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
   }
 
   function toggleMute(): void {
-    setMuted(!useStore.getState().muted)
+    setMuted(!store.getState().muted)
   }
 
   let unsubscribe: (() => void) | null = null
@@ -360,8 +362,8 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
   }
 
   return {
-    useStore,
-    getState: () => useStore.getState(),
+    store,
+    getState: () => store.getState(),
     playTrack,
     playSceneTrack,
     stopTrack,

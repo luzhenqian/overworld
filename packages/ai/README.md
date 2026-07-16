@@ -41,7 +41,9 @@ function Guard() {
 - `createNavGrid(config)` → `NavGrid`:圆形障碍栅格化(**格子中心**落在
   `障碍半径 + agentRadius` 内即阻塞),提供 `isWalkable(cx, cz)`、
   `worldToCell` / `cellToWorld`(中心点)、动态 `blockCircle(x, z, radius)`、
-  `unblockAll()` 与 `rebuild(obstacles?)`(整体重刷,省参则恢复创建时的障碍)。
+  格子级 `blockCell(cx, cz)` / `unblockCell(cx, cz)`(精确一格、不膨胀、
+  越界 no-op)、`unblockAll()` 与 `rebuild(obstacles?)`(整体重刷,
+  省参则恢复创建时的障碍)。
 - `findPath(grid, from, to, options?)` → `[x, z][] | null`:A* + octile 启发式,
   8 方向且**禁止斜穿角**(斜向要求两个正交邻格均可走)。起点/终点格被阻塞时,
   在 `fallbackRadius`(默认 3 格)内回退到最近可走格 —— 此时路径终点是该格中心
@@ -49,6 +51,37 @@ function Guard() {
   找不到路(或回退失败)返回 `null`。默认自动平滑,`smooth: false` 关闭。
 - `smoothPath(grid, path)`:拉绳式平滑(基于 `hasLineOfSight` 的网格射线,
   1/4 格步进采样),保端点、不增长。`hasLineOfSight` / `nearestWalkableCell` 亦导出。
+
+## 格子级建网格(`createNavGridFromCells`)
+
+tile 地图不需要圆形障碍 —— 直接用格子数据建网格,一个条目精确封一格,
+不用再调 `blockCircle` 的半径参数(旧写法要算出
+`半径 + agentRadius = cellSize / 2` 才恰好只封本格):
+
+```ts
+import { createNavGridFromCells } from '@overworld/ai'
+
+// 数据源二选一:2D 数组或谓词。1 / true = 阻塞(墙)。
+// 朝向约定:cells[cz][cx] —— 内层数组是一行(z 恒定),行内沿 +x 展开。
+const grid = createNavGridFromCells({
+  bounds: layout.bounds,          // 与 createNavGrid 同一 bounds 约定
+  cellSize: layout.cellSize,      // 默认 1
+  cells: [
+    [1, 1, 1, 1, 1],  // z = 0
+    [1, 0, 0, 0, 1],  // z = 1
+    [1, 1, 1, 1, 1],  // z = 2
+  ],
+  // 或谓词:cells: (cx, cz) => layout.tiles[cz][cx] === WALL,
+})
+```
+
+- **格子值是绝对的**:`agentRadius` **不会**膨胀 `cells`(与圆形障碍不同),
+  一个条目 = 恰好一格;`agentRadius` 只作用于同一网格上后续的圆形操作
+  (`blockCircle` / `rebuild(obstacles)`)。
+- **数据源按引用保留**:`rebuild()` 清空后重新求值 —— 数组重读、谓词重跑
+  (含其闭包捕获的状态);`rebuild(obstacles)` 会在格子数据之上再栅格化
+  圆形障碍,两种建网格模式在同一张网格上保持一致。
+- 数组缺行/缺项视为可走;越界坐标由 `blockCell` 的边界检查兜底。
 
 ## 层级化寻路(HPA*,`createHierarchicalGrid`)
 
@@ -111,6 +144,7 @@ const tree = createBehaviorTree(
 )
 
 useFrame((_, delta) => tickTreeWithAgent(tree, guard, delta * 1000))
+// R3F 里更推荐 <NPCWalker agent={guard} tree={tree}> —— 见下文「NPCWalker 组合行为树」
 ```
 
 - **节点构造器**:`action(fn)`(返回 `void` 视为 success)、`condition(fn)`
@@ -231,12 +265,37 @@ const npc = createAgent({
 
 ## R3F 组件
 
-- `<NPCWalker agent y? rotationOffset? rotationLerp? onArrive?>{children}</NPCWalker>`
-  — 每帧调 `agent.update(delta * 1000)`,把 group 放到 `[x, y, z]`(`y` 默认 0)
-  并沿最短弧平滑转向 `heading`;`rotationOffset` 适配非 +Z 朝向的模型;
-  `onArrive(waypointIndex)` 在到达行为级目的地那一帧触发。
-- `useAgentDriver(agent, options?)` — 同逻辑的 hook 形式,返回挂到自建
-  `<group>` 上的 ref。
+- `<NPCWalker agent y? rotationOffset? rotationLerp? onArrive? driven? tree?>{children}</NPCWalker>`
+  — 每帧步进 agent(默认 `agent.update(delta * 1000)`),把 group 放到
+  `[x, y, z]`(`y` 默认 0)并沿最短弧平滑转向 `heading`;`rotationOffset`
+  适配非 +Z 朝向的模型;`onArrive(waypointIndex)` 在到达行为级目的地那一帧
+  触发(仅在本组件驱动 agent 时)。
+- `useAgentDriver(agent, options?)` — 同逻辑的 hook 形式(`options` 同样接受
+  `driven` / `tree`),返回挂到自建 `<group>` 上的 ref。
+- `stepAgent(agent, deltaMs, { driven?, tree? })` — 二者共用的纯函数步进逻辑
+  (无 React/three 依赖),返回本步的 `AgentStatus`(未驱动时 `undefined`),
+  自定义游戏循环可直接复用。
+
+### NPCWalker 组合行为树(`tree` / `driven`)
+
+行为树和 agent 都要每帧驱动 —— 若 NPCWalker 调 `agent.update`、游戏又调
+`tickTreeWithAgent`,agent 每帧会**双步进**。把树交给 NPCWalker 即可:
+传入 `tree` 后,每帧改为调用 `tickTreeWithAgent(tree, agent, deltaMs)`
+(树决策 + agent 位移,单一调用点,不再裸调 `agent.update`):
+
+```tsx
+const enemy = createAgent({ grid, position: spawn, speed: 2 })
+const tree = createBehaviorTree(/* 巡逻 → 追击 → 回岗 */, {})
+
+<NPCWalker agent={enemy} tree={tree}>
+  <SkeletonModel />
+</NPCWalker>
+```
+
+游戏要自己驱动 agent(自有 `useFrame`、系统循环)时用 `driven={false}`:
+NPCWalker 变为**纯渲染** —— group 仍跟随 agent 的位置与朝向,但绝不调
+`agent.update`。**优先级**:`driven={false}` 胜过 `tree`(树被忽略,
+每棵树只警告一次)。
 - `collidersToObstacles(colliders)` — 把 scene 碰撞表形状的碰撞体
   (`{ position: { x, z }, radius }`,结构化类型,不依赖 @overworld/scene)
   映射成 `createNavGrid` 的障碍数组。
@@ -244,5 +303,5 @@ const npc = createAgent({
 ## 测试
 
 ```bash
-pnpm test        # vitest,105 个用例覆盖栅格化/A*/平滑/层级化寻路/行为树/巡逻/游荡/跟随/前往/日程/避障
+pnpm test        # vitest,124 个用例覆盖栅格化/格子级建网格/A*/平滑/层级化寻路/行为树/巡逻/游荡/跟随/前往/日程/避障/帧步进
 ```

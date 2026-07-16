@@ -170,7 +170,7 @@ const toast = (
 ) => useToastStore.getState().show({ message, variant })
 
 // E 键交互 → 打开该 NPC 的对话
-gameEvents.on('interact', ({ kind, id }) => {
+gameEvents.on('entity:interact', ({ kind, id }) => {
   if (kind !== 'npc') return
   const dialogueId = NPC_DIALOGUES[id]
   if (dialogueId) dialogue.getState().start(dialogueId, id)

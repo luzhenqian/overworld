@@ -1,6 +1,6 @@
 /**
  * Interaction helpers: turn "the player is near something and pressed the
- * interact key" into an `interact` event on the global bus. Dialogue
+ * interact key" into an `entity:interact` event on the global bus. Dialogue
  * engines, building panels etc. subscribe to that event — nothing imports
  * anything.
  */
@@ -9,21 +9,26 @@ import { gameEvents } from '@overworld/core'
 import { useSceneStore } from './sceneStore'
 
 /**
- * Emit an `interact` event for the entity the player is currently near.
- * NPCs take precedence over buildings. Returns true when an event was
+ * Emit an `entity:interact` event for the entity the player is currently
+ * near. NPCs take precedence over buildings. Returns true when an event was
  * emitted, false when nothing is nearby.
+ *
+ * Transition note: the same payload is also emitted under the legacy,
+ * unprefixed `interact` name (deprecated). Subscribe to `entity:interact` —
+ * the legacy emit will be removed in 2.0.
  */
 export function interact(): boolean {
   const { nearbyNpcId, nearbyBuildingId } = useSceneStore.getState()
-  if (nearbyNpcId) {
-    gameEvents.emit('interact', { kind: 'npc', id: nearbyNpcId })
-    return true
-  }
-  if (nearbyBuildingId) {
-    gameEvents.emit('interact', { kind: 'building', id: nearbyBuildingId })
-    return true
-  }
-  return false
+  const target = nearbyNpcId
+    ? ({ kind: 'npc', id: nearbyNpcId } as const)
+    : nearbyBuildingId
+      ? ({ kind: 'building', id: nearbyBuildingId } as const)
+      : null
+  if (!target) return false
+  gameEvents.emit('entity:interact', target)
+  // Deprecated dual emit for pre-1.0 subscribers; removed in 2.0.
+  gameEvents.emit('interact', target)
+  return true
 }
 
 export interface UseInteractKeyOptions {

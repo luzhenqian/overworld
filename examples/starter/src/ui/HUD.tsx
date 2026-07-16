@@ -23,8 +23,8 @@ const panelStyle: React.CSSProperties = {
 /** 任务追踪器 —— 订阅任务引擎状态渲染进度;title/description 是 i18n key,渲染时翻译 */
 function QuestTracker() {
   const { t } = useTranslation()
-  const active = useStore(quests, (s) => s.active)
-  const definitions = useStore(quests, (s) => s.definitions)
+  const active = useStore(quests.store, (s) => s.active)
+  const definitions = useStore(quests.store, (s) => s.definitions)
   const entries = Object.values(active)
   if (entries.length === 0) return null
 

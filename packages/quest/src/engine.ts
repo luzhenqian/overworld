@@ -8,8 +8,8 @@ import {
   type EventBus,
   type OverworldEventMap,
 } from '@overworld/core'
-import { create, type StateCreator, type StoreApi, type UseBoundStore } from 'zustand'
 import { persist, type StateStorage } from 'zustand/middleware'
+import { createStore, type StateCreator, type StoreApi } from 'zustand/vanilla'
 import type { ActiveQuest, ObjectiveProgress, QuestDefinition } from './types'
 
 /** Persistence settings for the quest engine. */
@@ -96,10 +96,53 @@ export interface QuestEngineState {
 }
 
 /**
- * A quest engine: a zustand hook that can also be used outside React via
- * `engine.getState()` / `engine.subscribe()`.
+ * The quest engine returned by {@link createQuestEngine}: methods on the
+ * object drive quest flow, the underlying zustand vanilla store carries the
+ * reactive state — subscribe directly, or via `useStore(engine.store,
+ * selector)` in React.
  */
-export type QuestEngine = UseBoundStore<StoreApi<QuestEngineState>>
+export interface QuestEngine {
+  /** Underlying zustand vanilla store — subscribe directly or via `useStore` in React. */
+  store: StoreApi<QuestEngineState>
+  /**
+   * Add or replace quest definitions at runtime. Definitions with `autoStart`
+   * are started immediately when their prerequisites pass.
+   */
+  registerQuests(...quests: QuestDefinition[]): void
+  /**
+   * Start a quest. Checks prerequisites (completed set + condition registry).
+   * Emits `quest:started`. Unknown ids warn and return `false`.
+   */
+  startQuest(questId: string): boolean
+  /**
+   * Manually add progress (default +1) to an objective. Progress on unknown
+   * or non-active quests is ignored; progress clamps at the target.
+   */
+  reportProgress(questId: string, objectiveId: string, amount?: number): void
+  /**
+   * Complete an active quest whose objectives are all done: runs rewards via
+   * the effect registry, emits `quest:completed`, then auto-starts eligible
+   * `chainNext` quests. Called automatically when the last objective hits its
+   * target; calling it with incomplete objectives warns and returns `false`.
+   */
+  completeQuest(questId: string): boolean
+  /** Whether the quest exists, is not active/completed, and its prerequisites pass. */
+  canStartQuest(questId: string): boolean
+  /** Definitions that are currently startable (see {@link QuestEngine.canStartQuest}). */
+  getAvailableQuests(): QuestDefinition[]
+  isActive(questId: string): boolean
+  isCompleted(questId: string): boolean
+  /**
+   * Re-attach bus subscriptions for the triggers of active quests. Called
+   * automatically on start/complete/registration and after rehydration; also
+   * re-enables a disposed engine.
+   */
+  resubscribe(): void
+  /** Detach all bus subscriptions. Auto-progress stops until `resubscribe()`. */
+  dispose(): void
+  /** Snapshot of the current state — convenience for `store.getState()`. */
+  getState(): QuestEngineState
+}
 
 interface QuestPersistedState {
   active: Record<string, ActiveQuest>
@@ -131,8 +174,8 @@ function readAmount(payload: unknown, key: string): number | null {
  *   through the condition registry.
  *
  * ```ts
- * const useQuests = createQuestEngine({ quests, conditions, effects })
- * useQuests.getState().startQuest('walk-the-city')
+ * const quests = createQuestEngine({ quests: definitions, conditions, effects })
+ * quests.startQuest('walk-the-city')
  * ```
  */
 export function createQuestEngine<Ctx = unknown>(config: QuestEngineConfig<Ctx>): QuestEngine {
@@ -371,12 +414,12 @@ export function createQuestEngine<Ctx = unknown>(config: QuestEngineConfig<Ctx>)
     }
   }
 
-  let engine: QuestEngine
+  let store: StoreApi<QuestEngineState>
   if (!config.persist) {
-    engine = create<QuestEngineState>()(initializer)
+    store = createStore<QuestEngineState>()(initializer)
   } else {
     const persistConfig = config.persist === true ? {} : config.persist
-    engine = create<QuestEngineState>()(
+    store = createStore<QuestEngineState>()(
       persist(
         initializer,
         persistOptions<QuestEngineState, QuestPersistedState>({
@@ -391,12 +434,27 @@ export function createQuestEngine<Ctx = unknown>(config: QuestEngineConfig<Ctx>)
           },
         })
       )
-    ) as QuestEngine
+    )
   }
 
   // Register initial content after creation (and after any synchronous
   // rehydration) so persisted active quests immediately regain their trigger
   // subscriptions and autoStart quests respect the restored completed set.
-  engine.getState().registerQuests(...config.quests)
-  return engine
+  store.getState().registerQuests(...config.quests)
+
+  return {
+    store,
+    registerQuests: (...quests) => store.getState().registerQuests(...quests),
+    startQuest: (questId) => store.getState().startQuest(questId),
+    reportProgress: (questId, objectiveId, amount) =>
+      store.getState().reportProgress(questId, objectiveId, amount),
+    completeQuest: (questId) => store.getState().completeQuest(questId),
+    canStartQuest: (questId) => store.getState().canStartQuest(questId),
+    getAvailableQuests: () => store.getState().getAvailableQuests(),
+    isActive: (questId) => store.getState().isActive(questId),
+    isCompleted: (questId) => store.getState().isCompleted(questId),
+    resubscribe: () => store.getState().resubscribe(),
+    dispose: () => store.getState().dispose(),
+    getState: () => store.getState(),
+  }
 }

@@ -80,7 +80,7 @@ describe('createDialogueEngine', () => {
     const started: unknown[] = []
     bus.on('dialogue:started', (p) => started.push(p))
 
-    expect(engine.getState().start('guide-intro', 'guide')).toBe(true)
+    expect(engine.start('guide-intro', 'guide')).toBe(true)
 
     const state = engine.getState()
     expect(state.activeDialogue).toEqual({
@@ -91,35 +91,35 @@ describe('createDialogueEngine', () => {
     })
     expect(state.currentNode?.id).toBe('greeting')
     expect(started).toEqual([{ npcId: 'guide', dialogueId: 'guide-intro' }])
-    expect(state.hasSeen('guide-intro')).toBe(true)
-    expect(state.hasCompleted('guide-intro')).toBe(false)
+    expect(engine.hasSeen('guide-intro')).toBe(true)
+    expect(engine.hasCompleted('guide-intro')).toBe(false)
     expect(ctx.log).toEqual(['enter-greeting'])
   })
 
   it('returns false (and warns) for an unknown dialogue id', () => {
     const { engine } = setup()
-    expect(engine.getState().start('nope')).toBe(false)
+    expect(engine.start('nope')).toBe(false)
     expect(console.warn).toHaveBeenCalledWith('[overworld] unknown dialogue "nope"')
     expect(engine.getState().activeDialogue).toBeNull()
   })
 
   it('filters availableResponses by conditions against the resolved context', () => {
     const { ctx, engine } = setup({ level: 1 })
-    engine.getState().start('guide-intro')
+    engine.start('guide-intro')
     expect(engine.getState().availableResponses.map((r) => r.id)).toEqual(['ask', 'bye'])
 
     // Context is resolved lazily — leveling up before re-entering the node
     // makes the gated response appear.
     ctx.level = 5
-    engine.getState().end()
-    engine.getState().start('guide-intro')
+    engine.end()
+    engine.start('guide-intro')
     expect(engine.getState().availableResponses.map((r) => r.id)).toEqual(['ask', 'vip', 'bye'])
   })
 
   it('choose() follows next and records history', () => {
     const { engine } = setup()
-    engine.getState().start('guide-intro', 'guide')
-    expect(engine.getState().choose('ask')).toBe(true)
+    engine.start('guide-intro', 'guide')
+    expect(engine.choose('ask')).toBe(true)
 
     const state = engine.getState()
     expect(state.currentNode?.id).toBe('about')
@@ -132,23 +132,23 @@ describe('createDialogueEngine', () => {
     const ended: unknown[] = []
     bus.on('dialogue:ended', (p) => ended.push(p))
 
-    engine.getState().start('guide-intro', 'guide')
-    expect(engine.getState().choose('bye')).toBe(true)
+    engine.start('guide-intro', 'guide')
+    expect(engine.choose('bye')).toBe(true)
 
     const state = engine.getState()
     expect(ctx.log).toEqual(['enter-greeting', 'bye'])
     expect(state.activeDialogue).toBeNull()
     expect(state.currentNode).toBeNull()
-    expect(state.hasCompleted('guide-intro')).toBe(true)
+    expect(engine.hasCompleted('guide-intro')).toBe(true)
     expect(ended).toEqual([{ npcId: 'guide', dialogueId: 'guide-intro', nodeId: 'greeting' }])
   })
 
   it('rejects choosing a response that conditions filtered out', () => {
     const { engine } = setup({ level: 1 })
-    engine.getState().start('guide-intro')
-    expect(engine.getState().choose('vip')).toBe(false)
+    engine.start('guide-intro')
+    expect(engine.choose('vip')).toBe(false)
     expect(engine.getState().currentNode?.id).toBe('greeting')
-    expect(engine.getState().choose('unknown-response')).toBe(false)
+    expect(engine.choose('unknown-response')).toBe(false)
   })
 
   it('advance() walks linear nodes and completes on terminal nodes', () => {
@@ -156,17 +156,17 @@ describe('createDialogueEngine', () => {
     const ended: { nodeId: string }[] = []
     bus.on('dialogue:ended', (p) => ended.push(p))
 
-    engine.getState().start('guide-intro')
+    engine.start('guide-intro')
     // advance() is a no-op while a choice is pending
-    expect(engine.getState().advance()).toBe(false)
+    expect(engine.advance()).toBe(false)
 
-    engine.getState().choose('ask')
-    expect(engine.getState().advance()).toBe(true) // about -> outro
+    engine.choose('ask')
+    expect(engine.advance()).toBe(true) // about -> outro
     expect(engine.getState().currentNode?.id).toBe('outro')
-    expect(engine.getState().advance()).toBe(true) // outro endsDialogue
+    expect(engine.advance()).toBe(true) // outro endsDialogue
 
     expect(engine.getState().activeDialogue).toBeNull()
-    expect(engine.getState().hasCompleted('guide-intro')).toBe(true)
+    expect(engine.hasCompleted('guide-intro')).toBe(true)
     expect(ended[0]?.nodeId).toBe('outro')
     expect(engine.getState().activeDialogue?.history).toBeUndefined()
   })
@@ -176,21 +176,21 @@ describe('createDialogueEngine', () => {
     const ended: unknown[] = []
     bus.on('dialogue:ended', (p) => ended.push(p))
 
-    engine.getState().start('guide-intro', 'guide')
-    engine.getState().end()
+    engine.start('guide-intro', 'guide')
+    engine.end()
 
     expect(ended).toEqual([{ npcId: 'guide', dialogueId: 'guide-intro', nodeId: 'greeting' }])
-    expect(engine.getState().hasCompleted('guide-intro')).toBe(false)
-    expect(engine.getState().hasSeen('guide-intro')).toBe(true)
+    expect(engine.hasCompleted('guide-intro')).toBe(false)
+    expect(engine.hasSeen('guide-intro')).toBe(true)
   })
 
   it('end() on a terminal node still counts as completing the dialogue', () => {
     const { engine } = setup()
-    engine.getState().start('guide-intro')
-    engine.getState().choose('ask')
-    engine.getState().advance() // -> outro (endsDialogue)
-    engine.getState().end()
-    expect(engine.getState().hasCompleted('guide-intro')).toBe(true)
+    engine.start('guide-intro')
+    engine.choose('ask')
+    engine.advance() // -> outro (endsDialogue)
+    engine.end()
+    expect(engine.hasCompleted('guide-intro')).toBe(true)
   })
 
   it('starting a new dialogue while one is active ends the previous one first', () => {
@@ -198,13 +198,13 @@ describe('createDialogueEngine', () => {
     const ended: { dialogueId: string }[] = []
     bus.on('dialogue:ended', (p) => ended.push(p))
 
-    engine.getState().registerDialogues({
+    engine.registerDialogues({
       id: 'other',
       startNodeId: 'a',
       nodes: [{ id: 'a', text: 'hi' }],
     })
-    engine.getState().start('guide-intro', 'guide')
-    engine.getState().start('other')
+    engine.start('guide-intro', 'guide')
+    engine.start('other')
 
     expect(ended.map((e) => e.dialogueId)).toEqual(['guide-intro'])
     expect(engine.getState().activeDialogue?.dialogueId).toBe('other')
@@ -242,9 +242,9 @@ describe('createDialogueEngine', () => {
     })
     effects.registerAll(relationshipEffects(engine))
 
-    engine.getState().adjustRelationship('guide', 2)
-    engine.getState().start('affinity', 'guide')
-    engine.getState().choose('flatter')
+    engine.adjustRelationship('guide', 2)
+    engine.start('affinity', 'guide')
+    engine.choose('flatter')
 
     expect(engine.getState().relationships['guide']).toBe(7)
   })
@@ -257,13 +257,32 @@ describe('createDialogueEngine', () => {
     expect(engine.getState().relationships).toEqual({})
   })
 
+  it('exposes the vanilla store: getState() matches and subscribe() sees transitions', () => {
+    const { engine } = setup()
+    const nodeIds: (string | null)[] = []
+    const unsubscribe = engine.store.subscribe((state) => {
+      nodeIds.push(state.currentNode?.id ?? null)
+    })
+
+    engine.start('guide-intro')
+    expect(engine.store.getState()).toBe(engine.getState())
+    expect(engine.store.getState().currentNode?.id).toBe('greeting')
+
+    engine.choose('ask')
+    unsubscribe()
+    engine.advance()
+
+    // seen-flag update + node entry, then the transition to 'about'.
+    expect(nodeIds).toEqual([null, 'greeting', 'about'])
+  })
+
   it('persists relationships and seen/completed flags but never the active conversation', () => {
     const storage = createMemoryStorage()
     const first = setup({ persist: { storage: () => storage } })
-    first.engine.getState().adjustRelationship('guide', 3)
-    first.engine.getState().start('guide-intro', 'guide')
-    first.engine.getState().choose('bye') // completes guide-intro
-    first.engine.getState().start('guide-intro', 'guide') // leave a conversation in flight
+    first.engine.adjustRelationship('guide', 3)
+    first.engine.start('guide-intro', 'guide')
+    first.engine.choose('bye') // completes guide-intro
+    first.engine.start('guide-intro', 'guide') // leave a conversation in flight
 
     const raw = storage.getItem('overworld:dialogue') as string
     expect(JSON.parse(raw).state).toEqual({
@@ -275,17 +294,18 @@ describe('createDialogueEngine', () => {
     const second = setup({ persist: { storage: () => storage } })
     const state = second.engine.getState()
     expect(state.relationships).toEqual({ guide: 3 })
-    expect(state.hasSeen('guide-intro')).toBe(true)
-    expect(state.hasCompleted('guide-intro')).toBe(true)
+    expect(second.engine.hasSeen('guide-intro')).toBe(true)
+    expect(second.engine.hasCompleted('guide-intro')).toBe(true)
     expect(state.activeDialogue).toBeNull()
     expect(state.currentNode).toBeNull()
   })
 
   it('supports a custom persist name', () => {
     const storage = createMemoryStorage()
-    setup({ persist: { name: 'npc-talk', storage: () => storage } })
-      .engine.getState()
-      .adjustRelationship('x', 1)
+    setup({ persist: { name: 'npc-talk', storage: () => storage } }).engine.adjustRelationship(
+      'x',
+      1
+    )
     expect(storage.getItem('overworld:npc-talk')).not.toBeNull()
   })
 })
