@@ -42,7 +42,14 @@ description: 各版本演进轨迹
 - audio 后端注入 + `pauseOnHide`;scene `SpriteLabel` 跨端标签 + `labelMode`
 - 指南:docs/guides/platforms.md(矩阵/接线/注入对照/上架红线)
 
-## v0.9(破坏性变更收官)
+## v1.0 首个公开发布(2026-07-16)
+
+- **npm 正式发布**:`@overworld-engine/*` 1.0.0,18 个包作为同一 fixed 版本组一起上架(标准 ESM + `.d.ts`,npm/yarn/pnpm 通用)
+- **文档站上线**:overworld.web3noah.com(Fumadocs,中文全文搜索 + `llms.txt`),部署于 Ship Dock
+- **开源**:GitHub `luzhenqian/overworld`
+- **API 冻结**:承接 v0.8 的 1.0 API 评审与 v0.9 的破坏性收官,进入 1.x 稳定期(2.0 前只增不改)
+
+## v0.9 破坏性变更收官
 
 - **P1** store 形态统一:dialogue/quest/audio 全部改为 `{ store, ...方法 }`(React 端 `useStore(engine.store, sel)`),全框架 8 个引擎形态一致
 - **P2** `interact` → `entity:interact`(双发过渡,旧名 2.0 移除)
@@ -52,53 +59,53 @@ description: 各版本演进轨迹
 - **P13** 模型加载改为标准 Suspense + 错误边界;顺带修复 Player/Portal 无边界导致的潜在整树挂起
 - **P14** `blockCell`/`createNavGridFromCells` 格子级建网格(tile 地图一等公民)
 
-## v0.8
+## v0.8 泛化验证与发布流水线
 
 - **第二款示例游戏 `examples/dungeon`**:种子化程序地牢、行为树敌人(巡逻→追击→回岗)、钥匙宝箱任务链、HPA* 引路点、心心/击退/通关计时 —— 验证框架泛化性,并带回 6 个 1.0 前待修阻力点
 - **1.0 API 冻结评审**(docs/api-review-1.0.md):就绪度 B+,15 项提案(store 形态统一、`interact` 加域名前缀等);低风险修复已落地(audio `events` 规范别名、persist 文档纠错、core README)
 - **发布流水线**:changesets(fixed 版本组)+ CI/Release 工作流,18 包 `publish --dry-run` 全通过
 - **性能基准**(benchmarks/):24 项基准 + 基线对比 + 8 个计数型回归守护;HPA* 访问格数少 17.9 倍,事件总线 ~250 万 emit/秒
 
-## v0.7
+## v0.7 输入预测与编辑器进阶
 
 - 输入预测与服务器对账:`createPredictedState`(预测/序号排队/回滚重放/误预测纠正)+ `createInputChannel` + `examples/authority-server` 权威服务器示例(含反作弊 clamp 演示)
 - 编辑器多选与对齐:shift 点选、群组拖拽单撤销步、对齐(min/center/max)与均分、Ctrl+A/Delete/Ctrl+D 作用于选区
 - 性能预设(scene):三档 DPR/阴影/粒子系数 + `ApplyQuality` + 设备启发式检测
 - 内容热重载约定:`import.meta.hot` + `registerX` 增量替换指南(语义对照源码核实),starter 已接线
 
-## v0.6
+## v0.6 联机进阶与云存档
 
 - 联机进阶:`createSnapshotBuffer` 延迟插值缓冲、presence `interpolation` 选项、`examples/ws-server` 参考中继服务器
 - 编辑器实体模板(一键放置预设)与 GLTF 真实模型预览(失败自动回退)
 - `createRestStorage` 云存档 REST 适配器(防抖/flush/错误吞吐)
 - `profileBus` 事件总线性能剖析(计数/耗时/报表)
 
-## v0.5
+## v0.5 多人同步与层级寻路
 
 - **`@overworld-engine/net`**:多人同步接口抽象 —— Transport 接口(内存 / BroadcastChannel / WebSocket)、presence 复制、事件中继、`<RemotePlayers>` 组件
 - 编辑器撤销/重做(transient 突发合并)、复制、吸附可调、网格可视化
 - 层级化寻路 HPA*(200×200 基准:访问格数 3,393 vs 普通 A* 35,873)
 - 行为树(记忆式 sequence/selector、parallel、blackboard、agent 动作节点)
 
-## v0.4
+## v0.4 场景编辑器与 NPC 日程
 
 - **`@overworld-engine/editor`**:游戏内场景编辑器雏形(放置/拖拽/属性面板/导出 JSON)
 - NPC 日程系统(昼夜相位驱动行为切换)与动态避障
 - 内容 JSON Schema(draft 2020-12,ajv 可用)
 
-## v0.3
+## v0.3 寻路 AI 与开发工具
 
 - **`@overworld-engine/ai`**:网格 A* 寻路 + 巡逻/游荡/跟随行为 + `<NPCWalker>`
 - **`@overworld-engine/devtools`**:内容校验(引用完整性/前置循环/效果条件核对)+ 事件日志
 - 资产清单(`defineAssetManifest`/`preloadManifest`)、i18n 内容组织约定
 
-## v0.2
+## v0.2 昼夜天气与小地图
 
 - **`@overworld-engine/environment`**(昼夜循环+天气)、**`@overworld-engine/minimap`**
 - 虚拟摇杆 + Player 外部输入源、存档槽位管理
 - persist 配置全框架统一(省略/false=关,true=默认,对象=自定义)
 
-## v0.1
+## v0.1 框架初始提取
 
 - 从 degener-city 提取 12 个基础包:core / scene / input / dialogue / quest /
   inventory / achievements / tutorial / audio / notifications / loading / analytics
