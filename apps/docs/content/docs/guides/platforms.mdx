@@ -5,7 +5,7 @@ description: 一套代码覆盖 Web/Telegram/桌面/移动/微信的策略与接
 
 Overworld 的多端策略:**一套 Web 代码,三类交付**。所有端差异收敛到
 `@overworld-engine/platform`(检测/能力/桥)与 `@overworld-engine/adapters-weapp`
-(微信适配器),壳 SDK 只存在于端模板中,框架 19 个包零硬依赖。
+(微信适配器),壳 SDK 只存在于端模板中,框架 23 个包零硬依赖。
 
 ## 平台矩阵
 
@@ -74,9 +74,13 @@ macOS 分发需公证(notarization),见模板 README。
 ### 微信小游戏(完整 3D)
 - 渲染:`createWeappCanvasRoot()`(内部 R3F `createRoot`,不依赖 react-dom)+
   模板 vendored 的 weapp-adapter;基础库 ≥ 2.19。
-- 已知约束:**无射线拾取**(v1.1 不桥接 R3F pointer 事件,交互用邻近检测 + 触摸区);
-  drei `Text` 不可用,用 `SpriteLabel`(`labelMode="sprite"`);模型资源放包内或
-  业务域名白名单;three 主导包体,超 4MB 走分包。
+- 交互:**支持真实射线拾取**(v1.3 起)——`createWeappPointerBridge(canvasRoot)`
+  用 wx 触摸驱动 fiber 自己的指针管线,场景里 `<mesh onClick>` / `<group onClick>`
+  收到 raycast 命中;轻点=拾取、拖动≠拾取,可与触摸摇杆同屏共存。缺省不接线
+  (`events: undefined`),显式挂桥才启用。
+- 已知约束:drei `Text` 不可用,用 `SpriteLabel`(`labelMode="sprite"`);模型资源
+  放包内或业务域名白名单(v1.3 的 `XMLHttpRequest`-over-`wx.request` polyfill 使
+  `useGLTF` 可加载真实 GLB);three 主导包体,超 4MB 走分包。
 - 验证:模板自带 wx-shim 真浏览器 harness(CI 可跑);最终真机用微信开发者工具预览。
 
 ### 微信小程序(无头层)

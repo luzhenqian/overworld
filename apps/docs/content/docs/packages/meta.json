@@ -18,6 +18,7 @@
     "loading",
     "analytics",
     "net",
+    "relay",
     "platform",
     "adapters-weapp",
     "devtools",

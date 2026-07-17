@@ -31,7 +31,10 @@
 - 全部内容数据:`data/npcs`、`data/dialogues`、`data/quests`、`data/buildings`、i18n 文案。
 - 全部 UI 皮肤:HUD、各面板、Toast/对话框的视觉呈现。
 - `game/` 下的棋牌小游戏引擎(自成体系,可未来单独抽包)。
-- 天气/昼夜、3D 小地图(框架 v0.2 目标,暂缓)。
+
+> 天气/昼夜与俯视小地图当初还是框架待建功能,现已作为 `@overworld-engine/environment`
+> 与 `@overworld-engine/minimap` 发布 —— 迁移时可直接替换 degener-city 的自研实现,
+> 不必再留在游戏里。
 
 ## 建议迁移顺序
 
