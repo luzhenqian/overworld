@@ -6,8 +6,8 @@
 
 ## 定位
 
-原型(degener-city 的 questStore)直接 import 了 8 个玩法 store,并为每种玩法
-写死了目标类型。本包用两个模式取代全部耦合:
+一个常见的反模式是任务 store 直接 import 各玩法 store、为每种玩法写死目标类型 ——
+任务系统因此和具体游戏焊死、无法复用。本包用两个模式取代这种耦合:
 
 - **进度 = 事件订阅**:目标声明 `trigger: { event, filter?, amountFrom? }`,
   引擎只订阅活跃任务实际需要的事件;玩法系统只管 emit。

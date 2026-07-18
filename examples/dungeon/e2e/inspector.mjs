@@ -27,7 +27,7 @@ const BASE = `http://localhost:${PORT}`
 
 const PLAYWRIGHT_ROOTS = [
   process.env.PLAYWRIGHT_ROOT,
-  '/private/tmp/claude-501/-Users-noah-Work-idea-degener-city/e53157de-5795-4cc9-b985-f7416ea66ceb/scratchpad/e2e/node_modules',
+  dir, // resolve playwright from this package (or set PLAYWRIGHT_ROOT)
 ].filter(Boolean)
 
 async function loadPlaywright() {

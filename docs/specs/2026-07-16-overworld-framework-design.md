@@ -1,22 +1,22 @@
 # Overworld — Web 3D RPG 游戏开发框架设计文档
 
 日期:2026-07-16
-状态:已定稿
-来源:从 degener-city(3D 加密主题 RPG)中提取通用能力
+状态:初始设计定稿(记录 v0.1 的设计决策;包清单为当时快照,当前能力以架构文档为准)
+来源:从一款生产环境的 3D RPG 中提取通用能力
 
 ## 1. 目标
 
-把 degener-city 中与"具体玩法无关"的系统提取为一个独立、可复用、可扩展的游戏开发框架,
-放在 `/Users/noah/Work/idea/overworld`。后续开发同类游戏(3D 可探索世界 + NPC 对话 +
-任务 + 物品 + 成就)时,直接依赖 `@overworld-engine/*` 包,只需编写**游戏内容数据**和**玩法专属系统**。
+把一款生产 3D RPG 中与"具体玩法无关"的系统提取为一个独立、可复用、可扩展的游戏开发框架。
+后续开发同类游戏(3D 可探索世界 + NPC 对话 + 任务 + 物品 + 成就)时,直接依赖
+`@overworld-engine/*` 包,只需编写**游戏内容数据**和**玩法专属系统**。
 
 非目标:
-- 不迁移 degener-city 本身(单独提供迁移指南,迁移与否由游戏仓库自行决定)。
-- 不提取纯玩法系统(交易/市场/meme/DAO/黑客/钱包等)——它们是游戏内容。
+- 不含具体游戏的迁移改造 —— 框架只提供通用能力,接入方式由各游戏仓库自行决定。
+- 不提取纯玩法系统(游戏专属的经济/战斗/剧情/钱包等)——它们是游戏内容。
 - 小游戏引擎(象棋/扑克/围棋等)不属于 RPG 框架,暂不纳入。
 - 小地图(MiniMap3D)与区域数据耦合过深,列为后续版本目标。
 
-## 2. 技术栈(与来源游戏一致)
+## 2. 技术栈
 
 React 18 + TypeScript(strict) + three.js + @react-three/fiber 8 + @react-three/drei 9 +
 zustand 5(persist 中间件做存档)。构建:pnpm workspace + tsup(ESM + d.ts)+ vitest。
@@ -51,7 +51,7 @@ overworld/
 │   └── analytics       @overworld-engine/analytics       埋点抽象(provider 可插拔,内置 GA4/Clarity)
 ├── examples/
 │   └── starter                                    最小可玩示例:场景+移动+对话+任务+拾取+Toast
-└── docs/                                          架构文档、迁移指南、本设计文档
+└── docs/                                          架构文档、指南、本设计文档
 ```
 
 依赖方向(只允许向下):
@@ -65,10 +65,10 @@ core → (无内部依赖)
 **系统包之间互不依赖**。所有跨系统通信走 `@overworld-engine/core` 的事件总线;所有数据驱动的
 副作用走效果/条件注册表。这是框架最核心的解耦规则。
 
-## 5. 核心解耦模式(修复 degener-city 的耦合点)
+## 5. 核心解耦模式(修复常见的 store 耦合)
 
-degener-city 的问题:questStore 直接 import 7+ 个玩法 store;npcStore 模块级 import 全部
-对话数据;Player.tsx 直接调用 questStore.onMoved()。框架用四个模式替代:
+典型的耦合问题:任务 store 直接 import 各玩法 store;NPC store 模块级 import 全部对话
+数据;玩家控制器直接调用任务 store 的方法。框架用四个模式替代:
 
 ### 5.1 类型化事件总线(EventBus)
 
@@ -252,5 +252,5 @@ useProgress/useGLTF.preload)。来源:loadingStore、ScenePreloader。
 
 - v0.1 不含:天气/昼夜、小地图、存档云同步、i18n 辅助(直接用 i18next 即可)、
   移动端虚拟摇杆。列入 docs/roadmap。
-- degener-city 迁移:单独文档 docs/migration-from-degener-city.md 给出 store→包映射表;
-  实际迁移是独立项目,不在本次范围。
+- 已有游戏的接入改造是独立项目,不在本次范围;接入方式(渐进替换 store、双写事件总线等)
+  由各游戏仓库自行决定。
