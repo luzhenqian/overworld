@@ -82,6 +82,8 @@ export type { PortalProps } from './Portal'
 // Interaction
 export { interact, useInteractKey } from './interaction'
 export type { UseInteractKeyOptions } from './interaction'
+export { useInputLocked } from './useInputLocked'
+export { resolveInputBlocked } from './inputBlocked'
 
 // Quality presets
 export {
