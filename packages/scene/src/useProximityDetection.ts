@@ -28,22 +28,31 @@ export interface UseProximityDetectionOptions {
   npcRadius?: number
   /** Interaction distance for buildings. Default: 8. */
   buildingRadius?: number
+  /**
+   * Live position refs for moving NPCs, keyed by npc id. When a ref exists
+   * for an npc, its `.current` value is read every frame instead of the
+   * static `ProximityEntity.position` passed in `npcs` — the ref is the
+   * source of truth for that id from then on. Omit for fully static NPCs.
+   */
+  npcPositionRefs?: Record<string, { current: Vec3 }>
 }
 
-/** Return the id of the nearest entity within `radius`, or null. */
+/** Return the id of the nearest entity within `radius`, or null. Prefers a live ref position over the static one when `refs[entity.id]` exists. */
 function findNearest(
   entities: ProximityEntity[],
   radius: number,
   px: number,
   py: number,
-  pz: number
+  pz: number,
+  refs: Record<string, { current: Vec3 }> | undefined
 ): string | null {
   let bestId: string | null = null
   let bestDistance = radius
   for (const entity of entities) {
-    const dx = entity.position[0] - px
-    const dy = entity.position[1] - py
-    const dz = entity.position[2] - pz
+    const position = refs?.[entity.id]?.current ?? entity.position
+    const dx = position[0] - px
+    const dy = position[1] - py
+    const dz = position[2] - pz
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
     if (distance < bestDistance) {
       bestDistance = distance
@@ -59,12 +68,13 @@ function updateKind(
   radius: number,
   px: number,
   py: number,
-  pz: number
+  pz: number,
+  refs: Record<string, { current: Vec3 }> | undefined
 ): void {
   if (!entities) return
   const state = useSceneStore.getState()
   const current = kind === 'npc' ? state.nearbyNpcId : state.nearbyBuildingId
-  const next = findNearest(entities, radius, px, py, pz)
+  const next = findNearest(entities, radius, px, py, pz, refs)
   if (next === current) return
 
   if (kind === 'npc') {
@@ -85,10 +95,11 @@ export function useProximityDetection({
   buildings,
   npcRadius = 3,
   buildingRadius = 8,
+  npcPositionRefs,
 }: UseProximityDetectionOptions): void {
   useFrame(() => {
     const [px, py, pz] = playerPositionRef.current
-    updateKind('npc', npcs, npcRadius, px, py, pz)
-    updateKind('building', buildings, buildingRadius, px, py, pz)
+    updateKind('npc', npcs, npcRadius, px, py, pz, npcPositionRefs)
+    updateKind('building', buildings, buildingRadius, px, py, pz, undefined)
   })
 }

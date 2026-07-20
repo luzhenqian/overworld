@@ -76,6 +76,8 @@ export { computeSpriteLabelLayout, SPRITE_LABEL_FONT_PX } from './spriteLabelLay
 export type { SpriteLabelLayout, SpriteLabelLayoutInput } from './spriteLabelLayout'
 export { CollisionRegistration } from './CollisionRegistration'
 export type { CollisionRegistrationProps, DecorationCollisionGroup } from './CollisionRegistration'
+export { AgentNPC } from './AgentNPC'
+export type { AgentNPCProps, AgentLike } from './AgentNPC'
 export { Portal } from './Portal'
 export type { PortalProps } from './Portal'
 export { Lod } from './LodSwitch'

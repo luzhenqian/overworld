@@ -39,6 +39,14 @@ export interface SceneShellProps {
   }
   /** Override NPC positions for proximity + selection ring (e.g. moving NPCs). */
   npcPositions?: Record<string, Vec3>
+  /**
+   * Live position refs for moving NPCs (e.g. driven by `<AgentNPC>`), keyed
+   * by npc id. When a ref exists for an npc id, proximity detection and the
+   * NPC selection ring read `ref.current` every frame instead of the static
+   * position from `npcPositions`/`npcs`. Wire the SAME ref object passed as
+   * `AgentNPC.positionRef`.
+   */
+  npcPositionRefs?: Record<string, { current: Vec3 }>
   /** Interaction distance for NPCs. Default: 3. */
   npcProximityRadius?: number
   /** Interaction distance for buildings. Default: 8. */
@@ -66,6 +74,7 @@ export function SceneShell({
   interactHint,
   buildingSelectionRing,
   npcPositions,
+  npcPositionRefs,
   npcProximityRadius,
   buildingProximityRadius,
   player = <Player />,
@@ -102,6 +111,7 @@ export function SceneShell({
     buildings: proximityBuildings,
     npcRadius: npcProximityRadius,
     buildingRadius: buildingProximityRadius,
+    npcPositionRefs,
   })
 
   return (
@@ -154,7 +164,12 @@ export function SceneShell({
       ))}
 
       {/* NPC selection ring */}
-      <SelectionRing type="npc" positions={resolvedNpcPositions} theme={theme.npc} />
+      <SelectionRing
+        type="npc"
+        positions={resolvedNpcPositions}
+        positionRefs={npcPositionRefs}
+        theme={theme.npc}
+      />
 
       {/* Building selection ring */}
       {buildings && buildingPositions && (
