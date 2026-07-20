@@ -88,3 +88,39 @@ export const htmlAudioBackend: AudioBackend = {
     }
   },
 }
+
+/** No-op backend for headless/muted tests: state is queryable, nothing plays. */
+export const silentBackend: AudioBackend = {
+  isAvailable: () => true,
+  create(_url: string): AudioHandle {
+    let volume = 1
+    let paused = true
+    return {
+      play() {
+        paused = false
+      },
+      pause() {
+        paused = true
+      },
+      setVolume(v: number) {
+        volume = v
+      },
+      getVolume() {
+        return volume
+      },
+      setLoop(_loop: boolean) {
+        // no-op
+      },
+      isPaused() {
+        return paused
+      },
+      onEnded(_callback: () => void) {
+        // Never fires in silent backend; return no-op unsubscribe
+        return () => {}
+      },
+      destroy() {
+        // no-op
+      },
+    }
+  },
+}
