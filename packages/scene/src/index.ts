@@ -82,6 +82,10 @@ export { Lod } from './LodSwitch'
 export type { LodProps } from './LodSwitch'
 export { selectLodLevel } from './lod'
 export type { LodLevel } from './lod'
+export { Decorations, useDecorationCollision } from './Decorations'
+export type { DecorationsProps } from './Decorations'
+export { instanceMatrix, decorationColliders, collidersForSets } from './decorationInstancing'
+export type { DecorationSet } from './decorationInstancing'
 
 // Interaction
 export { interact, useInteractKey } from './interaction'

@@ -36,3 +36,8 @@ export function decorationColliders(set: DecorationSet): Collider[] {
     type: 'decoration' as const,
   }))
 }
+
+/** All colliders across a list of decoration sets — the collision single source of truth. */
+export function collidersForSets(sets: DecorationSet[]): Collider[] {
+  return sets.flatMap(decorationColliders)
+}
