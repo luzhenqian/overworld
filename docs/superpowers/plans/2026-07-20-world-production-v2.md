@@ -1658,18 +1658,23 @@ export function selectLodLevel(
   levels: LodLevel[],
   opts: SelectLodOptions
 ): { index: number; level: LodLevel } {
-  const { prevIndex, hysteresis = 2, deviceCap = 0 } = opts
+  const { hysteresis = 2, deviceCap = 0 } = opts
+  // Guard a caller-supplied prevIndex into range (state can drift).
+  const prevIndex = Math.min(Math.max(opts.prevIndex, 0), Math.max(levels.length - 1, 0))
   // Base pick: farthest level whose threshold we've crossed.
   let idx = 0
   for (let i = 1; i < levels.length; i++) {
     if (distance >= levels[i].distance) idx = i
   }
-  // Hysteresis: only switch away from prevIndex if we're clearly past the band.
+  // Hysteresis: resist switching while still inside the band of the boundary
+  // we'd cross — but relative to prevIndex, not the fully-jumped target. Walk
+  // one level at a time so a multi-level jump lands on the correct level
+  // (never snapping back to prevIndex) and degenerate close-spaced levels work.
   if (idx > prevIndex) {
-    // switching to a farther level requires distance >= threshold + band
-    if (distance < levels[idx].distance + hysteresis) idx = prevIndex
+    // Advancing farther: step back past any boundary still within the band.
+    while (idx > prevIndex && distance < levels[idx].distance + hysteresis) idx--
   } else if (idx < prevIndex) {
-    // switching to a nearer level requires distance < threshold - band
+    // Retreating nearer requires clearing prevIndex's own exit threshold − band.
     if (distance >= levels[prevIndex].distance - hysteresis) idx = prevIndex
   }
   // Device cap: never render a level more detailed than the cap.
