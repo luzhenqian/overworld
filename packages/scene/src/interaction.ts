@@ -7,6 +7,7 @@
 import { useEffect, useRef } from 'react'
 import { gameEvents } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
+import { resolveInputBlocked } from './inputBlocked'
 
 /**
  * Emit an `entity:interact` event for the entity the player is currently
@@ -54,7 +55,7 @@ export function useInteractKey(key = 'e', options: UseInteractKeyOptions = {}): 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return
       if (e.key.toLowerCase() !== key.toLowerCase()) return
-      if (optionsRef.current.isInputBlocked?.()) return
+      if (resolveInputBlocked(optionsRef.current.isInputBlocked)()) return
       interact()
     }
 

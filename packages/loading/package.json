@@ -30,9 +30,14 @@
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@overworld-engine/core": "workspace:*"
+  },
   "peerDependencies": {
     "react": "^18.0.0",
     "zustand": "^5.0.0",
+    "three": ">=0.160.0",
+    "@react-three/fiber": "^8.0.0",
     "@react-three/drei": "^9.0.0"
   },
   "license": "MIT",

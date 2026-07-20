@@ -1,6 +1,6 @@
 export { KEYBOARD_PRIORITY, useKeyboardStore } from './keyboardStore'
 export type { KeyboardLayer } from './keyboardStore'
-export { useKeyboardLayer, useHotkey } from './hooks'
+export { useKeyboardLayer, useHotkey, parseLayerOpts } from './hooks'
 export type { UseHotkeyOptions } from './hooks'
 export { createMovementInput } from './movementInput'
 export type { MovementInputRef, MovementInputState } from './movementInput'
@@ -11,6 +11,7 @@ export {
   DEFAULT_RUN_THRESHOLD,
   computeJoystickVector,
   computeThumbOffset,
+  resolveJoystickOutput,
   shouldRun,
 } from './joystickMath'
 export type { JoystickVector } from './joystickMath'

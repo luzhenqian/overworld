@@ -95,3 +95,24 @@ gameEvents.on('environment:phase-changed', ({ phase }) => { /* 完全类型化 *
 ```bash
 pnpm test        # vitest,21 个用例覆盖时间回绕/阶段事件/天气轮换/持久化
 ```
+
+## 本版本新增:`<WorldEnvironment>` 预设环境层
+
+一站式的天空 / 雾 / 地面 / 光照 / 星空图层,按预设名或自定义对象渲染,
+支持画质分档与(可选)随 `createEnvironment` 引擎的时间插值。
+
+```tsx
+import { WorldEnvironment } from '@overworld-engine/environment'
+
+<WorldEnvironment preset="foggy-dusk" engine={environment} quality={qualitySettings}>
+  {/* 场景专属内容仍可作为 children 叠加渲染 */}
+</WorldEnvironment>
+```
+
+- `<WorldEnvironment preset engine? quality? />` — `preset` 可传预设名或自定义
+  `WorldEnvironmentPreset` 对象;传 `engine` 时环境光/太阳光随其 `timeOfDay`
+  按 `getDaylightFactor` 平滑插值;`quality` 接收结构化的阴影/粒子倍率提示。
+- `WORLD_ENV_PRESETS` — 内置四档:`clear-noon` / `overcast` / `foggy-dusk` /
+  `night`。
+- `resolvePreset(nameOrPreset)` / `resolveLight(preset, daylight)` — 纯函数,
+  可独立复用于自定义渲染管线。

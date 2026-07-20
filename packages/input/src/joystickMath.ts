@@ -65,6 +65,15 @@ export function shouldRun(
   return magnitude > 0 && magnitude >= runThreshold
 }
 
+/** Zero the joystick output while the shared input lock is held (unless opted out). */
+export function resolveJoystickOutput(
+  raw: { x: number; z: number; running: boolean },
+  opts: { locked: boolean; respect: boolean }
+): { x: number; z: number; running: boolean } {
+  if (opts.respect && opts.locked) return { x: 0, z: 0, running: false }
+  return raw
+}
+
 /**
  * Clamp a pointer offset (pixels from the joystick center) to `maxDistance`
  * for positioning the thumb visual. Direction is preserved.

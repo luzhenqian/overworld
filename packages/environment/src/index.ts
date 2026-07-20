@@ -30,3 +30,11 @@ export { SnowParticles } from './SnowParticles'
 export type { SnowParticlesProps } from './SnowParticles'
 export { WeatherVisuals } from './WeatherVisuals'
 export type { WeatherVisualsProps } from './WeatherVisuals'
+export { WorldEnvironment } from './WorldEnvironmentScene'
+export type { WorldEnvironmentProps } from './WorldEnvironmentScene'
+export {
+  WORLD_ENV_PRESETS,
+  resolvePreset,
+  resolveLight,
+} from './worldEnvironment'
+export type { WorldEnvironmentPreset, WorldEnvironmentPresetName } from './worldEnvironment'

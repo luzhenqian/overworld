@@ -948,6 +948,9 @@ importers:
 
   packages/input:
     dependencies:
+      '@overworld-engine/core':
+        specifier: workspace:*
+        version: link:../core
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -981,9 +984,18 @@ importers:
 
   packages/loading:
     dependencies:
+      '@overworld-engine/core':
+        specifier: workspace:*
+        version: link:../core
       '@react-three/drei':
         specifier: ^9.0.0
         version: 9.122.0(@react-three/fiber@8.18.0(@types/react@19.2.17)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.170.0))(@types/react@19.2.17)(@types/three@0.170.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.170.0)(use-sync-external-store@1.6.0(react@18.3.1))
+      '@react-three/fiber':
+        specifier: ^8.0.0
+        version: 8.18.0(@types/react@19.2.17)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.170.0)
+      three:
+        specifier: '>=0.160.0'
+        version: 0.170.0
       zustand:
         specifier: ^5.0.0
         version: 5.0.14(@types/react@19.2.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))

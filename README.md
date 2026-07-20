@@ -82,7 +82,7 @@ telegram-mini-app、desktop-tauri、mobile-capacitor、weapp-game 四个端模�
 
 - [架构说明](docs/architecture.md)
 - [设计文档](docs/specs/2026-07-16-overworld-framework-design.md)
-- 指南:[多端支持](docs/guides/platforms.md) · [i18n 内容组织](docs/guides/i18n.md) · [资产组织与预加载](docs/guides/assets.md) · [测试指南](docs/guides/testing.md) · [持久化互操作](docs/guides/persistence-interop.md) · [内容热重载](docs/guides/content-hmr.md) · [内容包](docs/guides/content-packs.md) · [权威多人](docs/guides/authoritative-multiplayer.md) · [发布流程](docs/guides/releasing.md) · [签名与上架](docs/guides/signing-and-store.md)
+- 指南:[多端支持](docs/guides/platforms.md) · [i18n 内容组织](docs/guides/i18n.md) · [资产组织与预加载](docs/guides/assets.md) · [测试指南](docs/guides/testing.md) · [持久化互操作](docs/guides/persistence-interop.md) · [内容热重载](docs/guides/content-hmr.md) · [内容包](docs/guides/content-packs.md) · [权威多人](docs/guides/authoritative-multiplayer.md) · [发布流程](docs/guides/releasing.md) · [签名与上架](docs/guides/signing-and-store.md) · [密集世界](docs/guides/dense-world.md)
 - 各包 `README.md`
 
 ## 技术栈与要求

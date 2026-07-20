@@ -10,12 +10,14 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import { inputLock } from '@overworld-engine/core'
 import type { MovementInputRef } from './movementInput'
 import {
   DEFAULT_DEAD_ZONE,
   DEFAULT_RUN_THRESHOLD,
   computeJoystickVector,
   computeThumbOffset,
+  resolveJoystickOutput,
   shouldRun,
 } from './joystickMath'
 
@@ -46,6 +48,13 @@ export interface VirtualJoystickProps {
    * the thumb gets `` `${testId}-thumb` ``. Default: `'ow-joystick'`.
    */
   testId?: string
+  /**
+   * Zero the joystick output while the shared `inputLock` (from
+   * `@overworld-engine/core`) is held — e.g. during dialogue or a cutscene
+   * that acquired the lock via `useKeyboardLayer(id, priority, { lockInput: true })`.
+   * Default: `true`.
+   */
+  respectInputLock?: boolean
 }
 
 /**
@@ -67,6 +76,7 @@ export function VirtualJoystick({
   className,
   style,
   testId = 'ow-joystick',
+  respectInputLock = true,
 }: VirtualJoystickProps) {
   const baseRef = useRef<HTMLDivElement>(null)
   const thumbRef = useRef<HTMLDivElement>(null)
@@ -104,18 +114,25 @@ export function VirtualJoystick({
       const dy = event.clientY - (rect.top + rect.height / 2)
 
       const vector = computeJoystickVector(dx, dy, radius, deadZone)
+      const locked = inputLock.isLocked()
+      const gated = resolveJoystickOutput(
+        { x: vector.x, z: vector.z, running: shouldRun(vector.magnitude, runThreshold) },
+        { locked, respect: respectInputLock }
+      )
       const input = targetRef.current.current
-      input.x = vector.x
-      input.z = vector.z
-      input.running = shouldRun(vector.magnitude, runThreshold)
+      input.x = gated.x
+      input.z = gated.z
+      input.running = gated.running
 
       const thumb = thumbRef.current
       if (thumb) {
-        const offset = computeThumbOffset(dx, dy, radius)
+        // Recenter the visible thumb when the lock zeroed the output; otherwise track the pointer.
+        const offset =
+          respectInputLock && locked ? { x: 0, y: 0 } : computeThumbOffset(dx, dy, radius)
         thumb.style.transform = `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`
       }
     },
-    [radius, deadZone, runThreshold]
+    [radius, deadZone, runThreshold, respectInputLock]
   )
 
   const handlePointerDown = useCallback(

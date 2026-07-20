@@ -15,6 +15,7 @@ import { useCollisionStore } from './collisionStore'
 import { playerPositionRef, playerRotationRef, consumePlayerTeleport } from './playerStore'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { FollowCamera } from './FollowCamera'
+import { resolveInputBlocked } from './inputBlocked'
 
 const DEFAULT_SPEED = 0.15
 const DEFAULT_PLAYER_RADIUS = 0.5
@@ -223,8 +224,8 @@ export function Player({
 
   // Per-instance pressed-key map
   const keys = useRef<Record<string, boolean>>({})
-  const isInputBlockedRef = useRef(isInputBlocked)
-  isInputBlockedRef.current = isInputBlocked
+  const isInputBlockedRef = useRef(resolveInputBlocked(isInputBlocked))
+  isInputBlockedRef.current = resolveInputBlocked(isInputBlocked)
 
   // Track previous position for distance calculation + throttled emission
   const previousPosition = useRef(new Vector3())

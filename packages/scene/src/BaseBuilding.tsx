@@ -18,6 +18,8 @@ import { useModelLoader } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { buildingVisualHeights } from './visualHeights'
 import { SpriteLabel } from './SpriteLabel'
+import { Lod } from './LodSwitch'
+import type { LodLevel } from './lod'
 import type { BuildingTheme, LabelMode } from './types'
 
 export interface BaseBuildingProps {
@@ -50,6 +52,11 @@ export interface BaseBuildingProps {
    * See {@link buildingVisualHeights}.
    */
   labelHeight?: number
+  /**
+   * Optional distance LODs (near→far); `modelPath` is treated as LOD0. When
+   * present, the model switches based on distance to the player via `<Lod>`.
+   */
+  lods?: LodLevel[]
 }
 
 /** Themed placeholder box: loading state, load failure and no-model buildings. */
@@ -106,6 +113,7 @@ export function BaseBuilding({
   labelFont,
   labelMode = 'troika',
   labelHeight,
+  lods,
 }: BaseBuildingProps) {
   const groupRef = useRef<THREE.Group>(null)
 
@@ -115,17 +123,28 @@ export function BaseBuilding({
 
   const fallback = <BuildingFallback theme={theme} fallbackScale={heights.fallbackScale} />
 
+  // Key by URL so editing modelPath resets a previous load failure.
+  const renderModel = (path: string) => (
+    <ModelErrorBoundary key={path} modelPath={path} fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <BuildingModel modelPath={path} scale={scale} fallback={fallback} />
+      </Suspense>
+    </ModelErrorBoundary>
+  )
+
+  const levels: LodLevel[] | null =
+    modelPath && lods && lods.length > 0 ? [{ distance: 0, modelPath }, ...lods] : null
+
   return (
     <group ref={groupRef} position={position}>
       {/* Building model with rotation (fallback box while loading / on failure) */}
       <group rotation={rotation}>
         {modelPath ? (
-          // Key by URL so editing modelPath resets a previous load failure.
-          <ModelErrorBoundary key={modelPath} modelPath={modelPath} fallback={fallback}>
-            <Suspense fallback={fallback}>
-              <BuildingModel modelPath={modelPath} scale={scale} fallback={fallback} />
-            </Suspense>
-          </ModelErrorBoundary>
+          levels ? (
+            <Lod position={position} levels={levels} render={renderModel} />
+          ) : (
+            renderModel(modelPath)
+          )
         ) : (
           fallback
         )}

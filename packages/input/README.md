@@ -128,3 +128,21 @@ function Game() {
 
 - `blockedKeys` 请使用小写键名(与 `event.key.toLowerCase()` 比较)。
 - 本包无任何内部依赖,peerDependencies 为 `react` 与 `zustand`。
+
+## 本版本新增:与 inputLock 接线
+
+`useKeyboardLayer` 与虚拟摇杆现在可以顺带获取/遵守
+`@overworld-engine/core` 的共享 `inputLock`,不用每个输入源单独接线。
+
+```tsx
+// 对话面板打开期间,顺带锁住摇杆等其他输入源
+useKeyboardLayer('dialogue', KEYBOARD_PRIORITY.NPC_DIALOGUE, { lockInput: true })
+```
+
+- `useKeyboardLayer(id, priority, { lockInput: true })` — 挂载时额外调用
+  `inputLock.acquire(id)`,卸载时 `release(id)`;第三参数仍兼容旧的
+  `string[]`(视为 `blockedKeys`)。内部用导出的 `parseLayerOpts` 归一化。
+- `<VirtualJoystick respectInputLock />`(默认 `true`)— `inputLock` 持有期间
+  摇杆输出清零(视觉上摇杆头回中);传 `respectInputLock={false}` 可保留旧行为。
+- `resolveJoystickOutput(raw, { locked, respect })` — 纯函数,上述行为的
+  可独立测试实现。

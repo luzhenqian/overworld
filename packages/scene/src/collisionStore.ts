@@ -5,7 +5,7 @@
  */
 import { create } from 'zustand'
 import * as THREE from 'three'
-import type { EntityKind } from '@overworld-engine/core'
+import type { EntityKind, Vec3 } from '@overworld-engine/core'
 
 /** One registered circular collider (X/Z plane, `position.y` is ignored). */
 export interface Collider {
@@ -22,6 +22,8 @@ interface CollisionState {
   registerCollider: (collider: Collider) => void
   unregisterCollider: (id: string) => void
   clearColliders: () => void
+  /** Move an existing collider in place (no-op if unknown). For moving NPCs. */
+  setColliderPosition: (id: string, position: Vec3) => void
 
   /** Return the first collider overlapping the given circle, or null. */
   checkCollision: (
@@ -59,6 +61,16 @@ export const useCollisionStore = create<CollisionState>((set, get) => ({
 
   clearColliders: () => {
     set({ colliders: new Map() })
+  },
+
+  setColliderPosition: (id, position) => {
+    set((state) => {
+      const existing = state.colliders.get(id)
+      if (!existing) return state
+      const next = new Map(state.colliders)
+      next.set(id, { ...existing, position: new THREE.Vector3(position[0], 0, position[2]) })
+      return { colliders: next }
+    })
   },
 
   checkCollision: (position, radius, excludeId) => {

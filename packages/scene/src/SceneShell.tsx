@@ -39,6 +39,21 @@ export interface SceneShellProps {
   }
   /** Override NPC positions for proximity + selection ring (e.g. moving NPCs). */
   npcPositions?: Record<string, Vec3>
+  /**
+   * Live position refs for moving NPCs, keyed by npc id. An id present here
+   * makes that NPC's `BaseNPC` visual, collider, proximity detection, and
+   * selection ring all follow `ref.current` every frame — a single `npcs`
+   * entry (with its real `modelPath`) plus a ref is a fully moving NPC, no
+   * placeholder needed. **The id must still be an entry in `npcs`** — that's
+   * what registers the collider (via `CollisionRegistration`) and what
+   * proximity detection / the selection ring use to derive their tracked-id
+   * list; a ref keyed by an id that isn't in `npcs` is silently ignored, not
+   * an error. Drive the ref from a headless agent (e.g.
+   * `@overworld-engine/ai`'s `createAgent`) in your own `useFrame`, or from
+   * `<AgentNPC>` if you want a standalone moving NPC outside a `npcs` list
+   * (see its doc comment).
+   */
+  npcPositionRefs?: Record<string, { current: Vec3 }>
   /** Interaction distance for NPCs. Default: 3. */
   npcProximityRadius?: number
   /** Interaction distance for buildings. Default: 8. */
@@ -66,6 +81,7 @@ export function SceneShell({
   interactHint,
   buildingSelectionRing,
   npcPositions,
+  npcPositionRefs,
   npcProximityRadius,
   buildingProximityRadius,
   player = <Player />,
@@ -102,6 +118,7 @@ export function SceneShell({
     buildings: proximityBuildings,
     npcRadius: npcProximityRadius,
     buildingRadius: buildingProximityRadius,
+    npcPositionRefs,
   })
 
   return (
@@ -120,6 +137,7 @@ export function SceneShell({
           npcId={config.id}
           modelPath={config.modelPath}
           position={config.position}
+          positionRef={npcPositionRefs?.[config.id]}
           rotation={config.rotation}
           scale={config.scale}
           name={config.name}
@@ -131,6 +149,7 @@ export function SceneShell({
           showQuestIndicator={npcOptions?.showQuestIndicator}
           showEBubble={npcOptions?.showEBubble}
           showGlow={npcOptions?.showGlow}
+          lods={config.lods}
         />
       ))}
 
@@ -148,11 +167,17 @@ export function SceneShell({
           interactHint={interactHint}
           labelFont={labelFont}
           labelMode={labelMode}
+          lods={config.lods}
         />
       ))}
 
       {/* NPC selection ring */}
-      <SelectionRing type="npc" positions={resolvedNpcPositions} theme={theme.npc} />
+      <SelectionRing
+        type="npc"
+        positions={resolvedNpcPositions}
+        positionRefs={npcPositionRefs}
+        theme={theme.npc}
+      />
 
       {/* Building selection ring */}
       {buildings && buildingPositions && (
@@ -185,7 +210,13 @@ export function preloadSceneModels(config: {
   buildings?: BuildingConfig[]
   extraModels?: string[]
 }): void {
-  config.npcs.forEach((n) => useGLTF.preload(n.modelPath))
-  config.buildings?.forEach((b) => useGLTF.preload(b.modelPath))
+  config.npcs.forEach((n) => {
+    useGLTF.preload(n.modelPath)
+    n.lods?.forEach((l) => useGLTF.preload(l.modelPath))
+  })
+  config.buildings?.forEach((b) => {
+    useGLTF.preload(b.modelPath)
+    b.lods?.forEach((l) => useGLTF.preload(l.modelPath))
+  })
   config.extraModels?.forEach((p) => useGLTF.preload(p))
 }

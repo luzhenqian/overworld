@@ -1,19 +1,35 @@
 import { useEffect, useRef } from 'react'
+import { inputLock } from '@overworld-engine/core'
 import { KEYBOARD_PRIORITY, useKeyboardStore } from './keyboardStore'
+
+/** Normalize the overloaded `useKeyboardLayer` options into a flat shape. */
+export function parseLayerOpts(
+  opts?: string[] | { blockedKeys?: string[]; lockInput?: boolean }
+): { blockedKeys?: string[]; lockInput: boolean } {
+  if (Array.isArray(opts)) return { blockedKeys: opts, lockInput: false }
+  return { blockedKeys: opts?.blockedKeys, lockInput: Boolean(opts?.lockInput) }
+}
 
 /**
  * Register a keyboard layer for the lifetime of the calling component:
  * registers on mount (and when `id`/`priority`/`blockedKeys` change),
- * unregisters on unmount.
+ * unregisters on unmount. Pass `{ lockInput: true }` to also acquire the
+ * shared `inputLock` (from `@overworld-engine/core`) for the layer's
+ * lifetime — e.g. to suppress the virtual joystick during a cutscene.
  *
  * ```tsx
  * function DialogueOverlay() {
- *   useKeyboardLayer('dialogue', KEYBOARD_PRIORITY.NPC_DIALOGUE)
+ *   useKeyboardLayer('dialogue', KEYBOARD_PRIORITY.NPC_DIALOGUE, { lockInput: true })
  *   ...
  * }
  * ```
  */
-export function useKeyboardLayer(id: string, priority: number, blockedKeys?: string[]): void {
+export function useKeyboardLayer(
+  id: string,
+  priority: number,
+  opts?: string[] | { blockedKeys?: string[]; lockInput?: boolean }
+): void {
+  const { blockedKeys, lockInput } = parseLayerOpts(opts)
   // Serialize so a fresh (but equal) array literal doesn't churn the effect.
   const blockedKeysKey = blockedKeys ? JSON.stringify(blockedKeys) : undefined
 
@@ -24,8 +40,12 @@ export function useKeyboardLayer(id: string, priority: number, blockedKeys?: str
       priority,
       blockedKeys: blockedKeysKey ? (JSON.parse(blockedKeysKey) as string[]) : undefined,
     })
-    return () => useKeyboardStore.getState().unregisterLayer(id)
-  }, [id, priority, blockedKeysKey])
+    if (lockInput) inputLock.acquire(id)
+    return () => {
+      useKeyboardStore.getState().unregisterLayer(id)
+      if (lockInput) inputLock.release(id)
+    }
+  }, [id, priority, blockedKeysKey, lockInput])
 }
 
 /** Options for {@link useHotkey}. */

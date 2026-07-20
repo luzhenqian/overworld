@@ -32,7 +32,9 @@ export {
 export { Player } from './Player'
 export type { PlayerProps, PlayerAnimationMap, PlayerBounds, MovementInputRef } from './Player'
 export { FollowCamera } from './FollowCamera'
-export type { FollowCameraProps } from './FollowCamera'
+export type { FollowCameraProps, FollowCameraOrbitOptions } from './FollowCamera'
+export { applyOrbitDelta, orbitToOffset } from './orbitCamera'
+export type { OrbitState, OrbitLimits, OrbitDelta } from './orbitCamera'
 
 // Visual layout helpers (pure math, testable without GL)
 export {
@@ -76,12 +78,24 @@ export { computeSpriteLabelLayout, SPRITE_LABEL_FONT_PX } from './spriteLabelLay
 export type { SpriteLabelLayout, SpriteLabelLayoutInput } from './spriteLabelLayout'
 export { CollisionRegistration } from './CollisionRegistration'
 export type { CollisionRegistrationProps, DecorationCollisionGroup } from './CollisionRegistration'
+export { AgentNPC } from './AgentNPC'
+export type { AgentNPCProps, AgentLike } from './AgentNPC'
 export { Portal } from './Portal'
 export type { PortalProps } from './Portal'
+export { Lod } from './LodSwitch'
+export type { LodProps } from './LodSwitch'
+export { selectLodLevel } from './lod'
+export type { LodLevel } from './lod'
+export { Decorations, useDecorationCollision } from './Decorations'
+export type { DecorationsProps } from './Decorations'
+export { instanceMatrix, decorationColliders, collidersForSets } from './decorationInstancing'
+export type { DecorationSet } from './decorationInstancing'
 
 // Interaction
 export { interact, useInteractKey } from './interaction'
 export type { UseInteractKeyOptions } from './interaction'
+export { useInputLocked } from './useInputLocked'
+export { resolveInputBlocked } from './inputBlocked'
 
 // Quality presets
 export {

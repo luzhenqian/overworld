@@ -1,6 +1,8 @@
 export type { Vec3, EntityKind, EntityRef } from './types'
 export { EventBus, gameEvents } from './events'
 export type { OverworldEventMap, OverworldEventName } from './events'
+export { inputLock, createInputLock } from './inputLock'
+export type { InputLock } from './inputLock'
 export {
   Registry,
   createEffectRegistry,
