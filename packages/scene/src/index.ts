@@ -32,7 +32,9 @@ export {
 export { Player } from './Player'
 export type { PlayerProps, PlayerAnimationMap, PlayerBounds, MovementInputRef } from './Player'
 export { FollowCamera } from './FollowCamera'
-export type { FollowCameraProps } from './FollowCamera'
+export type { FollowCameraProps, FollowCameraOrbitOptions } from './FollowCamera'
+export { applyOrbitDelta, orbitToOffset } from './orbitCamera'
+export type { OrbitState, OrbitLimits, OrbitDelta } from './orbitCamera'
 
 // Visual layout helpers (pure math, testable without GL)
 export {
