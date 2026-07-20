@@ -29,7 +29,7 @@ import { Canvas } from '@react-three/fiber'
 import { gameEvents, inputLock } from '@overworld-engine/core'
 import {
   SceneShell, Player, FollowCamera, AgentNPC, Decorations, Lod,
-  useInputLocked, type DecorationSet,
+  useInputLocked, type DecorationSet, type NPCConfig,
 } from '@overworld-engine/scene'
 import { WorldEnvironment, createEnvironment, EnvironmentTick } from '@overworld-engine/environment'
 import {
@@ -56,6 +56,20 @@ const lamps: DecorationSet = {
 const guardAgent = createAgent({ position: [0, -10], speed: 1.5 })
 guardAgent.patrol([[0, -10], [10, -10], [10, 0]], { pauseMs: 800 })
 const guardPositionRef = { current: [0, 0, -10] as [number, number, number] }
+// "guard" 必须同时是 SceneShell.npcs 的一项 —— 邻近检测/选中环都只从 npcs
+// 派生"要追踪哪些 id",npcPositionRefs 对不在 npcs 里的 id 直接无效(见下文
+// "移动 NPC"一节)。这一项的 modelPath 留空,只用于挂碰撞体/邻近检测/选中
+// 环,不作为可见模型 —— 真正会动的模型由 <AgentNPC> 的 children 渲染。
+const guardNpc: NPCConfig = {
+  id: 'guard',
+  modelPath: '',
+  // 独立的字面量数组,故意不复用 guardPositionRef.current —— 后者会被
+  // AgentNPC 每帧原地修改,若这里引用同一个数组,静态入口的 position 会被
+  // 意外原地改写,但 BaseNPC 只在 React 重渲染时才把 position 应用到
+  // three.js 对象,不会每帧同步,行为会变得不可预测。
+  position: [0, 0, -10],
+  rotation: [0, 0, 0],
+}
 
 // 4) 环境音区:靠近瀑布逐渐淡入水声(替代 worldAudio.ts 手写淡入淡出)
 const audio = createAudioManager({
@@ -98,14 +112,26 @@ function World() {
       <WorldEnvironment preset="clear-noon" engine={environment} />
       <FirstFramePhase />
 
-      <SceneShell npcPositionRefs={{ guard: guardPositionRef }} player={<Player ref={playerRef} />}>
+      <SceneShell
+        npcs={[guardNpc]}
+        npcPositionRefs={{ guard: guardPositionRef }}
+        // 这个场景里唯一的 npc 就是移动的 guard,所以直接把 BaseNPC 的名牌/
+        // 徽标/发光/E 气泡关掉,避免它们停在 guard 出生点不跟着走。若场景
+        // 里还混了静态 npc,这些开关是全场景生效的(非按 npc 单独控制),
+        // 需要按需取舍或拆分场景。
+        npcOptions={{ showGlow: false, showEBubble: false, showQuestIndicator: false }}
+        player={<Player ref={playerRef} />}
+      >
         <Decorations sets={[lamps]} />
         <Lod
           position={[30, 0, 30]}
           levels={[{ distance: 0, modelPath: '/models/tower-hi.glb' }, { distance: 60, modelPath: '/models/tower-lo.glb' }]}
           render={(url) => <mesh>{/* ...加载 url... */}</mesh>}
         />
-        <AgentNPC npcId="guard" agent={guardAgent} positionRef={guardPositionRef} />
+        {/* guard 真正可见的模型:AgentNPC 每帧把 children 摆到 agent 的位置 */}
+        <AgentNPC npcId="guard" agent={guardAgent} positionRef={guardPositionRef}>
+          <mesh castShadow>{/* ...加载 /models/guard.glb... */}</mesh>
+        </AgentNPC>
       </SceneShell>
 
       <FollowCamera targetRef={playerRef} orbit={{ minDistance: 8, maxDistance: 40 }} />
@@ -138,8 +164,34 @@ function World() {
 `<AgentNPC agent positionRef>` 一次性做掉:`agent` 只需满足结构类型
 `AgentLike`(`@overworld-engine/ai` 的 `createAgent` 结果天然满足,
 `scene` 包本身不 import `ai`),每帧调用 `agent.update(deltaMs)`、把位置写回
-共享 ref(交给 `SceneShell.npcPositionRefs` 供邻近检测/小地图/雷达读取)、
-同步碰撞体位置,朝向按最短角度平滑转向。
+共享 ref、同步碰撞体位置(`useCollisionStore.getState().setColliderPosition`),
+朝向按最短角度平滑转向,`children` 就是玩家真正看到的移动模型。
+
+**真正能跑起来的组合,三个条件缺一不可**(否则邻近检测/选中环/碰撞体对这个
+NPC 全部失效,且不会报错——只是安静地不生效):
+
+1. NPC 的 id 必须**同时**出现在 `SceneShell.npcs` 里(哪怕只放一个
+   `modelPath: ''` 的最小占位项)。邻近检测(`useProximityDetection`)和
+   选中环(`SelectionRing`)追踪哪些 id,都是从 `npcs` 派生的,不是从
+   `npcPositionRefs` 派生的——`npcPositionRefs` 只是"如果这个 id 正在被
+   追踪,追踪的时候用哪个位置",不在 `npcs` 里的 id 直接被忽略。
+2. 同一个 id 要出现在 `SceneShell.npcPositionRefs` 里,指向和
+   `<AgentNPC positionRef>` **同一个** ref 对象,邻近检测/选中环才会用
+   实时位置而不是 `npcs` 里的出生点坐标。
+3. `<AgentNPC npcId>` 要和上面两处用同一个 id 字符串——`setColliderPosition`
+   只会更新已注册的碰撞体,`CollisionRegistration` 只按 `npcs` 数组注册,
+   id 对不上就是静默 no-op。
+
+**已知局限**:`SceneShell` 会为 `npcs` 里的每一项都渲染一个 `<BaseNPC>`
+静态可视对象(模型/名牌/任务徽标/发光/交互气泡),这个可视对象只读
+`NPCConfig.position`,**不会**跟随 `npcPositionRefs`——即使上面三条全部接对
+了,那个静态 `BaseNPC` 依然钉在出生点不动。所以移动 NPC 的正确写法是:
+`npcs` 里的那一项只留最小占位(`modelPath: ''`,不显示真实模型),真正会动
+的模型放进 `<AgentNPC>` 的 `children`;如果不想让出生点残留一个不会动的
+胶囊体/名牌/发光气泡,用 `npcOptions` 把对应 UI 关掉(注意 `npcOptions`
+是整个场景生效,不能按单个 NPC 单独关)。这是当前实现的真实边界,不是配置
+技巧能完全绕开的——要让 `BaseNPC` 的可视效果本身跟随 `npcPositionRefs`,
+需要改 `BaseNPC`/`SceneShell` 的实现。
 
 ### 加载状态:新增能力,原来常常没有
 

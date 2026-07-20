@@ -45,6 +45,24 @@ export interface SceneShellProps {
    * NPC selection ring read `ref.current` every frame instead of the static
    * position from `npcPositions`/`npcs`. Wire the SAME ref object passed as
    * `AgentNPC.positionRef`.
+   *
+   * **The id must also be an entry in `npcs`.** Proximity detection and the
+   * selection ring both derive their *tracked id list* from `npcs` — a ref
+   * keyed by an id that isn't in `npcs` is silently ignored (never checked,
+   * never rendered), not an error. Likewise `AgentNPC`'s
+   * `setColliderPosition(id, ...)` is a no-op unless `CollisionRegistration`
+   * (driven by this same `npcs` array) has already registered a collider for
+   * that id.
+   *
+   * Note that including the id in `npcs` only wires proximity/selection/
+   * collision to the live ref — it does **not** make the `npcs` entry's own
+   * `BaseNPC` visual (model, name label, quest indicator, glow, interaction
+   * bubble) follow the ref. That visual is always drawn at the static
+   * `NPCConfig.position` and never reads `npcPositionRefs`. For a genuinely
+   * moving NPC, render the visible mesh via `<AgentNPC>` (children) and keep
+   * the matching `npcs` entry's own model minimal (e.g. omit `modelPath` so
+   * only the small fallback capsule marks the spawn point) to avoid a
+   * stationary duplicate.
    */
   npcPositionRefs?: Record<string, { current: Vec3 }>
   /** Interaction distance for NPCs. Default: 3. */
