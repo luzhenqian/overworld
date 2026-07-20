@@ -1,7 +1,18 @@
 /**
  * Drive a headless `ai` agent from the frame loop, publish its live position
- * into a shared ref (consumed by SceneShell proximity/selection/collision),
- * and move the NPC visual + collider. Compose with ai's createAgent/patrol.
+ * into a shared ref, and move a STANDALONE NPC visual + collider. Compose
+ * with ai's createAgent/patrol.
+ *
+ * **For NPCs that are already entries in a `SceneShell.npcs` list, prefer
+ * that recipe instead**: pass a real `modelPath` on the `npcs` entry and
+ * wire the same ref as `SceneShell.npcPositionRefs[id]` — `BaseNPC` itself
+ * then follows the ref each frame (visual + collider), so proximity
+ * detection and the selection ring come for free with no double render.
+ * `<AgentNPC>` remains useful when you want a moving NPC that is NOT
+ * managed by a `SceneShell` npcs list (e.g. a bespoke visual, a scene
+ * without `SceneShell`, or several agents sharing one custom mesh
+ * hierarchy) — it renders its own visual via `children` and moves its own
+ * collider independently.
  *
  * `scene` never imports `@overworld-engine/ai` — {@link AgentLike} is a
  * local structural type matching the shape of `createAgent(...)`'s result,
@@ -18,13 +29,13 @@
  *   that ref is ignored by proximity detection and the selection ring (both
  *   derive their tracked-id list from `npcs`, not from `npcPositionRefs`).
  * - `<AgentNPC>` renders its own visual via `children`, positioned every
- *   frame from the agent. This is a SEPARATE visual from the static
- *   `BaseNPC` that `SceneShell` renders for the matching `npcs` entry —
- *   that `BaseNPC` instance stays fixed at `NPCConfig.position` and does
- *   not read `positionRef`. To avoid a stationary duplicate mesh/label at
- *   the spawn point, keep that `npcs` entry's own `modelPath` minimal
- *   (e.g. omit it) and let `<AgentNPC>`'s children be the mesh players
- *   actually see move.
+ *   frame from the agent. This is a SEPARATE visual from the `BaseNPC` that
+ *   `SceneShell` renders for the matching `npcs` entry — if that `npcs`
+ *   entry also has a `modelPath` and the SAME ref passed as
+ *   `npcPositionRefs[id]`, `BaseNPC` now follows the ref too (see above),
+ *   so combining it with `<AgentNPC>` on the same id would double-render.
+ *   Only use `<AgentNPC>` alongside a `npcs` entry when that entry's own
+ *   `modelPath` is omitted (or a different, non-moving id).
  */
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -55,9 +66,10 @@ export interface AgentNPCProps {
 /**
  * Drive a headless `ai` agent from the frame loop, publish its live position
  * into a shared ref (consumed by SceneShell proximity/selection/collision),
- * and move the NPC visual + collider. Compose with ai's createAgent/patrol.
- * See the module-level composition contract above for the `npcs`/
- * `npcPositionRefs` wiring this component depends on.
+ * and move a standalone NPC visual + collider. Compose with ai's
+ * createAgent/patrol. For NPCs already listed in `SceneShell.npcs`, prefer
+ * `BaseNPC`'s own `positionRef` prop instead — see the module-level doc
+ * comment above for when to use which.
  */
 export function AgentNPC({
   npcId,

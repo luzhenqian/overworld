@@ -15,10 +15,12 @@
  * it fails to load, and when `modelPath` is omitted.
  */
 import { Suspense, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Text, Billboard, Float } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Vec3 } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
+import { useCollisionStore } from './collisionStore'
 import { useModelLoader } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { npcVisualHeights, DEFAULT_NPC_SCALE } from './visualHeights'
@@ -38,7 +40,18 @@ export interface BaseNPCProps {
   npcId: string
   /** GLTF/GLB model URL. When omitted, the themed fallback capsule renders. */
   modelPath?: string
+  /** Initial/static position. Used as-is when `positionRef` is omitted; otherwise the group's starting position until the first frame. */
   position: Vec3
+  /**
+   * Live position ref for a moving NPC (e.g. from `ai.createAgent`). When
+   * provided, this component moves its own root group AND its registered
+   * collider (`useCollisionStore.getState().setColliderPosition(npcId, ...)`)
+   * every frame to `positionRef.current` — no separate `<AgentNPC>` visual
+   * needed. Combine with `SceneShell.npcPositionRefs[npcId]` (the SAME ref
+   * object) so proximity detection and the selection ring follow it too.
+   * When omitted, the visual stays fixed at `position` (unchanged behavior).
+   */
+  positionRef?: { current: Vec3 }
   rotation?: Vec3
   scale?: number
   theme: NPCTheme
@@ -130,6 +143,7 @@ export function BaseNPC({
   npcId,
   modelPath,
   position,
+  positionRef,
   rotation = [0, 0, 0],
   scale = DEFAULT_NPC_SCALE,
   theme,
@@ -147,6 +161,16 @@ export function BaseNPC({
   lods,
 }: BaseNPCProps) {
   const groupRef = useRef<THREE.Group>(null)
+
+  // Follow a live position ref (moving NPC), if supplied. No-op — and no
+  // behavior change vs. before this prop existed — when `positionRef` is
+  // omitted.
+  useFrame(() => {
+    if (!positionRef) return
+    const g = groupRef.current
+    if (g) g.position.set(positionRef.current[0], positionRef.current[1], positionRef.current[2])
+    useCollisionStore.getState().setColliderPosition(npcId, positionRef.current)
+  })
 
   const isNearby = useSceneStore((state) => state.nearbyNpcId === npcId)
 

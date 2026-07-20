@@ -40,29 +40,18 @@ export interface SceneShellProps {
   /** Override NPC positions for proximity + selection ring (e.g. moving NPCs). */
   npcPositions?: Record<string, Vec3>
   /**
-   * Live position refs for moving NPCs (e.g. driven by `<AgentNPC>`), keyed
-   * by npc id. When a ref exists for an npc id, proximity detection and the
-   * NPC selection ring read `ref.current` every frame instead of the static
-   * position from `npcPositions`/`npcs`. Wire the SAME ref object passed as
-   * `AgentNPC.positionRef`.
-   *
-   * **The id must also be an entry in `npcs`.** Proximity detection and the
-   * selection ring both derive their *tracked id list* from `npcs` — a ref
-   * keyed by an id that isn't in `npcs` is silently ignored (never checked,
-   * never rendered), not an error. Likewise `AgentNPC`'s
-   * `setColliderPosition(id, ...)` is a no-op unless `CollisionRegistration`
-   * (driven by this same `npcs` array) has already registered a collider for
-   * that id.
-   *
-   * Note that including the id in `npcs` only wires proximity/selection/
-   * collision to the live ref — it does **not** make the `npcs` entry's own
-   * `BaseNPC` visual (model, name label, quest indicator, glow, interaction
-   * bubble) follow the ref. That visual is always drawn at the static
-   * `NPCConfig.position` and never reads `npcPositionRefs`. For a genuinely
-   * moving NPC, render the visible mesh via `<AgentNPC>` (children) and keep
-   * the matching `npcs` entry's own model minimal (e.g. omit `modelPath` so
-   * only the small fallback capsule marks the spawn point) to avoid a
-   * stationary duplicate.
+   * Live position refs for moving NPCs, keyed by npc id. An id present here
+   * makes that NPC's `BaseNPC` visual, collider, proximity detection, and
+   * selection ring all follow `ref.current` every frame — a single `npcs`
+   * entry (with its real `modelPath`) plus a ref is a fully moving NPC, no
+   * placeholder needed. **The id must still be an entry in `npcs`** — that's
+   * what registers the collider (via `CollisionRegistration`) and what
+   * proximity detection / the selection ring use to derive their tracked-id
+   * list; a ref keyed by an id that isn't in `npcs` is silently ignored, not
+   * an error. Drive the ref from a headless agent (e.g.
+   * `@overworld-engine/ai`'s `createAgent`) in your own `useFrame`, or from
+   * `<AgentNPC>` if you want a standalone moving NPC outside a `npcs` list
+   * (see its doc comment).
    */
   npcPositionRefs?: Record<string, { current: Vec3 }>
   /** Interaction distance for NPCs. Default: 3. */
@@ -148,6 +137,7 @@ export function SceneShell({
           npcId={config.id}
           modelPath={config.modelPath}
           position={config.position}
+          positionRef={npcPositionRefs?.[config.id]}
           rotation={config.rotation}
           scale={config.scale}
           name={config.name}

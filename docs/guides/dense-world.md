@@ -13,7 +13,7 @@ v1.5 → v2.0 这批变更把这些能力上收进框架,替换表如下:
 |---|---|
 | `WorldEnvironment.tsx`(手写光照/雾/天空) | `@overworld-engine/environment` 的 `<WorldEnvironment preset engine quality>` + `WORLD_ENV_PRESETS` |
 | `worldLayout.ts`(手摆装饰物 + 手维护碰撞) | `@overworld-engine/scene` 的 `<Decorations sets>`(实例化渲染,碰撞从同一份 instances 派生)+ `<Lod>`(远近切模型) |
-| `npcs.ts`(手推 NPC 位置) | `@overworld-engine/scene` 的 `<AgentNPC agent positionRef>` 驱动 `@overworld-engine/ai` 的 `createAgent` |
+| `npcs.ts`(手推 NPC 位置) | `@overworld-engine/scene` 的 `npcs` 一项 + `SceneShell.npcPositionRefs` 让 `BaseNPC` 自己跟随 `@overworld-engine/ai` 的 `createAgent`(独立于 `SceneShell` 之外的场景用 `<AgentNPC agent positionRef>`)|
 | （无,靠玩家走到哪加载到哪） | `@overworld-engine/loading` 的 `useSceneLoadStore` / `useZoneStreaming` / `<FirstFramePhase />` |
 | `worldAudio.ts`(手写环境音淡入淡出) | `@overworld-engine/audio` 的 `setAmbientZones` / `updateListener` |
 | `Minimap.tsx` 之外再手写雷达投影 | `@overworld-engine/minimap` 的 `selectRadarMarkers` |
@@ -25,10 +25,10 @@ v1.5 → v2.0 这批变更把这些能力上收进框架,替换表如下:
 ## 组合示例:一个密集村庄场景
 
 ```tsx
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { gameEvents, inputLock } from '@overworld-engine/core'
 import {
-  SceneShell, Player, FollowCamera, AgentNPC, Decorations, Lod,
+  SceneShell, Player, FollowCamera, Decorations, Lod,
   useInputLocked, type DecorationSet, type NPCConfig,
 } from '@overworld-engine/scene'
 import { WorldEnvironment, createEnvironment, EnvironmentTick } from '@overworld-engine/environment'
@@ -52,23 +52,27 @@ const lamps: DecorationSet = {
   collision: { radius: 0.4 },
 }
 
-// 3) 巡逻 NPC:ai 的无头 agent + scene 的 AgentNPC 做渲染/碰撞同步(替代 npcs.ts 手推位置)
+// 3) 巡逻 NPC:普通的 npcs 一项(带真实 modelPath)+ 一个 ref,BaseNPC 自己
+// 每帧跟随(替代 npcs.ts 手推位置,也不再需要占位模型或额外的可见层)
 const guardAgent = createAgent({ position: [0, -10], speed: 1.5 })
 guardAgent.patrol([[0, -10], [10, -10], [10, 0]], { pauseMs: 800 })
 const guardPositionRef = { current: [0, 0, -10] as [number, number, number] }
-// "guard" 必须同时是 SceneShell.npcs 的一项 —— 邻近检测/选中环都只从 npcs
-// 派生"要追踪哪些 id",npcPositionRefs 对不在 npcs 里的 id 直接无效(见下文
-// "移动 NPC"一节)。这一项的 modelPath 留空,只用于挂碰撞体/邻近检测/选中
-// 环,不作为可见模型 —— 真正会动的模型由 <AgentNPC> 的 children 渲染。
 const guardNpc: NPCConfig = {
   id: 'guard',
-  modelPath: '',
-  // 独立的字面量数组,故意不复用 guardPositionRef.current —— 后者会被
-  // AgentNPC 每帧原地修改,若这里引用同一个数组,静态入口的 position 会被
-  // 意外原地改写,但 BaseNPC 只在 React 重渲染时才把 position 应用到
-  // three.js 对象,不会每帧同步,行为会变得不可预测。
+  modelPath: '/models/guard.glb',
   position: [0, 0, -10],
   rotation: [0, 0, 0],
+}
+
+// 推进 agent 并把结果写回共享 ref —— 挂在 SceneShell 内部,组件本身不渲染
+// 任何东西。BaseNPC 读的是同一个 guardPositionRef,会自己跟着动。
+function GuardDriver() {
+  useFrame((_, delta) => {
+    guardAgent.update(delta * 1000)
+    const [x, z] = guardAgent.position
+    guardPositionRef.current = [x, 0, z]
+  })
+  return null
 }
 
 // 4) 环境音区:靠近瀑布逐渐淡入水声(替代 worldAudio.ts 手写淡入淡出)
@@ -115,11 +119,6 @@ function World() {
       <SceneShell
         npcs={[guardNpc]}
         npcPositionRefs={{ guard: guardPositionRef }}
-        // 这个场景里唯一的 npc 就是移动的 guard,所以直接把 BaseNPC 的名牌/
-        // 徽标/发光/E 气泡关掉,避免它们停在 guard 出生点不跟着走。若场景
-        // 里还混了静态 npc,这些开关是全场景生效的(非按 npc 单独控制),
-        // 需要按需取舍或拆分场景。
-        npcOptions={{ showGlow: false, showEBubble: false, showQuestIndicator: false }}
         player={<Player ref={playerRef} />}
       >
         <Decorations sets={[lamps]} />
@@ -128,10 +127,9 @@ function World() {
           levels={[{ distance: 0, modelPath: '/models/tower-hi.glb' }, { distance: 60, modelPath: '/models/tower-lo.glb' }]}
           render={(url) => <mesh>{/* ...加载 url... */}</mesh>}
         />
-        {/* guard 真正可见的模型:AgentNPC 每帧把 children 摆到 agent 的位置 */}
-        <AgentNPC npcId="guard" agent={guardAgent} positionRef={guardPositionRef}>
-          <mesh castShadow>{/* ...加载 /models/guard.glb... */}</mesh>
-        </AgentNPC>
+        {/* guard 的可见模型就是 SceneShell 按 guardNpc 渲染的那个 BaseNPC —— 不
+            需要另外的可见层;这里只需要把 agent 推进并写回 ref。 */}
+        <GuardDriver />
       </SceneShell>
 
       <FollowCamera targetRef={playerRef} orbit={{ minDistance: 8, maxDistance: 40 }} />
@@ -158,40 +156,32 @@ function World() {
 装饰物数量再多也只是几个 draw call。远处的大型建筑/树木用 `<Lod>` 按
 `playerPositionRef` 距离切模型精度,内置滞回避免边界抖动来回切换。
 
-### 移动 NPC:`npcs.ts` → `<AgentNPC>` + `ai.createAgent`
+### 移动 NPC:`npcs.ts` → `npcs` 一项 + `npcPositionRefs`
 
 `npcs.ts` 里手写的 `useFrame` 位置推进、朝向平滑、和碰撞体同步这三件事,
-`<AgentNPC agent positionRef>` 一次性做掉:`agent` 只需满足结构类型
-`AgentLike`(`@overworld-engine/ai` 的 `createAgent` 结果天然满足,
-`scene` 包本身不 import `ai`),每帧调用 `agent.update(deltaMs)`、把位置写回
-共享 ref、同步碰撞体位置(`useCollisionStore.getState().setColliderPosition`),
-朝向按最短角度平滑转向,`children` 就是玩家真正看到的移动模型。
+现在只需要一个普通的 `npcs` 条目(带真实 `modelPath`)加一个 ref:
+`BaseNPC` 自己每帧读 `npcPositionRefs[id]`,同步自己的可视对象(模型/名牌/
+任务徽标/发光/交互气泡)**和**碰撞体位置
+(`useCollisionStore.getState().setColliderPosition`)。你只需要在自己的
+`useFrame` 里推进 agent、把结果写回 ref(如上面 `GuardDriver` 所示)——不需要
+占位模型,不需要额外的可见层,也不需要 `npcOptions` 去关某个静态 UI。
 
-**真正能跑起来的组合,三个条件缺一不可**(否则邻近检测/选中环/碰撞体对这个
-NPC 全部失效,且不会报错——只是安静地不生效):
+**能跑起来的组合,两个条件缺一不可**(否则邻近检测/选中环/碰撞体对这个 NPC
+全部失效,且不会报错——只是安静地不生效):
 
-1. NPC 的 id 必须**同时**出现在 `SceneShell.npcs` 里(哪怕只放一个
-   `modelPath: ''` 的最小占位项)。邻近检测(`useProximityDetection`)和
-   选中环(`SelectionRing`)追踪哪些 id,都是从 `npcs` 派生的,不是从
-   `npcPositionRefs` 派生的——`npcPositionRefs` 只是"如果这个 id 正在被
-   追踪,追踪的时候用哪个位置",不在 `npcs` 里的 id 直接被忽略。
-2. 同一个 id 要出现在 `SceneShell.npcPositionRefs` 里,指向和
-   `<AgentNPC positionRef>` **同一个** ref 对象,邻近检测/选中环才会用
-   实时位置而不是 `npcs` 里的出生点坐标。
-3. `<AgentNPC npcId>` 要和上面两处用同一个 id 字符串——`setColliderPosition`
-   只会更新已注册的碰撞体,`CollisionRegistration` 只按 `npcs` 数组注册,
-   id 对不上就是静默 no-op。
+1. NPC 的 id 必须出现在 `SceneShell.npcs` 里,且带上真实 `modelPath`——这一
+   项同时注册碰撞体(`CollisionRegistration`)、给邻近检测
+   (`useProximityDetection`)和选中环(`SelectionRing`)提供"要追踪哪些
+   id"的列表,也是 `BaseNPC` 可视对象的来源。
+2. 同一个 id 要出现在 `SceneShell.npcPositionRefs` 里,指向你在
+   `useFrame` 里更新的**同一个** ref 对象——`position` 字段只是初始/出生点
+   坐标,ref 存在时 `BaseNPC`、邻近检测、选中环都改用 `ref.current`。
 
-**已知局限**:`SceneShell` 会为 `npcs` 里的每一项都渲染一个 `<BaseNPC>`
-静态可视对象(模型/名牌/任务徽标/发光/交互气泡),这个可视对象只读
-`NPCConfig.position`,**不会**跟随 `npcPositionRefs`——即使上面三条全部接对
-了,那个静态 `BaseNPC` 依然钉在出生点不动。所以移动 NPC 的正确写法是:
-`npcs` 里的那一项只留最小占位(`modelPath: ''`,不显示真实模型),真正会动
-的模型放进 `<AgentNPC>` 的 `children`;如果不想让出生点残留一个不会动的
-胶囊体/名牌/发光气泡,用 `npcOptions` 把对应 UI 关掉(注意 `npcOptions`
-是整个场景生效,不能按单个 NPC 单独关)。这是当前实现的真实边界,不是配置
-技巧能完全绕开的——要让 `BaseNPC` 的可视效果本身跟随 `npcPositionRefs`,
-需要改 `BaseNPC`/`SceneShell` 的实现。
+如果你需要一个不挂在任何 `SceneShell.npcs` 列表里的独立移动 NPC(比如自定义
+可视层、没有用 `SceneShell` 的场景、多个 agent 共享一套自定义网格),用
+`<AgentNPC agent positionRef>` 代替——它自己渲染 `children` 并移动自己的
+碰撞体,细节见其文档注释;不要把它和同一个 id 的 `BaseNPC` 跟随同时打开,
+否则会渲染出两个叠在一起的可视对象。
 
 ### 加载状态:新增能力,原来常常没有
 
