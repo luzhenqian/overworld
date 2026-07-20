@@ -23,6 +23,8 @@ import { useModelLoader } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { npcVisualHeights, DEFAULT_NPC_SCALE } from './visualHeights'
 import { SpriteLabel } from './SpriteLabel'
+import { Lod } from './LodSwitch'
+import type { LodLevel } from './lod'
 import type { LabelMode } from './types'
 import type { NPCTheme, NPCIndicator } from './types'
 
@@ -72,6 +74,11 @@ export interface BaseNPCProps {
   labelHeight?: number
   /** Optional callback to modify each mesh after clone (e.g. transparency). */
   modifyMaterial?: (child: THREE.Mesh) => void
+  /**
+   * Optional distance LODs (near→far); `modelPath` is treated as LOD0. When
+   * present, the model switches based on distance to the player via `<Lod>`.
+   */
+  lods?: LodLevel[]
 }
 
 /** Themed placeholder capsule: loading state, load failure and no-model NPCs. */
@@ -137,6 +144,7 @@ export function BaseNPC({
   labelMode = 'troika',
   labelHeight,
   modifyMaterial,
+  lods,
 }: BaseNPCProps) {
   const groupRef = useRef<THREE.Group>(null)
 
@@ -149,22 +157,33 @@ export function BaseNPC({
     <NPCFallback theme={theme} isNearby={isNearby} fallbackScale={heights.fallbackScale} />
   )
 
+  // Key by URL so editing modelPath resets a previous load failure.
+  const renderModel = (path: string) => (
+    <ModelErrorBoundary key={path} modelPath={path} fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <NPCModel
+          modelPath={path}
+          scale={scale}
+          modifyMaterial={modifyMaterial}
+          fallback={fallback}
+        />
+      </Suspense>
+    </ModelErrorBoundary>
+  )
+
+  const levels: LodLevel[] | null =
+    modelPath && lods && lods.length > 0 ? [{ distance: 0, modelPath }, ...lods] : null
+
   return (
     <group ref={groupRef} position={position}>
       {/* NPC model with rotation (fallback capsule while loading / on failure) */}
       <group rotation={rotation}>
         {modelPath ? (
-          // Key by URL so editing modelPath resets a previous load failure.
-          <ModelErrorBoundary key={modelPath} modelPath={modelPath} fallback={fallback}>
-            <Suspense fallback={fallback}>
-              <NPCModel
-                modelPath={modelPath}
-                scale={scale}
-                modifyMaterial={modifyMaterial}
-                fallback={fallback}
-              />
-            </Suspense>
-          </ModelErrorBoundary>
+          levels ? (
+            <Lod position={position} levels={levels} render={renderModel} />
+          ) : (
+            renderModel(modelPath)
+          )
         ) : (
           fallback
         )}

@@ -78,6 +78,10 @@ export { CollisionRegistration } from './CollisionRegistration'
 export type { CollisionRegistrationProps, DecorationCollisionGroup } from './CollisionRegistration'
 export { Portal } from './Portal'
 export type { PortalProps } from './Portal'
+export { Lod } from './LodSwitch'
+export type { LodProps } from './LodSwitch'
+export { selectLodLevel } from './lod'
+export type { LodLevel } from './lod'
 
 // Interaction
 export { interact, useInteractKey } from './interaction'

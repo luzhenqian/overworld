@@ -131,6 +131,7 @@ export function SceneShell({
           showQuestIndicator={npcOptions?.showQuestIndicator}
           showEBubble={npcOptions?.showEBubble}
           showGlow={npcOptions?.showGlow}
+          lods={config.lods}
         />
       ))}
 
@@ -148,6 +149,7 @@ export function SceneShell({
           interactHint={interactHint}
           labelFont={labelFont}
           labelMode={labelMode}
+          lods={config.lods}
         />
       ))}
 
@@ -185,7 +187,13 @@ export function preloadSceneModels(config: {
   buildings?: BuildingConfig[]
   extraModels?: string[]
 }): void {
-  config.npcs.forEach((n) => useGLTF.preload(n.modelPath))
-  config.buildings?.forEach((b) => useGLTF.preload(b.modelPath))
+  config.npcs.forEach((n) => {
+    useGLTF.preload(n.modelPath)
+    n.lods?.forEach((l) => useGLTF.preload(l.modelPath))
+  })
+  config.buildings?.forEach((b) => {
+    useGLTF.preload(b.modelPath)
+    b.lods?.forEach((l) => useGLTF.preload(l.modelPath))
+  })
   config.extraModels?.forEach((p) => useGLTF.preload(p))
 }

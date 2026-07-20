@@ -20,6 +20,8 @@ export interface NPCConfig {
   scale?: number
   /** Display name rendered on the floating label when the player is nearby. */
   name?: string
+  /** Optional distance LODs (near→far); the base `modelPath` is LOD0. */
+  lods?: import('./lod').LodLevel[]
 }
 
 /** Static placement/config for one building in a scene. */
@@ -34,6 +36,8 @@ export interface BuildingConfig {
   scale: number
   /** Circular collider radius on the X/Z plane. */
   collisionRadius: number
+  /** Optional distance LODs (near→far); the base `modelPath` is LOD0. */
+  lods?: import('./lod').LodLevel[]
 }
 
 /** One placed instance of a repeated decoration (tree, lamp post, ...). */
