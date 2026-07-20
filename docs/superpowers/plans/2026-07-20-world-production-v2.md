@@ -231,61 +231,81 @@ git commit -m "feat(core): add headless inputLock primitive + input:lock-changed
 - Consumes: `inputLock` from `@overworld-engine/core` (allowed — core dep).
 - Produces: `useKeyboardLayer(id, priority, opts?: string[] | { blockedKeys?: string[]; lockInput?: boolean })`.
 
+> **Test convention (repo-wide):** No package uses `@testing-library/react`,
+> `renderHook`, or a jsdom vitest environment. Hooks are tested by extracting
+> their pure decision logic into functions and testing those (see how
+> `scene/interaction.ts` extracts `interact()` and only that is tested). Thin
+> React effects (mount/unmount wiring) are left untested like `Player` and
+> `useInteractKey`, verified by typecheck + build. Follow this convention —
+> do NOT add test-infra dependencies.
+
 - [ ] **Step 1: Read current `useKeyboardLayer`**
 
 Run: `sed -n '1,80p' packages/input/src/hooks.ts` to see the current signature and effect. It currently takes `(id, priority, blockedKeys?)` and registers/unregisters a keyboard layer via `useKeyboardStore`.
 
-- [ ] **Step 2: Write the failing test**
+- [ ] **Step 2: Write the failing test (pure helpers)**
 
 ```ts
 // packages/input/src/__tests__/keyboardLayerLock.test.ts
-import { afterEach, describe, expect, it } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { inputLock } from '@overworld-engine/core'
-import { useKeyboardLayer } from '../hooks'
+import { describe, expect, it } from 'vitest'
+import { parseLayerOpts } from '../hooks'
+import { resolveJoystickOutput } from '../joystickMath'
 
-afterEach(() => inputLock.releaseAll())
-
-describe('useKeyboardLayer lockInput', () => {
-  it('acquires inputLock while mounted with lockInput:true, releases on unmount', () => {
-    const { unmount } = renderHook(() =>
-      useKeyboardLayer('modal', 100, { lockInput: true })
-    )
-    expect(inputLock.isLocked()).toBe(true)
-    expect(inputLock.activeLocks()).toContain('modal')
-    unmount()
-    expect(inputLock.isLocked()).toBe(false)
+describe('parseLayerOpts', () => {
+  it('reads the legacy array form as blockedKeys with no lock', () => {
+    expect(parseLayerOpts(['e', 'q'])).toEqual({ blockedKeys: ['e', 'q'], lockInput: false })
   })
+  it('reads the object form with lockInput', () => {
+    expect(parseLayerOpts({ blockedKeys: ['e'], lockInput: true })).toEqual({
+      blockedKeys: ['e'],
+      lockInput: true,
+    })
+  })
+  it('defaults to no blockedKeys, no lock when omitted', () => {
+    expect(parseLayerOpts(undefined)).toEqual({ blockedKeys: undefined, lockInput: false })
+  })
+})
 
-  it('does not lock when lockInput is absent (legacy array form still works)', () => {
-    const { unmount } = renderHook(() => useKeyboardLayer('panel', 60, ['e']))
-    expect(inputLock.isLocked()).toBe(false)
-    unmount()
+describe('resolveJoystickOutput', () => {
+  const raw = { x: 0.8, z: -0.5, running: true }
+  it('passes the raw vector through when not locked', () => {
+    expect(resolveJoystickOutput(raw, { locked: false, respect: true })).toEqual(raw)
+  })
+  it('zeroes output when locked and respecting the lock', () => {
+    expect(resolveJoystickOutput(raw, { locked: true, respect: true })).toEqual({ x: 0, z: 0, running: false })
+  })
+  it('ignores the lock when respect is false', () => {
+    expect(resolveJoystickOutput(raw, { locked: true, respect: false })).toEqual(raw)
   })
 })
 ```
 
-> If `@testing-library/react` is not already a devDependency of `input`, check with `grep testing-library packages/input/package.json`. If absent, add it: `pnpm --filter @overworld-engine/input add -D @testing-library/react@^16` and ensure the package's vitest config uses `environment: 'jsdom'` (check `grep -r jsdom packages/input`).
-
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `pnpm --filter @overworld-engine/input test -- keyboardLayerLock`
-Expected: FAIL — `useKeyboardLayer` does not accept the object form / does not touch inputLock.
+Expected: FAIL — `parseLayerOpts` / `resolveJoystickOutput` not exported.
 
-- [ ] **Step 4: Update `useKeyboardLayer`**
+- [ ] **Step 4: Add `parseLayerOpts` + update `useKeyboardLayer`**
 
-Replace the signature and body in `packages/input/src/hooks.ts`:
+In `packages/input/src/hooks.ts`, add the exported pure helper and use it in the hook:
 
 ```ts
 import { inputLock } from '@overworld-engine/core'
+
+/** Normalize the overloaded `useKeyboardLayer` options into a flat shape. */
+export function parseLayerOpts(
+  opts?: string[] | { blockedKeys?: string[]; lockInput?: boolean }
+): { blockedKeys?: string[]; lockInput: boolean } {
+  if (Array.isArray(opts)) return { blockedKeys: opts, lockInput: false }
+  return { blockedKeys: opts?.blockedKeys, lockInput: Boolean(opts?.lockInput) }
+}
 
 export function useKeyboardLayer(
   id: string,
   priority: number,
   opts?: string[] | { blockedKeys?: string[]; lockInput?: boolean }
 ): void {
-  const blockedKeys = Array.isArray(opts) ? opts : opts?.blockedKeys
-  const lockInput = Array.isArray(opts) ? false : Boolean(opts?.lockInput)
+  const { blockedKeys, lockInput } = parseLayerOpts(opts)
 
   const registerLayer = useKeyboardStore((s) => s.registerLayer)
   const unregisterLayer = useKeyboardStore((s) => s.unregisterLayer)
@@ -302,21 +322,35 @@ export function useKeyboardLayer(
 }
 ```
 
-> Preserve any existing imports (`useEffect`, `useKeyboardStore`) already at the top of the file — only add the `inputLock` import and swap the function body.
+> Preserve existing imports (`useEffect`, `useKeyboardStore`) at the top — only add the `inputLock` import, the `parseLayerOpts` helper, and swap the function body.
 
-- [ ] **Step 5: Add joystick lock awareness**
+- [ ] **Step 5: Add joystick lock gate (pure helper + wiring)**
 
-In `packages/input/src/VirtualJoystick.tsx`, add `respectInputLock?: boolean` (default `true`) to `VirtualJoystickProps`, import `inputLock` from `@overworld-engine/core`, and in the pointer-move handler that writes `target.current`, short-circuit to zero output when locked:
+In `packages/input/src/joystickMath.ts`, add the exported pure helper:
 
 ```ts
-// inside the handler that computes {x, z, running} and writes target.current:
-if (respectInputLock && inputLock.isLocked()) {
-  target.current.x = 0
-  target.current.z = 0
-  target.current.running = false
-  // also reset the visible thumb offset to center
-  return
+/** Zero the joystick output while the shared input lock is held (unless opted out). */
+export function resolveJoystickOutput(
+  raw: { x: number; z: number; running: boolean },
+  opts: { locked: boolean; respect: boolean }
+): { x: number; z: number; running: boolean } {
+  if (opts.respect && opts.locked) return { x: 0, z: 0, running: false }
+  return raw
 }
+```
+
+In `packages/input/src/VirtualJoystick.tsx`, add `respectInputLock?: boolean` (default `true`) to `VirtualJoystickProps`, import `inputLock` from `@overworld-engine/core` and `resolveJoystickOutput` from `./joystickMath`, and in the pointer-move handler, gate the value written to `target.current`:
+
+```ts
+// where the handler currently writes target.current = { x, z, running }:
+const gated = resolveJoystickOutput(
+  { x, z, running },
+  { locked: inputLock.isLocked(), respect: respectInputLock }
+)
+target.current.x = gated.x
+target.current.z = gated.z
+target.current.running = gated.running
+// when gated to zero, also recenter the visible thumb offset
 ```
 
 - [ ] **Step 6: Run tests + typecheck**
@@ -327,7 +361,7 @@ Expected: PASS (new + existing tests).
 - [ ] **Step 7: Commit**
 
 ```bash
-git add packages/input/src/hooks.ts packages/input/src/VirtualJoystick.tsx packages/input/src/__tests__/keyboardLayerLock.test.ts packages/input/package.json
+git add packages/input/src/hooks.ts packages/input/src/joystickMath.ts packages/input/src/VirtualJoystick.tsx packages/input/src/__tests__/keyboardLayerLock.test.ts
 git commit -m "feat(input): useKeyboardLayer lockInput option + joystick respects inputLock"
 ```
 
@@ -1899,33 +1933,34 @@ git commit -m "feat(scene): decoration instancing matrix + collision derivation"
 - Consumes: `DecorationSet`, `instanceMatrix`, `decorationColliders` (Task 13); `useCollisionStore`; `useGLTF`.
 - Produces: `Decorations(props: DecorationsProps)`, `DecorationsProps`.
 
-- [ ] **Step 1: Write the failing collision-registration test**
+> **Test convention:** pure-logic only (no `renderHook`/testing-library). The
+> new logic here is the multi-set collider derivation — test it as a pure
+> function `collidersForSets`. The `useDecorationCollision` effect and the
+> instanced-mesh renderer are thin R3F bindings, left untested like other
+> scene components, verified by typecheck + build.
 
-```tsx
-// packages/scene/src/__tests__/decorationsCollision.test.tsx
-import { afterEach, describe, expect, it } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { useCollisionStore } from '../collisionStore'
-import { useDecorationCollision } from '../Decorations'
+- [ ] **Step 1: Write the failing pure test**
+
+```ts
+// packages/scene/src/__tests__/decorationsCollision.test.ts
+import { describe, expect, it } from 'vitest'
+import { collidersForSets } from '../decorationInstancing'
 import type { DecorationSet } from '../decorationInstancing'
 
-afterEach(() => useCollisionStore.getState().clearColliders())
-
 const sets: DecorationSet[] = [
-  { id: 'lamp', modelPath: 'lamp.glb', instances: [{ position: [1, 0, 2] }], collision: { radius: 0.5 } },
+  { id: 'lamp', modelPath: 'lamp.glb', instances: [{ position: [1, 0, 2] }, { position: [3, 0, 4] }], collision: { radius: 0.5 } },
+  { id: 'grass', modelPath: 'g.glb', instances: [{ position: [0, 0, 0] }] }, // no collision
 ]
 
-describe('useDecorationCollision', () => {
-  it('registers derived colliders and clears on unmount', () => {
-    const { unmount } = renderHook(() => useDecorationCollision(sets, true))
-    expect(useCollisionStore.getState().colliders.has('decoration-lamp-0')).toBe(true)
-    unmount()
-    expect(useCollisionStore.getState().colliders.has('decoration-lamp-0')).toBe(false)
+describe('collidersForSets', () => {
+  it('flattens colliders across all sets that declare collision', () => {
+    const colliders = collidersForSets(sets)
+    expect(colliders.map((c) => c.id)).toEqual(['decoration-lamp-0', 'decoration-lamp-1'])
+    expect(colliders.every((c) => c.type === 'decoration')).toBe(true)
   })
 
-  it('registers nothing when disabled', () => {
-    renderHook(() => useDecorationCollision(sets, false))
-    expect(useCollisionStore.getState().colliders.size).toBe(0)
+  it('returns an empty list when no set declares collision', () => {
+    expect(collidersForSets([{ id: 'g', modelPath: 'g.glb', instances: [{ position: [0, 0, 0] }] }])).toEqual([])
   })
 })
 ```
@@ -1933,17 +1968,28 @@ describe('useDecorationCollision', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @overworld-engine/scene test -- decorationsCollision`
-Expected: FAIL — `useDecorationCollision` not exported.
+Expected: FAIL — `collidersForSets` not exported.
 
-- [ ] **Step 3: Write the renderer + collision hook**
+- [ ] **Step 3: Add `collidersForSets`, then write the renderer + collision hook**
+
+First append to `packages/scene/src/decorationInstancing.ts` (Task 13's file — `DecorationSet`, `Collider`, and `decorationColliders` are already defined/imported there):
+
+```ts
+/** All colliders across a list of decoration sets — the collision single source of truth. */
+export function collidersForSets(sets: DecorationSet[]): Collider[] {
+  return sets.flatMap(decorationColliders)
+}
+```
+
+Then write the renderer + collision hook:
 
 ```tsx
 // packages/scene/src/Decorations.tsx
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { useCollisionStore } from './collisionStore'
-import { instanceMatrix, decorationColliders, type DecorationSet } from './decorationInstancing'
+import { instanceMatrix, collidersForSets, type DecorationSet } from './decorationInstancing'
 
 export interface DecorationsProps {
   sets: DecorationSet[]
@@ -1957,7 +2003,7 @@ export function useDecorationCollision(sets: DecorationSet[], enabled: boolean):
   const unregister = useCollisionStore((s) => s.unregisterCollider)
   useEffect(() => {
     if (!enabled) return
-    const colliders = sets.flatMap(decorationColliders)
+    const colliders = collidersForSets(sets)
     colliders.forEach(register)
     return () => colliders.forEach((c) => unregister(c.id))
   }, [sets, enabled, register, unregister])
@@ -2020,7 +2066,7 @@ In `packages/scene/src/index.ts`:
 ```ts
 export { Decorations, useDecorationCollision } from './Decorations'
 export type { DecorationsProps } from './Decorations'
-export { instanceMatrix, decorationColliders } from './decorationInstancing'
+export { instanceMatrix, decorationColliders, collidersForSets } from './decorationInstancing'
 export type { DecorationSet } from './decorationInstancing'
 ```
 
@@ -2032,7 +2078,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add packages/scene/src/Decorations.tsx packages/scene/src/__tests__/decorationsCollision.test.tsx packages/scene/src/index.ts
+git add packages/scene/src/Decorations.tsx packages/scene/src/decorationInstancing.ts packages/scene/src/__tests__/decorationsCollision.test.ts packages/scene/src/index.ts
 git commit -m "feat(scene): instanced Decorations renderer with derived collision"
 ```
 
