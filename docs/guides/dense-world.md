@@ -38,7 +38,7 @@ import {
 } from '@overworld-engine/loading'
 import { createAudioManager } from '@overworld-engine/audio'
 import { selectRadarMarkers } from '@overworld-engine/minimap'
-import { createAgent, patrol } from '@overworld-engine/ai'
+import { createAgent } from '@overworld-engine/ai'
 import { useKeyboardLayer, KEYBOARD_PRIORITY } from '@overworld-engine/input'
 
 // 1) 昼夜循环引擎(无头) + 预设环境层
@@ -53,10 +53,8 @@ const lamps: DecorationSet = {
 }
 
 // 3) 巡逻 NPC:ai 的无头 agent + scene 的 AgentNPC 做渲染/碰撞同步(替代 npcs.ts 手推位置)
-const guardAgent = createAgent({
-  position: [0, -10],
-  behavior: patrol({ points: [[0, -10], [10, -10], [10, 0]] }),
-})
+const guardAgent = createAgent({ position: [0, -10], speed: 1.5 })
+guardAgent.patrol([[0, -10], [10, -10], [10, 0]], { pauseMs: 800 })
 const guardPositionRef = { current: [0, 0, -10] as [number, number, number] }
 
 // 4) 环境音区:靠近瀑布逐渐淡入水声(替代 worldAudio.ts 手写淡入淡出)
