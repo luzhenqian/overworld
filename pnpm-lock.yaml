@@ -948,6 +948,9 @@ importers:
 
   packages/input:
     dependencies:
+      '@overworld-engine/core':
+        specifier: workspace:*
+        version: link:../core
       react:
         specifier: ^18.0.0
         version: 18.3.1
