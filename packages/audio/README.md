@@ -66,3 +66,25 @@ audio.playSfx('pickup') // 一次性音效
 ## 依赖
 
 依赖 `@overworld-engine/core`(事件总线与持久化辅助);peerDependency 为 `zustand`。
+
+## 本版本新增:分总线音量 + 环境音区(ambient zones)
+
+```ts
+audio.setBusVolume('ambience', 0.5)          // 单独调环境音总线,不影响 BGM/SFX
+
+audio.setAmbientZones([
+  { id: 'waterfall', trackId: 'waterfall-loop', center: [10, 0, -20], innerRadius: 5, outerRadius: 25 },
+])
+audio.updateListener(playerPositionRef.current)   // 每帧/每次移动调用,按距离交叉淡入淡出
+audio.playCue('footstep', { listener: playerPositionRef.current, at: [10, 0, -20] })
+```
+
+- `setBusVolume(bus, volume)` / `getBusVolume(bus)` — 四条具名总线
+  (`master`/`music`/`ambience`/`sfx`),`master` 与其余三条相乘生效
+  (`mixBuses` 纯函数)。
+- `setAmbientZones(zones)` / `updateListener(position)` — 环境音区按
+  `zoneWeight`(内圈满音量、外圈静音、之间线性衰减)在 `ambience` 总线上
+  交叉淡入淡出;每个 zone 惰性创建一个循环播放句柄。
+- `playCue(sfxId, { listener?, at? })` — 一次性音效,传入监听者与音源
+  位置时按 30 单位内线性衰减(否则等价于 `playSfx`)。
+- `silentBackend` — 零播放的 `AudioBackend`,用于测试/无音频环境显式屏蔽播放。

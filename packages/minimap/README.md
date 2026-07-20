@@ -71,3 +71,25 @@ projectionScale({ worldBounds, size })         // → 每世界单位像素数
 ## 依赖
 
 依赖 `@overworld-engine/core`(仅类型);peer:`react`、`zustand`。不依赖 three.js。
+
+## 本版本新增:雷达选择器(radar)
+
+无头纯函数,把世界实体转换成"以玩家为中心、朝向向上"的雷达标记,供自定义
+雷达 HUD(独立于 `<MiniMap>`)使用。
+
+```ts
+import { selectRadarMarkers } from '@overworld-engine/minimap'
+
+const markers = selectRadarMarkers(
+  { worldBounds, npcs: [{ id: 'guide', position: [4, 0, -2] }], range: 40 },
+  playerPositionRef.current,
+  playerHeading
+)
+// → [{ id: 'guide', kind: 'npc', x, y, offScreen, angle? }]
+```
+
+- `selectRadarMarkers(config, playerPos, playerHeading)` — 建筑 + NPC 列表 →
+  按玩家朝向旋转、按 `range` 钳制到边缘的标记数组;超出范围的标记
+  `offScreen: true` 并带 `angle`。
+- `computeOffscreenIndicator(worldPos, playerPos, playerHeading, range)` —
+  单个实体的越界指示角度,供边缘箭头一类的 UI 使用。

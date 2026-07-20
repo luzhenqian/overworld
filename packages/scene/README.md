@@ -117,6 +117,80 @@ export function Game() {
 }
 ```
 
+## 本版本新增(2.0):密集世界四件套 + 默认输入锁
+
+### 输入锁默认接入(破坏性变更)
+
+`Player`/`useInteractKey` 的 `isInputBlocked` 省略时,现在回退到
+`@overworld-engine/core` 的共享 `inputLock.isLocked()`,`FollowCamera` 的
+orbit 拖拽/滚轮同样受其约束——三者不再需要各自接线,只要任意系统调用
+`inputLock.acquire(id)` 就会同时挂起移动、交互键与相机拖拽。**未获取任何锁
+时行为与旧版完全一致**(`isLocked()` 恒为 false)。`useInputLocked()` 提供
+响应式布尔值,供 HUD 判断是否置灰控件。
+
+```tsx
+import { inputLock } from '@overworld-engine/core'
+import { useInputLocked } from '@overworld-engine/scene'
+
+inputLock.acquire('dialogue')   // 任意系统均可调用,无需 import scene
+useInputLocked()                // HUD 中响应式读取锁状态
+```
+
+### `<Decorations>` — 实例化批量装饰物
+
+```tsx
+import { Decorations, type DecorationSet } from '@overworld-engine/scene'
+
+const lamps: DecorationSet = {
+  id: 'lamps', modelPath: '/models/lamp.glb',
+  instances: [{ position: [4, 0, 2] }, { position: [4, 0, 8] }],
+  collision: { radius: 0.4 },
+}
+
+<Decorations sets={[lamps]} />  // 每个源 mesh 一个 InstancedMesh;碰撞体默认从同一份 instances 派生
+```
+
+`collidersForSets(sets)` 可独立调用(不挂组件时手动注册碰撞)。
+
+### `<Lod>` — 距离驱动的模型切换
+
+```tsx
+import { Lod } from '@overworld-engine/scene'
+
+<Lod
+  position={[0, 0, 0]}
+  levels={[{ distance: 0, modelPath: '/models/tree-hi.glb' }, { distance: 40, modelPath: '/models/tree-lo.glb' }]}
+  render={(modelPath) => <MyModel url={modelPath} />}
+/>
+```
+
+按 `playerPositionRef` 距离选级(自带滞回,避免边界抖动),自动预加载下一档。
+
+### `<AgentNPC>` — 引用驱动的移动 NPC
+
+```tsx
+import { AgentNPC } from '@overworld-engine/scene'
+// agent 满足结构类型 AgentLike(如 @overworld-engine/ai 的 createAgent 结果),scene 不 import ai
+
+<AgentNPC npcId="patrol-1" agent={agent} positionRef={npcPositionRefs.current['patrol-1']}>
+  <BaseNPC ... />
+</AgentNPC>
+```
+
+每帧驱动 `agent.update(deltaMs)`,把位置写回共享 ref(`SceneShell` 的
+`npcPositionRefs`,供邻近检测/小地图/雷达读取)并同步碰撞体位置
+(`setColliderPosition`)。
+
+### `<FollowCamera orbit>` — 轨道相机
+
+```tsx
+<FollowCamera targetRef={playerRef} orbit={{ minDistance: 8, maxDistance: 40 }} />
+```
+
+传 `orbit` 后,鼠标拖拽 + 滚轮 / 触屏单指拖拽 + 双指缩放驱动球面轨道
+(`applyOrbitDelta`/`orbitToOffset` 可独立测试);省略 `orbit` 时行为与旧版
+固定偏移完全一致。拖拽/滚轮同样遵守 `inputLock`。
+
 ## 模型加载语义
 
 无美术资产也能跑:省略 `modelUrl` / `modelPath` 时,玩家与 NPC 回退为胶囊体、

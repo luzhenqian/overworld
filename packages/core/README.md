@@ -68,6 +68,29 @@ create<State>()(persist(initializer, persistOptions({ name: 'inventory', version
 `Vec3`、`EntityKind`、`EntityRef`、`EffectRef`/`ConditionRef`、
 `OverworldPersistConfig`、`OverworldEventName` 等。
 
+## 本版本新增:输入锁(inputLock)
+
+无头、框架无关的"游戏输入是否被挂起"单一事实来源:键盘、摇杆、交互键、
+相机拖拽等任意输入源都咨询它,互不 import。
+
+```ts
+import { inputLock } from '@overworld-engine/core'
+
+inputLock.acquire('dialogue')     // 打开对话时获取具名锁(幂等)
+inputLock.isLocked()              // → true,任意输入源据此挂起响应
+inputLock.release('dialogue')     // 关闭对话时释放
+```
+
+- `inputLock` — 绑定全局 `gameEvents` 的单例;`createInputLock(bus?)` 可创建
+  隔离实例(测试/多引擎场景)。
+- `acquire(id)` / `release(id)` 幂等;`activeLocks()` 返回当前持有的锁 id
+  (稳定排序);`releaseAll()` 用于场景切换/测试清理。
+- `subscribe(fn)` 订阅锁状态变化;每次变化同时在总线上发出
+  `input:lock-changed`(`{ locked, active }`)。
+- `@overworld-engine/input` 的 `useKeyboardLayer({ lockInput: true })` 与
+  `<VirtualJoystick respectInputLock>`、`@overworld-engine/scene` 的
+  `Player`/交互键/`FollowCamera` orbit 均默认消费本锁。
+
 ## 依赖
 
 peerDependency 仅 `zustand`(持久化辅助);事件总线与注册表零依赖。
