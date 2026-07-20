@@ -7,8 +7,10 @@ import {
   persistOptions,
   type EventBus,
   type OverworldEventMap,
+  type Vec3,
 } from '@overworld-engine/core'
 import { htmlAudioBackend, type AudioBackend, type AudioHandle } from './backend'
+import { zoneWeight, mixBuses, type BusName, type AmbientZone } from './ambientZones'
 
 /** Persistence tuning for {@link createAudioManager}. */
 export interface AudioPersistConfig {
@@ -66,6 +68,12 @@ export interface AudioManagerConfig {
    * with defaults; object = custom.
    */
   persist?: boolean | AudioPersistConfig
+  /**
+   * Initial named-bus volumes (0–1 each), mixed multiplicatively with
+   * `master` by {@link mixBuses}. Missing buses default to `master: 1`,
+   * `music: volume`, `ambience: 1`, `sfx: sfxVolume`.
+   */
+  buses?: Partial<Record<BusName, number>>
 }
 
 /** Reactive audio state exposed via `manager.store`. */
@@ -80,6 +88,10 @@ export interface AudioState {
   currentTrackId: string | null
   /** Becomes `true` once the browser has allowed playback. */
   unlocked: boolean
+  /** Named-bus volumes (0–1 each); `master` scales the other three. Not persisted. */
+  buses: Record<BusName, number>
+  /** Per-zone crossfade weight (0–1) from the last {@link AudioManager.updateListener} call. */
+  ambientWeights: Record<string, number>
 }
 
 /** The audio manager returned by {@link createAudioManager}. */
@@ -106,6 +118,29 @@ export interface AudioManager {
   toggleMute: () => void
   /** Resolve the track id mapped to a scene id, or `null`. */
   resolveSceneTrack: (sceneId: string) => string | null
+  /** Set a named bus's volume (clamped to 0–1). `master` scales the other three. */
+  setBusVolume: (bus: BusName, volume: number) => void
+  /** Read a named bus's current volume. */
+  getBusVolume: (bus: BusName) => number
+  /**
+   * Replace the active ambient zones. Each zone's track loops at a gain
+   * crossfaded by listener distance (see {@link updateListener}) on the
+   * `ambience` bus; zones are lazily backed by one looping handle per
+   * `trackId`, created on first `updateListener` call after being set.
+   */
+  setAmbientZones: (zones: AmbientZone[]) => void
+  /**
+   * Recompute per-zone crossfade weights for the listener position and
+   * apply them (`ambientWeights` in state, plus each zone handle's volume
+   * and play/pause state) on the `ambience` bus.
+   */
+  updateListener: (position: Vec3) => void
+  /**
+   * Fire a one-shot sound effect on the `sfx` bus, optionally attenuated by
+   * distance between `opts.listener` and `opts.at` (linear falloff over 30
+   * units on the XZ plane, floored at 0).
+   */
+  playCue: (sfxId: string, opts?: { listener?: Vec3; at?: Vec3 }) => void
   /** Unsubscribe from the bus, remove listeners and stop playback. */
   dispose: () => void
 }
@@ -176,18 +211,35 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
   const bus = config.events ?? config.bus ?? gameEvents
   const backend = config.backend ?? htmlAudioBackend
 
+  const initialVolume = clamp01(config.volume ?? 0.7)
+  const initialSfxVolume = clamp01(config.sfxVolume ?? 0.7)
+  const defaultBuses: Record<BusName, number> = {
+    master: clamp01(config.buses?.master ?? 1),
+    music: clamp01(config.buses?.music ?? initialVolume),
+    ambience: clamp01(config.buses?.ambience ?? 1),
+    sfx: clamp01(config.buses?.sfx ?? initialSfxVolume),
+  }
+
   const store = createAudioStore(config.persist, {
-    volume: clamp01(config.volume ?? 0.7),
-    sfxVolume: clamp01(config.sfxVolume ?? 0.7),
+    volume: initialVolume,
+    sfxVolume: initialSfxVolume,
     muted: false,
     currentTrackId: null,
     unlocked: false,
+    buses: defaultBuses,
+    ambientWeights: {},
   })
 
   // Per-manager singleton: at most one BGM handle exists at any time.
   let currentAudio: AudioHandle | null = null
   let unlockCleanup: (() => void) | null = null
   let disposed = false
+  // Ambient zones: last configuration set via `setAmbientZones`, and one
+  // lazily-created looping handle per zone id (keyed by zone, not track, so
+  // two zones sharing a `trackId` still crossfade independently). Handles
+  // are created on first `updateListener` call after a zone is set.
+  let ambientZonesRef: AmbientZone[] = []
+  const zoneHandles = new Map<string, AudioHandle>()
 
   /** Whether the backend can actually play here (Node/SSR: state-only). */
   const backendAvailable = (): boolean => backend.isAvailable?.() ?? true
@@ -373,6 +425,90 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     setMuted(!store.getState().muted)
   }
 
+  function setBusVolume(busName: BusName, volume: number): void {
+    store.setState((s) => ({ buses: { ...s.buses, [busName]: clamp01(volume) } }))
+  }
+
+  function getBusVolume(busName: BusName): number {
+    return store.getState().buses[busName]
+  }
+
+  /** Apply a zone's current weight to its (lazily-created) handle. */
+  function applyZoneWeight(zone: AmbientZone, weight: number): void {
+    if (!backendAvailable()) return
+    let handle = zoneHandles.get(zone.id)
+    if (!handle) {
+      const url = tracks[zone.trackId]
+      if (!url) {
+        console.warn(`[overworld/audio] unknown ambient zone track "${zone.trackId}"`)
+        return
+      }
+      handle = backend.create(url)
+      handle.setLoop(true)
+      handle.setVolume(0)
+      zoneHandles.set(zone.id, handle)
+    }
+    const { muted, buses } = store.getState()
+    const gain = weight * mixBuses(buses, 'ambience')
+    handle.setVolume(muted ? 0 : gain)
+    if (weight > 0 && !muted) {
+      void playHandle(handle).catch(() => {
+        // Ambient zones are best-effort, same as SFX: a blocked play is not worth retrying.
+      })
+    } else {
+      handle.pause()
+    }
+  }
+
+  function setAmbientZones(zones: AmbientZone[]): void {
+    ambientZonesRef = zones
+    const activeIds = new Set(zones.map((z) => z.id))
+    // Tear down handles for zones that are no longer configured.
+    for (const [id, handle] of zoneHandles) {
+      if (!activeIds.has(id)) {
+        handle.destroy()
+        zoneHandles.delete(id)
+      }
+    }
+  }
+
+  function updateListener(position: Vec3): void {
+    const weights: Record<string, number> = {}
+    for (const zone of ambientZonesRef) {
+      const weight = zoneWeight(zone, position)
+      weights[zone.id] = weight
+      applyZoneWeight(zone, weight)
+    }
+    store.setState({ ambientWeights: weights })
+  }
+
+  function playCue(sfxId: string, opts?: { listener?: Vec3; at?: Vec3 }): void {
+    const url = tracks[sfxId]
+    if (!url) {
+      console.warn(`[overworld/audio] unknown track "${sfxId}"`)
+      return
+    }
+    const { muted, buses } = store.getState()
+    if (muted || !backendAvailable()) return
+    let atten = 1
+    if (opts?.listener && opts?.at) {
+      const dx = opts.listener[0] - opts.at[0]
+      const dz = opts.listener[2] - opts.at[2]
+      const d = Math.hypot(dx, dz)
+      atten = Math.max(0, 1 - d / 30)
+    }
+    const handle = backend.create(url)
+    handle.setLoop(false)
+    handle.setVolume(atten * mixBuses(buses, 'sfx'))
+    const unbind = handle.onEnded(() => {
+      unbind()
+      handle.destroy()
+    })
+    void playHandle(handle).catch(() => {
+      // One-shots are best-effort; a blocked cue is not worth retrying.
+    })
+  }
+
   let unsubscribe: (() => void) | null = null
   if (autoSubscribeSceneChanges && sceneTracks) {
     unsubscribe = bus.on('scene:changed', ({ to }) => {
@@ -415,6 +551,9 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     for (const off of lifecycleUnsubs.splice(0, lifecycleUnsubs.length)) off()
     unlockCleanup?.()
     stopCurrent(false)
+    for (const handle of zoneHandles.values()) handle.destroy()
+    zoneHandles.clear()
+    ambientZonesRef = []
   }
 
   return {
@@ -429,6 +568,11 @@ export function createAudioManager(config: AudioManagerConfig): AudioManager {
     setMuted,
     toggleMute,
     resolveSceneTrack,
+    setBusVolume,
+    getBusVolume,
+    setAmbientZones,
+    updateListener,
+    playCue,
     dispose,
   }
 }
