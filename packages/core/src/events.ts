@@ -25,6 +25,7 @@ export interface OverworldEventMap {
    * transition. The legacy emit (and this entry) will be removed in 2.0.
    */
   interact: { kind: EntityKind; id: string }
+  'input:lock-changed': { locked: boolean; active: string[] }
   'dialogue:started': { npcId: string; dialogueId: string }
   'dialogue:ended': { npcId: string; dialogueId: string; nodeId: string }
   'quest:started': { questId: string }
