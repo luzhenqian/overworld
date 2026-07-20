@@ -1,5 +1,19 @@
 # @overworld-engine/minimap
 
+## 2.0.0
+
+### Minor Changes
+
+- c54c045: Add radar selectors for a player-relative HUD: `selectRadarMarkers` (world
+  entities → rotated, range-clamped markers) and `computeOffscreenIndicator`
+  (edge angle for off-range entities), with `RadarConfig`/`RadarMarker`/
+  `RadarEntity` types.
+
+### Patch Changes
+
+- Updated dependencies [c54c045]
+  - @overworld-engine/core@2.0.0
+
 ## 1.5.0
 
 ### Minor Changes

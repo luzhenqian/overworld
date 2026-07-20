@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/notifications",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "Headless toast and alert/confirm queues",
   "keywords": [
     "overworld",

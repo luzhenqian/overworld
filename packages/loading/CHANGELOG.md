@@ -1,5 +1,21 @@
 # @overworld-engine/loading
 
+## 2.0.0
+
+### Minor Changes
+
+- c54c045: Add scene-level load-state tracking: `useSceneLoadStore` (phases `idle` →
+  `module` → `geometry` → `texture` → `first-frame` → `ready`, `SCENE_PHASES`,
+  `aggregateSceneProgress`) plus zone streaming (`useZoneStreaming`,
+  `orderZonesByDistance`, `ZoneManifest`/`ZoneBounds`), a `<FirstFramePhase />`
+  Canvas marker, and `installSceneLoadDebugHandle()` for Playwright-friendly
+  `window.__overworldSceneLoad` inspection in dev builds.
+
+### Patch Changes
+
+- Updated dependencies [c54c045]
+  - @overworld-engine/core@2.0.0
+
 ## 1.5.0
 
 ### Minor Changes

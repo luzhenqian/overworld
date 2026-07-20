@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/dialogue",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "Headless dialogue tree engine with condition/effect interpretation",
   "keywords": [
     "overworld",

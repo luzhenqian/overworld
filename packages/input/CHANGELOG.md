@@ -1,5 +1,20 @@
 # @overworld-engine/input
 
+## 2.0.0
+
+### Minor Changes
+
+- c54c045: `useKeyboardLayer` accepts an options object with `lockInput`, which acquires
+  the shared `@overworld-engine/core` `inputLock` for the layer's lifetime
+  (exported helper: `parseLayerOpts`). `<VirtualJoystick respectInputLock>`
+  (default `true`) zeroes its output while the lock is held, via the new pure
+  `resolveJoystickOutput` helper.
+
+### Patch Changes
+
+- Updated dependencies [c54c045]
+  - @overworld-engine/core@2.0.0
+
 ## 1.5.0
 
 ### Minor Changes

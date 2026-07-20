@@ -1,5 +1,20 @@
 # @overworld-engine/audio
 
+## 2.0.0
+
+### Minor Changes
+
+- c54c045: Add named audio buses (`master`/`music`/`ambience`/`sfx`) with
+  `setBusVolume`/`getBusVolume`, distance-based ambient zones
+  (`setAmbientZones`, `updateListener`, pure `zoneWeight`/`mixBuses` helpers,
+  `AmbientZone`/`BusName` types), a positional one-shot `playCue`, and a
+  `silentBackend` for tests/headless environments.
+
+### Patch Changes
+
+- Updated dependencies [c54c045]
+  - @overworld-engine/core@2.0.0
+
 ## 1.5.0
 
 ### Minor Changes

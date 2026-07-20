@@ -1,5 +1,15 @@
 # @overworld-engine/adapters-weapp
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [c54c045]
+- Updated dependencies [c54c045]
+  - @overworld-engine/core@2.0.0
+  - @overworld-engine/input@2.0.0
+  - @overworld-engine/platform@2.0.0
+
 ## 1.5.0
 
 ### Minor Changes

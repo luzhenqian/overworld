@@ -1,5 +1,22 @@
 # @overworld-engine/scene
 
+## 2.0.0
+
+### Major Changes
+
+- c54c045: Add instanced `Decorations` renderer, runtime `Lod` + `lods` config, orbit
+  camera on `FollowCamera`, and ref-driven moving NPCs: `SceneShell.npcPositionRefs`
+  now drives an NPC's `BaseNPC` visual, collider, proximity, and selection ring
+  from a live position ref (`BaseNPC.positionRef`), plus `AgentNPC` for standalone
+  moving NPCs. Default input blocking via the shared `inputLock`: `isInputBlocked`
+  falls back to `inputLock.isLocked()` when omitted (no effect until a lock is
+  acquired).
+
+### Patch Changes
+
+- Updated dependencies [c54c045]
+  - @overworld-engine/core@2.0.0
+
 ## 1.5.0
 
 ### Minor Changes

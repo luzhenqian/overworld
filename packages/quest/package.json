@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/quest",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "Headless event-driven quest state machine",
   "keywords": [
     "overworld",
