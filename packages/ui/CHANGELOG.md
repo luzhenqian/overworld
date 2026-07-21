@@ -1,5 +1,21 @@
 # @overworld-engine/ui
 
+## 2.4.0
+
+### Minor Changes
+
+- 52be291: Add navigation HUD components — MinimapFrame, Compass, WaypointIndicator —
+  plus `normalizeAngle` / `compassOffset` / `compassTicks` / `edgeAnchor` pure helpers. These
+  compose with `@overworld-engine/minimap` without the UI package importing it
+  (the host nests `<MiniMap>` inside `<MinimapFrame>` and feeds `Compass`/
+  `WaypointIndicator` the heading / off-screen bearing).
+- d65e7da: Add spatial focus navigation as an opt-in `@overworld-engine/ui/focus` subpath
+  (FocusProvider, Focusable, useSpatialFocus, useGamepadFocus), backed by
+  `@noriginmedia/norigin-spatial-navigation` as an OPTIONAL peer dependency — the
+  core package stays dependency-free. Also: Button/IconButton/Slot now forward
+  refs, and Modal gains a keyboard focus trap (Tab cycling, Escape to dismiss,
+  focus restore on close).
+
 ## 2.3.0
 
 ### Minor Changes
