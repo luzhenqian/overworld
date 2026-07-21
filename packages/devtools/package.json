@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/devtools",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Dev-time content validation (dialogues/quests) and event-bus logging for Overworld games",
   "keywords": [
     "overworld",
