@@ -13,6 +13,7 @@
     "@overworld-engine/core": "workspace:*",
     "@overworld-engine/dialogue": "workspace:*",
     "@overworld-engine/inventory": "workspace:*",
+    "@overworld-engine/minimap": "workspace:*",
     "@overworld-engine/notifications": "workspace:*",
     "@overworld-engine/quest": "workspace:*",
     "@overworld-engine/tutorial": "workspace:*",

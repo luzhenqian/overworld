@@ -639,3 +639,124 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------- MinimapFrame ---------------- */
+.ow-minimap-frame {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--ow-space-1);
+  padding: var(--ow-space-2);
+  background: var(--ow-color-surface);
+  border: var(--ow-panel-border-width) solid var(--ow-color-border);
+  border-image: var(--ow-panel-border-image);
+  border-radius: var(--ow-radius);
+  box-shadow: var(--ow-shadow);
+  pointer-events: auto;
+}
+.ow-minimap-frame-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ow-space-2);
+}
+.ow-minimap-frame-label {
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ow-color-text-dim);
+}
+.ow-minimap-frame-controls {
+  display: inline-flex;
+  gap: var(--ow-space-1);
+  align-items: center;
+}
+.ow-minimap-frame-body {
+  position: relative;
+  display: flex;
+}
+.ow-minimap-frame-coords {
+  display: flex;
+  justify-content: center;
+  gap: var(--ow-space-3);
+  font-size: 0.72em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ow-color-text-dim);
+}
+
+/* ---------------- Compass ---------------- */
+.ow-compass {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  overflow: hidden;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  pointer-events: auto;
+}
+.ow-compass-strip {
+  position: absolute;
+  inset: 0;
+}
+.ow-compass-tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7em;
+  color: var(--ow-color-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ow-compass-tick[data-ow-major] {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--ow-color-text);
+}
+.ow-compass-pip {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  font-size: 0.7em;
+  line-height: 1;
+}
+.ow-compass-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ow-color-accent);
+  transform: translateX(-50%);
+}
+
+/* ---------------- WaypointIndicator ---------------- */
+.ow-waypoint {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  pointer-events: none;
+  color: var(--ow-color-accent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.ow-waypoint-arrow {
+  font-size: 0.9em;
+  line-height: 1;
+}
+.ow-waypoint-icon {
+  font-size: 0.9em;
+  line-height: 1;
+}
+.ow-waypoint-label {
+  font-size: 0.65em;
+  font-weight: 700;
+  color: var(--ow-color-text);
+  white-space: nowrap;
+}
+.ow-waypoint-distance {
+  font-size: 0.6em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ow-color-text-dim);
+}
