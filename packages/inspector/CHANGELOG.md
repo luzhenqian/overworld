@@ -1,5 +1,12 @@
 # @overworld-engine/inspector
 
+## 2.1.0
+
+### Patch Changes
+
+- @overworld-engine/core@2.1.0
+- @overworld-engine/devtools@2.1.0
+
 ## 2.0.0
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # scene-authoring
 
+## 1.5.3
+
+### Patch Changes
+
+- Updated dependencies [1f8fd40]
+  - @overworld-engine/scene@2.1.0
+  - @overworld-engine/core@2.1.0
+  - @overworld-engine/devtools@2.1.0
+  - @overworld-engine/editor@2.1.0
+  - @overworld-engine/input@2.1.0
+
 ## 1.5.2
 
 ### Patch Changes
