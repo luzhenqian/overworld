@@ -1,3 +1,5 @@
 export * from './engineTypes'
 export * from './zOrder'
 export { useUiStore, selectAnyWindowOpen } from './uiStore'
+export { advanceReveal } from './typewriterLogic'
+export { useTypewriter } from './useTypewriter'
