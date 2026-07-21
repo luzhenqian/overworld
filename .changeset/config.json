@@ -13,6 +13,7 @@
     "ws-server",
     "authority-server",
     "docs",
-    "benchmarks"
+    "benchmarks",
+    "ui-gallery"
   ]
 }

@@ -1,0 +1,31 @@
+{
+  "name": "ui-gallery",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ladle serve",
+    "build": "tsc --noEmit && ladle build",
+    "typecheck": "tsc --noEmit",
+    "preview": "ladle preview"
+  },
+  "dependencies": {
+    "@overworld-engine/achievements": "workspace:*",
+    "@overworld-engine/core": "workspace:*",
+    "@overworld-engine/dialogue": "workspace:*",
+    "@overworld-engine/inventory": "workspace:*",
+    "@overworld-engine/notifications": "workspace:*",
+    "@overworld-engine/quest": "workspace:*",
+    "@overworld-engine/tutorial": "workspace:*",
+    "@overworld-engine/ui": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@ladle/react": "^4.0.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.6.3"
+  }
+}
