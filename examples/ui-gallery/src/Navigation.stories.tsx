@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Vec3 } from '@overworld-engine/core'
 import { MiniMap, useMinimapStore } from '@overworld-engine/minimap'
-import { Compass, MinimapFrame } from '@overworld-engine/ui'
+import { Compass, MinimapFrame, WaypointIndicator } from '@overworld-engine/ui'
 
 export default { title: 'HUD / Navigation' }
 
@@ -42,3 +42,18 @@ export const CompassStrip = () => {
     </div>
   )
 }
+
+export const Waypoints = () => (
+  <div
+    style={{
+      position: 'relative',
+      height: '70vh',
+      border: '1px dashed var(--ow-color-border)',
+      borderRadius: 8,
+    }}
+  >
+    <WaypointIndicator angle={0.5} label="Objective" icon="🎯" distance="42m" color="#facc15" />
+    <WaypointIndicator angle={2.5} label="Shop" icon="🛒" distance="120m" />
+    <WaypointIndicator angle={-1.8} label="Ally" icon="🤝" distance="18m" color="#60a5fa" />
+  </div>
+)

@@ -723,3 +723,35 @@
   background: var(--ow-color-accent);
   transform: translateX(-50%);
 }
+
+/* ---------------- WaypointIndicator ---------------- */
+.ow-waypoint {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  pointer-events: none;
+  color: var(--ow-color-accent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.ow-waypoint-arrow {
+  font-size: 0.9em;
+  line-height: 1;
+}
+.ow-waypoint-icon {
+  font-size: 0.9em;
+  line-height: 1;
+}
+.ow-waypoint-label {
+  font-size: 0.65em;
+  font-weight: 700;
+  color: var(--ow-color-text);
+  white-space: nowrap;
+}
+.ow-waypoint-distance {
+  font-size: 0.6em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ow-color-text-dim);
+}
