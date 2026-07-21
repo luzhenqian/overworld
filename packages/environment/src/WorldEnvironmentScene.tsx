@@ -77,8 +77,14 @@ export function WorldEnvironment({ preset = 'clear-noon', engine, quality, child
     if (!engine) return
     const d = getDaylightFactor(engine.store.getState().timeOfDay, engine.phases)
     const l = resolveLight(resolved, d)
-    if (ambientRef.current) ambientRef.current.intensity = l.ambient.intensity
-    if (sunRef.current) sunRef.current.intensity = l.sun.intensity
+    if (ambientRef.current) {
+      ambientRef.current.intensity = l.ambient.intensity
+      ambientRef.current.color.set(l.ambient.color)
+    }
+    if (sunRef.current) {
+      sunRef.current.intensity = l.sun.intensity
+      sunRef.current.color.set(l.sun.color)
+    }
     gl.toneMappingExposure = resolveExposure(resolved, d)
   })
 
