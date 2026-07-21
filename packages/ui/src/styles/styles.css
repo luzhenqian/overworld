@@ -493,6 +493,59 @@
   .ow-castbar-fill { transition: none; }
 }
 
+/* ---------------- BuffBar ---------------- */
+.ow-buffbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ow-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  pointer-events: auto;
+}
+.ow-buff {
+  position: relative;
+  width: calc(var(--ow-slot-size) * 0.66);
+  height: calc(var(--ow-slot-size) * 0.66);
+  display: grid;
+  place-items: center;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  overflow: hidden;
+}
+.ow-buff[data-ow-kind="debuff"] { border-color: var(--ow-color-danger); }
+.ow-buff-icon { font-size: 1em; line-height: 1; }
+/* `--ow-buff-sweep` is the fraction REMAINING; darken the elapsed complement,
+   so a fresh buff shows a clear icon and darkens as it expires. */
+.ow-buff-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from 0deg, transparent var(--ow-buff-sweep, 100%), rgba(0, 0, 0, 0.55) 0);
+}
+.ow-buff-stacks {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 0.62em;
+  font-weight: 700;
+  color: var(--ow-color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.ow-buff-time {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.6em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ow-color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
 /* ---------------- Motion ---------------- */
 @media (prefers-reduced-motion: reduce) {
   .ow-root *,
