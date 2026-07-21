@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@noriginmedia/norigin-spatial-navigation": "^3.2.1",
     "@overworld-engine/achievements": "workspace:*",
     "@overworld-engine/core": "workspace:*",
     "@overworld-engine/dialogue": "workspace:*",

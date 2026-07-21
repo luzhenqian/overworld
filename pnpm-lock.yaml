@@ -736,6 +736,9 @@ importers:
 
   examples/ui-gallery:
     dependencies:
+      '@noriginmedia/norigin-spatial-navigation':
+        specifier: ^3.2.1
+        version: 3.2.1(react@18.3.1)
       '@overworld-engine/achievements':
         specifier: workspace:*
         version: link:../../packages/achievements
@@ -1181,6 +1184,10 @@ importers:
       zustand:
         specifier: ^5.0.0
         version: 5.0.14(@types/react@19.2.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+    devDependencies:
+      '@noriginmedia/norigin-spatial-navigation':
+        specifier: ^3.2.1
+        version: 3.2.1(react@18.3.1)
 
 packages:
 
@@ -2333,6 +2340,17 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@noriginmedia/norigin-spatial-navigation-core@4.0.0':
+    resolution: {integrity: sha512-EnpklqZvVSKvyi63oiT9772PVzYg8Swj6SrGARBcz6Pfy4r8JB4sAorrTpp8nyA8d6ApVWnXqz044YdYZWzIxw==}
+
+  '@noriginmedia/norigin-spatial-navigation-react@3.2.1':
+    resolution: {integrity: sha512-p4DHo5rZV/DnQK4aOXeDXieuihAes65oeCfDlt/JJUh0OLqv/Wx7mJWsWKRPTNzT4mkIgWaM15VrSiYuFA0dhg==}
+    peerDependencies:
+      react: '>=16.8.0'
+
+  '@noriginmedia/norigin-spatial-navigation@3.2.1':
+    resolution: {integrity: sha512-D+3vX4fyFdq0zg1MOgK5SnOikh7GhnXzzXt46z/AzJ52AIyLL6eyWmHFgABA9J0fZF9c1ELSs3iVZXTM3QvYXA==}
 
   '@open-draft/deferred-promise@2.2.0':
     resolution: {integrity: sha512-CecwLWx3rhxVQF6V4bAgPS5t+So2sTbPgAzafKkVizyi7tlwpcFpdFqq+wqF2OwNBmqFuu6tOyouTuxgpMfzmA==}
@@ -7186,6 +7204,23 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
+
+  '@noriginmedia/norigin-spatial-navigation-core@4.0.0':
+    dependencies:
+      lodash-es: 4.18.1
+
+  '@noriginmedia/norigin-spatial-navigation-react@3.2.1(react@18.3.1)':
+    dependencies:
+      '@noriginmedia/norigin-spatial-navigation-core': 4.0.0
+      lodash-es: 4.18.1
+      react: 18.3.1
+
+  '@noriginmedia/norigin-spatial-navigation@3.2.1(react@18.3.1)':
+    dependencies:
+      '@noriginmedia/norigin-spatial-navigation-core': 4.0.0
+      '@noriginmedia/norigin-spatial-navigation-react': 3.2.1(react@18.3.1)
+    transitivePeerDependencies:
+      - react
 
   '@open-draft/deferred-promise@2.2.0':
     optional: true

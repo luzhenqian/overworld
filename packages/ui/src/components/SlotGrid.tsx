@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
 
 export interface SlotGridProps {
   /** Grid column count. @default 5 */
@@ -25,9 +25,13 @@ export interface SlotProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   selected?: boolean
 }
 
-export function Slot({ icon, quantity, rarity, keybind, selected, className, ...rest }: SlotProps) {
+export const Slot = forwardRef<HTMLButtonElement, SlotProps>(function Slot(
+  { icon, quantity, rarity, keybind, selected, className, ...rest },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type="button"
       className={className ? `ow-slot ${className}` : 'ow-slot'}
       data-ow-rarity={rarity}
@@ -41,4 +45,4 @@ export function Slot({ icon, quantity, rarity, keybind, selected, className, ...
       {keybind && <span className="ow-slot-key">{keybind}</span>}
     </button>
   )
-}
+})
