@@ -1,8 +1,15 @@
 {
   "name": "@overworld-engine/ui",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "description": "Headless game UI: HUD primitives, engine-bound components, four CSS theme skins",
-  "keywords": ["overworld", "game", "rpg", "ui", "hud", "headless"],
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "ui",
+    "hud",
+    "headless"
+  ],
   "homepage": "https://github.com/luzhenqian/overworld#readme",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,8 +22,12 @@
     "./styles.css": "./dist/styles.css",
     "./themes/*": "./dist/themes/*"
   },
-  "files": ["dist"],
-  "sideEffects": ["**/*.css"],
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "build": "tsup && cp src/styles/styles.css dist/styles.css && mkdir -p dist/themes && cp src/styles/themes/*.css dist/themes/",
     "typecheck": "tsc --noEmit",
