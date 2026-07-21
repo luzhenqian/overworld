@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Vec3 } from '@overworld-engine/core'
-import { MiniMap, useMinimapStore } from '@overworld-engine/minimap'
+import { computeOffscreenIndicator, MiniMap, useMinimapStore } from '@overworld-engine/minimap'
 import { Compass, MinimapFrame, WaypointIndicator } from '@overworld-engine/ui'
 
 export default { title: 'HUD / Navigation' }
@@ -43,17 +43,21 @@ export const CompassStrip = () => {
   )
 }
 
-export const Waypoints = () => (
-  <div
-    style={{
-      position: 'relative',
-      height: '70vh',
-      border: '1px dashed var(--ow-color-border)',
-      borderRadius: 8,
-    }}
-  >
-    <WaypointIndicator angle={0.5} label="Objective" icon="🎯" distance="42m" color="#facc15" />
-    <WaypointIndicator angle={2.5} label="Shop" icon="🛒" distance="120m" />
-    <WaypointIndicator angle={-1.8} label="Ally" icon="🤝" distance="18m" color="#60a5fa" />
-  </div>
-)
+export const Waypoints = () => {
+  // End-to-end proof: a real off-screen-indicator angle feeds WaypointIndicator directly.
+  const objective = computeOffscreenIndicator([80, 0, 30], [0, 0, 0], 0, 40)
+  return (
+    <div
+      style={{
+        position: 'relative',
+        height: '70vh',
+        border: '1px dashed var(--ow-color-border)',
+        borderRadius: 8,
+      }}
+    >
+      <WaypointIndicator angle={objective.angle} label="Objective" icon="🎯" distance="42m" color="#facc15" />
+      <WaypointIndicator angle={2.5} label="Shop" icon="🛒" distance="120m" />
+      <WaypointIndicator angle={-1.8} label="Ally" icon="🤝" distance="18m" color="#60a5fa" />
+    </div>
+  )
+}

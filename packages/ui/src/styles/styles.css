@@ -666,6 +666,11 @@
   letter-spacing: 0.06em;
   color: var(--ow-color-text-dim);
 }
+.ow-minimap-frame-controls {
+  display: inline-flex;
+  gap: var(--ow-space-1);
+  align-items: center;
+}
 .ow-minimap-frame-body {
   position: relative;
   display: flex;
