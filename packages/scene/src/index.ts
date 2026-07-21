@@ -103,6 +103,8 @@ export {
   useQualityStore,
   useParticleMultiplier,
   detectQualityPreset,
+  isSoftwareRenderer,
+  readWebglRenderer,
 } from './quality'
 export type { QualitySettings, QualityPresetName, QualityState } from './quality'
 export { ApplyQuality } from './ApplyQuality'

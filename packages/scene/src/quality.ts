@@ -74,6 +74,41 @@ export const useQualityStore = create<QualityState>((set) => ({
 export const useParticleMultiplier = (): number =>
   useQualityStore((state) => state.settings.particleMultiplier)
 
+/** Renderer substrings (lowercased) that indicate CPU/software WebGL — always low tier. */
+const SOFTWARE_RENDERER_PATTERNS = [
+  'swiftshader',
+  'llvmpipe',
+  'softpipe',
+  'software rasterizer',
+  'basic render', // "Microsoft Basic Render Driver"
+]
+
+/** True when `renderer` names a software rasterizer (the exact case that needs `low`). */
+export function isSoftwareRenderer(renderer: string): boolean {
+  const r = renderer.toLowerCase()
+  return SOFTWARE_RENDERER_PATTERNS.some((p) => r.includes(p))
+}
+
+/**
+ * Read the unmasked renderer string via the `WEBGL_debug_renderer_info`
+ * extension. Returns `undefined` when the extension is unavailable or the
+ * lookup throws (fully guarded — some browsers gate this behind privacy flags).
+ */
+export function readWebglRenderer(
+  gl: WebGLRenderingContext | WebGL2RenderingContext,
+): string | undefined {
+  try {
+    const ext = gl.getExtension('WEBGL_debug_renderer_info')
+    if (!ext) return undefined
+    const value = gl.getParameter(
+      (ext as { UNMASKED_RENDERER_WEBGL: number }).UNMASKED_RENDERER_WEBGL,
+    )
+    return typeof value === 'string' ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Best-effort device heuristic:
  *
@@ -89,7 +124,13 @@ export const useParticleMultiplier = (): number =>
  * It is a starting point, not a benchmark — pass the result to
  * `useQualityStore.getState().setPreset(...)` and let players override it.
  */
-export function detectQualityPreset(): QualityPresetName {
+export function detectQualityPreset(input?: {
+  renderer?: string
+  gl?: WebGLRenderingContext | WebGL2RenderingContext
+}): QualityPresetName {
+  // GPU-aware override: software WebGL is always low, whatever the CPU says.
+  const renderer = input?.renderer ?? (input?.gl ? readWebglRenderer(input.gl) : undefined)
+  if (renderer && isSoftwareRenderer(renderer)) return 'low'
   if (typeof navigator === 'undefined') return 'high'
 
   const nav = navigator as Navigator & { deviceMemory?: number }

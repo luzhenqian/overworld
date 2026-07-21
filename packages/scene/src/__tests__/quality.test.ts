@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { QUALITY_PRESETS, detectQualityPreset, useQualityStore } from '../quality'
+import { QUALITY_PRESETS, detectQualityPreset, isSoftwareRenderer, useQualityStore } from '../quality'
 
 describe('QUALITY_PRESETS', () => {
   it('exposes the documented high/medium/low tiers', () => {
@@ -159,6 +159,42 @@ describe('detectQualityPreset', () => {
   it('treats missing hardware hints as not-weak', () => {
     // Safari exposes neither deviceMemory nor (on some versions) hardwareConcurrency.
     stubEnvironment({ userAgent: 'Mozilla/5.0 (Macintosh) Safari/605.1.15' })
+    expect(detectQualityPreset()).toBe('high')
+  })
+})
+
+describe('isSoftwareRenderer', () => {
+  it('flags known software rasterizers (case-insensitive)', () => {
+    for (const r of [
+      'Google SwiftShader',
+      'Mesa/X.org llvmpipe (LLVM 15.0.7, 256 bits)',
+      'softpipe',
+      'Software Rasterizer',
+      'Microsoft Basic Render Driver',
+    ]) {
+      expect(isSoftwareRenderer(r)).toBe(true)
+    }
+  })
+  it('does not flag real GPUs', () => {
+    for (const r of [
+      'ANGLE (Apple, Apple M1 Pro, OpenGL 4.1)',
+      'NVIDIA GeForce RTX 4090/PCIe/SSE2',
+      'Intel(R) Iris(R) Xe Graphics',
+    ]) {
+      expect(isSoftwareRenderer(r)).toBe(false)
+    }
+  })
+})
+
+describe('detectQualityPreset with renderer', () => {
+  it('forces low for a software renderer regardless of other signals', () => {
+    expect(detectQualityPreset({ renderer: 'Google SwiftShader' })).toBe('low')
+  })
+  it('ignores a real GPU string and falls back to the heuristic', () => {
+    // No navigator in this test env → heuristic returns 'high'.
+    expect(detectQualityPreset({ renderer: 'NVIDIA GeForce RTX 4090' })).toBe('high')
+  })
+  it('no-arg call is unchanged (high in the SSR/test default)', () => {
     expect(detectQualityPreset()).toBe('high')
   })
 })
