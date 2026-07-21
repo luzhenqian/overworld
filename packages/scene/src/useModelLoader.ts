@@ -61,3 +61,41 @@ export function useModelLoader({
 
   return model
 }
+
+/**
+ * Like {@link useModelLoader}, but also returns the model's animation clips
+ * (which `useModelLoader` discards). For animated entities that run their own
+ * `useAnimations` mixer (see `BaseNPC`). Same Suspense semantics.
+ */
+export function useModelClips({
+  modelPath,
+  enableCastShadow = true,
+  enableReceiveShadow = true,
+  modifyMaterial,
+}: UseModelLoaderOptions): { model: THREE.Group | null; animations: THREE.AnimationClip[] } {
+  let gltf: { scene: THREE.Group; animations: THREE.AnimationClip[] } | null = null
+  try {
+    gltf = useGLTF(modelPath) as unknown as {
+      scene: THREE.Group
+      animations: THREE.AnimationClip[]
+    }
+  } catch (error) {
+    if (typeof (error as PromiseLike<unknown> | null)?.then === 'function') throw error
+    console.error(`[overworld] failed to load model: ${modelPath}`, error)
+  }
+
+  const model = useMemo(() => {
+    if (!gltf?.scene) return null
+    const cloned = gltf.scene.clone()
+    cloned.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        child.castShadow = enableCastShadow
+        child.receiveShadow = enableReceiveShadow
+        if (modifyMaterial) modifyMaterial(child as THREE.Mesh)
+      }
+    })
+    return cloned
+  }, [gltf, enableCastShadow, enableReceiveShadow, modifyMaterial])
+
+  return { model, animations: gltf?.animations ?? [] }
+}
