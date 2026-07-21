@@ -6,7 +6,7 @@
 
 **Architecture:** One component set renders semantic DOM with stable `ow-*` classes and `data-ow-*` state attributes; themes are pure CSS files scoped under `.ow-root[data-ow-theme="…"]`, hot-swappable at runtime. Engine-bound components receive engines through duck-typed structural interfaces (never importing engine packages). Pure decision logic lives in plain functions (tested); React components are thin wiring (typecheck/build-verified only).
 
-**Tech Stack:** TypeScript, React 18 (peer), zustand 5 (peer), tsup, vitest (node env), plain CSS with custom properties + inline SVG data-URIs.
+**Tech Stack:** TypeScript, React 18 (peer), zustand 5 (peer), tsup, vitest (node env), plain CSS with custom properties + inline SVG data-URIs, Ladle (Vite-native Storybook alternative) for the component workbench.
 
 Spec: `docs/superpowers/specs/2026-07-21-ui-package-design.md`
 
@@ -2674,21 +2674,31 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 ---
 
-### Task 17: `examples/ui-gallery` demo app
+### Task 17: `examples/ui-gallery` — Ladle component workbench
 
-This app is also the compile-time proof that real engines satisfy the structural interfaces.
+A [Ladle](https://ladle.dev) app (Vite-native, CSF-compatible Storybook alternative — one devDependency, no Storybook toolchain) with one story file per component family, a global theme switcher, and an integrated Full-HUD story. It is also the compile-time proof that real engines satisfy the structural interfaces.
 
 **Files:**
 - Create: `examples/ui-gallery/package.json`
-- Create: `examples/ui-gallery/vite.config.ts`
 - Create: `examples/ui-gallery/tsconfig.json`
-- Create: `examples/ui-gallery/index.html`
-- Create: `examples/ui-gallery/src/main.tsx`
-- Create: `examples/ui-gallery/src/App.tsx`
+- Create: `examples/ui-gallery/.gitignore`
+- Create: `examples/ui-gallery/.ladle/components.tsx`
+- Create: `examples/ui-gallery/src/Button.stories.tsx`
+- Create: `examples/ui-gallery/src/Bar.stories.tsx`
+- Create: `examples/ui-gallery/src/Surfaces.stories.tsx`
+- Create: `examples/ui-gallery/src/Slots.stories.tsx`
+- Create: `examples/ui-gallery/src/Windows.stories.tsx`
+- Create: `examples/ui-gallery/src/Dialogue.stories.tsx`
+- Create: `examples/ui-gallery/src/Quest.stories.tsx`
+- Create: `examples/ui-gallery/src/Inventory.stories.tsx`
+- Create: `examples/ui-gallery/src/Notifications.stories.tsx`
+- Create: `examples/ui-gallery/src/TutorialAchievements.stories.tsx`
+- Create: `examples/ui-gallery/src/FullHud.stories.tsx`
 - Modify: `.changeset/config.json` (add `"ui-gallery"` to `ignore`)
 
 **Interfaces:**
 - Consumes: the full `@overworld-engine/ui` export surface; real engines from `@overworld-engine/{dialogue,quest,inventory,notifications,tutorial,achievements}`.
+- Produces: `ThemeContext` in `.ladle/components.tsx` (a React context carrying the selected theme name) — stories that render their own `<Hud>` read it so the nested `.ow-root` re-applies the theme attribute (a nested plain `.ow-root` would otherwise reset the theme's token overrides back to base).
 
 - [ ] **Step 1: Write package.json**
 
@@ -2699,10 +2709,10 @@ This app is also the compile-time proof that real engines satisfy the structural
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "ladle serve",
+    "build": "tsc --noEmit && ladle build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "ladle preview"
   },
   "dependencies": {
     "@overworld-engine/achievements": "workspace:*",
@@ -2718,98 +2728,226 @@ This app is also the compile-time proof that real engines satisfy the structural
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@ladle/react": "^4.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "^5.6.3",
-    "vite": "^6.0.1"
+    "typescript": "^5.6.3"
   }
 }
 ```
 
-- [ ] **Step 2: Write vite.config.ts, tsconfig.json, index.html**
+- [ ] **Step 2: Write tsconfig.json and .gitignore**
 
-`examples/ui-gallery/vite.config.ts`:
+`examples/ui-gallery/tsconfig.json`:
 
-```ts
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
-
-export default defineConfig({
-  plugins: [react()],
-})
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", ".ladle"]
+}
 ```
 
-`examples/ui-gallery/tsconfig.json` (mirror `examples/starter/tsconfig.json` — copy that file verbatim):
+`examples/ui-gallery/.gitignore`:
 
-```bash
-cp examples/starter/tsconfig.json examples/ui-gallery/tsconfig.json
+```
+build
 ```
 
-`examples/ui-gallery/index.html`:
+- [ ] **Step 3: Write the Ladle global provider (theme switcher)**
 
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Overworld UI Gallery</title>
-    <style>
-      body { margin: 0; background: #202430; }
-      #root { position: relative; min-height: 100vh; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
-```
-
-- [ ] **Step 3: Write src/main.tsx**
+`examples/ui-gallery/.ladle/components.tsx`:
 
 ```tsx
-import { createRoot } from 'react-dom/client'
+import { createContext, useEffect, useState } from 'react'
+import type { GlobalProvider } from '@ladle/react'
 import '@overworld-engine/ui/styles.css'
 import '@overworld-engine/ui/themes/xianxia.css'
 import '@overworld-engine/ui/themes/hextech.css'
 import '@overworld-engine/ui/themes/tactical.css'
 import '@overworld-engine/ui/themes/pixel.css'
-import { App } from './App'
 
-createRoot(document.getElementById('root')!).render(<App />)
+export const THEMES = ['base', 'xianxia', 'hextech', 'tactical', 'pixel'] as const
+export type ThemeName = (typeof THEMES)[number]
+
+/** Stories that render their own `<Hud>` read this to re-apply the theme. */
+export const ThemeContext = createContext<ThemeName>('base')
+
+export const Provider: GlobalProvider = ({ children }) => {
+  const [theme, setTheme] = useState<ThemeName>(
+    () => (localStorage.getItem('ow-gallery-theme') as ThemeName) ?? 'base',
+  )
+  useEffect(() => {
+    localStorage.setItem('ow-gallery-theme', theme)
+  }, [theme])
+  return (
+    <ThemeContext.Provider value={theme}>
+      <div
+        className="ow-root"
+        data-ow-theme={theme === 'base' ? undefined : theme}
+        style={{ minHeight: '100vh', background: '#202430', padding: 16 }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <label>
+            Theme{' '}
+            <select value={theme} onChange={(e) => setTheme(e.target.value as ThemeName)}>
+              {THEMES.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {children}
+      </div>
+    </ThemeContext.Provider>
+  )
+}
 ```
 
-- [ ] **Step 4: Write src/App.tsx**
+- [ ] **Step 4: Write the primitive stories**
+
+`examples/ui-gallery/src/Button.stories.tsx`:
+
+```tsx
+import { Button, IconButton } from '@overworld-engine/ui'
+
+export default { title: 'Primitives / Button' }
+
+export const Variants = () => (
+  <div style={{ display: 'flex', gap: 8 }}>
+    <Button>Primary</Button>
+    <Button variant="ghost">Ghost</Button>
+    <Button variant="danger">Danger</Button>
+    <Button disabled>Disabled</Button>
+    <IconButton label="Settings">⚙️</IconButton>
+  </div>
+)
+```
+
+`examples/ui-gallery/src/Bar.stories.tsx`:
 
 ```tsx
 import { useState } from 'react'
-import { createDialogueEngine } from '@overworld-engine/dialogue'
-import { createQuestEngine } from '@overworld-engine/quest'
-import { createInventory } from '@overworld-engine/inventory'
-import { createTutorial } from '@overworld-engine/tutorial'
-import { createAchievements } from '@overworld-engine/achievements'
-import { useAlertStore, useToastStore, confirm } from '@overworld-engine/notifications'
-import {
-  AchievementPopup,
-  AlertHost,
-  Bar,
-  Button,
-  DialogueBox,
-  Hotbar,
-  Hud,
-  InventoryWindow,
-  QuestLogWindow,
-  QuestTracker,
-  Slot,
-  ToastViewport,
-  Tooltip,
-  TutorialOverlay,
-  useUiStore,
-} from '@overworld-engine/ui'
+import { Bar, Button } from '@overworld-engine/ui'
 
-// ---- engines with sample content (created once at module level) ----
+export default { title: 'Primitives / Bar' }
+
+export const ResourceBars = () => {
+  const [hp, setHp] = useState(80)
+  return (
+    <div style={{ display: 'grid', gap: 8, maxWidth: 320 }}>
+      <Bar value={hp} max={100} variant="hp" label="HP" showValue />
+      <Bar value={40} max={100} variant="mp" label="MP" showValue />
+      <Bar value={65} max={100} variant="xp" label="XP" />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button variant="danger" onClick={() => setHp((h) => Math.max(h - 15, 0))}>
+          Damage
+        </Button>
+        <Button onClick={() => setHp(100)}>Heal</Button>
+      </div>
+    </div>
+  )
+}
+```
+
+`examples/ui-gallery/src/Surfaces.stories.tsx`:
+
+```tsx
+import { useState } from 'react'
+import { Button, Modal, Panel, Tooltip } from '@overworld-engine/ui'
+
+export default { title: 'Primitives / Surfaces' }
+
+export const PanelWithTitle = () => (
+  <Panel title="Character" onClose={() => {}} style={{ maxWidth: 280 }}>
+    Panel body content.
+  </Panel>
+)
+
+export const ModalStory = () => {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Open modal</Button>
+      <Modal open={open} onDismiss={() => setOpen(false)}>
+        <Panel title="Confirm">Backdrop click dismisses.</Panel>
+      </Modal>
+    </>
+  )
+}
+ModalStory.storyName = 'Modal'
+
+export const TooltipStory = () => (
+  <Tooltip content="A dependable blade.">
+    <Button variant="ghost">Hover me</Button>
+  </Tooltip>
+)
+TooltipStory.storyName = 'Tooltip'
+```
+
+`examples/ui-gallery/src/Slots.stories.tsx`:
+
+```tsx
+import { Hotbar, Slot, SlotGrid, Tooltip } from '@overworld-engine/ui'
+
+export default { title: 'Primitives / Slots' }
+
+export const Rarities = () => (
+  <SlotGrid columns={4}>
+    <Slot icon="🧪" quantity={3} rarity="common" />
+    <Slot icon="🗡️" rarity="rare" />
+    <Slot icon="🛡️" rarity="epic" />
+    <Slot icon="👑" rarity="legendary" selected />
+  </SlotGrid>
+)
+
+export const HotbarStory = () => (
+  <Hotbar>
+    <Tooltip content="Health Potion">
+      <Slot icon="🧪" quantity={3} keybind="1" />
+    </Tooltip>
+    <Slot icon="🗡️" keybind="2" rarity="rare" />
+    <Slot keybind="3" />
+    <Slot keybind="4" />
+  </Hotbar>
+)
+HotbarStory.storyName = 'Hotbar'
+```
+
+`examples/ui-gallery/src/Windows.stories.tsx`:
+
+```tsx
+import { Button, GameWindow, useUiStore } from '@overworld-engine/ui'
+
+export default { title: 'Primitives / GameWindow' }
+
+export const Windows = () => {
+  const toggleWindow = useUiStore((s) => s.toggleWindow)
+  return (
+    <div style={{ position: 'relative', height: '60vh' }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button onClick={() => toggleWindow('story-a')}>Toggle A</Button>
+        <Button onClick={() => toggleWindow('story-b')}>Toggle B</Button>
+      </div>
+      <GameWindow id="story-a" title="Window A">
+        Click a window to focus it.
+      </GameWindow>
+      <GameWindow id="story-b" title="Window B">
+        Z-order comes from useUiStore.
+      </GameWindow>
+    </div>
+  )
+}
+```
+
+- [ ] **Step 5: Write the engine-bound stories** (module-level real engines — this is the structural-interface compile proof)
+
+`examples/ui-gallery/src/Dialogue.stories.tsx`:
+
+```tsx
+import { createDialogueEngine } from '@overworld-engine/dialogue'
+import { Button, DialogueBox } from '@overworld-engine/ui'
+
+export default { title: 'Engines / Dialogue' }
 
 const dialogue = createDialogueEngine()
 dialogue.registerDialogues({
@@ -2834,12 +2972,52 @@ dialogue.registerDialogues({
   ],
 })
 
+export const Dialogue = () => (
+  <div style={{ display: 'grid', gap: 16, justifyItems: 'start' }}>
+    <Button onClick={() => dialogue.start('elder')}>Talk to elder</Button>
+    <DialogueBox engine={dialogue} portrait={() => <span>🧓</span>} />
+  </div>
+)
+```
+
+`examples/ui-gallery/src/Quest.stories.tsx`:
+
+```tsx
+import { createQuestEngine } from '@overworld-engine/quest'
+import { Button, QuestLogWindow, QuestTracker, useUiStore } from '@overworld-engine/ui'
+
+export default { title: 'Engines / Quest' }
+
 const quests = createQuestEngine()
 quests.registerQuests({
   id: 'herbs',
   title: 'Moonlit Harvest',
   objectives: [{ id: 'gather', description: 'Gather moon herbs', target: 3 }],
 })
+
+export const Quest = () => {
+  const toggleWindow = useUiStore((s) => s.toggleWindow)
+  return (
+    <div style={{ position: 'relative', minHeight: '50vh', display: 'grid', gap: 16, alignContent: 'start', justifyItems: 'start' }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button onClick={() => quests.startQuest('herbs')}>Start quest</Button>
+        <Button onClick={() => quests.reportProgress('herbs', 'gather')}>+1 herb</Button>
+        <Button onClick={() => toggleWindow('quest-log')}>Quest log</Button>
+      </div>
+      <QuestTracker engine={quests} />
+      <QuestLogWindow engine={quests} />
+    </div>
+  )
+}
+```
+
+`examples/ui-gallery/src/Inventory.stories.tsx`:
+
+```tsx
+import { createInventory } from '@overworld-engine/inventory'
+import { Button, InventoryWindow, useUiStore } from '@overworld-engine/ui'
+
+export default { title: 'Engines / Inventory' }
 
 const inventory = createInventory()
 inventory.registerItems([
@@ -2851,13 +3029,65 @@ inventory.add('potion', 3)
 inventory.add('herb', 2)
 inventory.add('sword', 1)
 
+export const Inventory = () => {
+  const toggleWindow = useUiStore((s) => s.toggleWindow)
+  return (
+    <div style={{ position: 'relative', minHeight: '60vh' }}>
+      <Button onClick={() => toggleWindow('inventory')}>Toggle inventory</Button>
+      <InventoryWindow
+        engine={inventory}
+        rarityOf={(item) => (item.category === 'material' ? 'rare' : undefined)}
+      />
+    </div>
+  )
+}
+```
+
+`examples/ui-gallery/src/Notifications.stories.tsx`:
+
+```tsx
+import { confirm, useAlertStore, useToastStore } from '@overworld-engine/notifications'
+import { AlertHost, Button, ToastViewport } from '@overworld-engine/ui'
+
+export default { title: 'Engines / Notifications' }
+
+export const ToastsAndAlerts = () => (
+  <div style={{ display: 'flex', gap: 8 }}>
+    <Button
+      onClick={() =>
+        useToastStore.getState().show({ message: 'Item acquired!', variant: 'success', icon: '✨' })
+      }
+    >
+      Toast
+    </Button>
+    <Button onClick={() => useToastStore.getState().show({ message: 'Low health!', variant: 'error' })}>
+      Error toast
+    </Button>
+    <Button onClick={() => void confirm({ title: 'Leave area?', message: 'Progress will be saved.' })}>
+      Confirm
+    </Button>
+    <ToastViewport store={useToastStore} />
+    <AlertHost store={useAlertStore} />
+  </div>
+)
+```
+
+`examples/ui-gallery/src/TutorialAchievements.stories.tsx`:
+
+```tsx
+import { createAchievements } from '@overworld-engine/achievements'
+import { createTutorial } from '@overworld-engine/tutorial'
+import { AchievementPopup, Bar, Button, TutorialOverlay } from '@overworld-engine/ui'
+
+export default { title: 'Engines / Tutorial & Achievements' }
+
 const tutorial = createTutorial()
 tutorial.registerTutorials([
   {
     id: 'intro',
     steps: [
-      { id: 's1', content: 'This is your health bar.', target: '#gallery-bars' },
-      { id: 's2', content: 'Open your inventory here.', target: '#gallery-actions' },
+      { id: 's1', content: 'This is your health bar.', target: '#story-hp' },
+      { id: 's2', content: 'These are your actions.', target: '#story-actions' },
     ],
   },
 ])
@@ -2867,78 +3097,112 @@ achievements.registerAchievements([
   { id: 'first-steps', title: 'First Steps', icon: '👣', trigger: null },
 ])
 
-const THEMES = ['base', 'xianxia', 'hextech', 'tactical', 'pixel'] as const
+export const TutorialStory = () => (
+  <div style={{ display: 'grid', gap: 16, justifyItems: 'start' }}>
+    <div id="story-hp" style={{ maxWidth: 280 }}>
+      <Bar value={80} max={100} variant="hp" label="HP" showValue />
+    </div>
+    <div id="story-actions" style={{ display: 'flex', gap: 8 }}>
+      <Button onClick={() => tutorial.start('intro')}>Start tutorial</Button>
+    </div>
+    <TutorialOverlay engine={tutorial} />
+  </div>
+)
+TutorialStory.storyName = 'Tutorial'
 
-export function App() {
-  const [theme, setTheme] = useState<(typeof THEMES)[number]>('base')
+export const AchievementStory = () => (
+  <>
+    <Button onClick={() => achievements.unlock('first-steps')}>Unlock achievement</Button>
+    <AchievementPopup engine={achievements} />
+  </>
+)
+AchievementStory.storyName = 'Achievement'
+```
+
+- [ ] **Step 6: Write the integrated Full-HUD story**
+
+`examples/ui-gallery/src/FullHud.stories.tsx` (note: passes the context theme into `<Hud>` so the nested `.ow-root` keeps the theme attribute):
+
+```tsx
+import { useContext, useState } from 'react'
+import { createDialogueEngine } from '@overworld-engine/dialogue'
+import { createInventory } from '@overworld-engine/inventory'
+import { createQuestEngine } from '@overworld-engine/quest'
+import { useToastStore } from '@overworld-engine/notifications'
+import {
+  Bar,
+  Button,
+  DialogueBox,
+  Hotbar,
+  Hud,
+  InventoryWindow,
+  QuestLogWindow,
+  QuestTracker,
+  Slot,
+  ToastViewport,
+  useUiStore,
+} from '@overworld-engine/ui'
+import { ThemeContext } from '../.ladle/components'
+
+export default { title: 'Integrated / Full HUD' }
+
+const dialogue = createDialogueEngine()
+dialogue.registerDialogues({
+  id: 'guide',
+  nodes: [{ id: 'hi', speaker: 'Guide', text: 'This is the full HUD, wired to real engines.' }],
+})
+
+const quests = createQuestEngine()
+quests.registerQuests({
+  id: 'tour',
+  title: 'Grand Tour',
+  objectives: [{ id: 'look', description: 'Look around', target: 1 }],
+})
+
+const inventory = createInventory()
+inventory.registerItems([{ id: 'potion', name: 'Health Potion', icon: '🧪' }])
+inventory.add('potion', 5)
+
+export const FullHud = () => {
+  const theme = useContext(ThemeContext)
   const [hp, setHp] = useState(80)
   const toggleWindow = useUiStore((s) => s.toggleWindow)
-
   return (
-    <Hud theme={theme === 'base' ? undefined : theme}>
-      <Hud.Anchor anchor="top-left">
-        <div id="gallery-bars">
+    <div style={{ position: 'relative', height: '80vh', background: '#151822', overflow: 'hidden' }}>
+      <Hud theme={theme === 'base' ? undefined : theme}>
+        <Hud.Anchor anchor="top-left">
           <Bar value={hp} max={100} variant="hp" label="HP" showValue />
           <Bar value={40} max={100} variant="mp" label="MP" showValue />
-          <Bar value={65} max={100} variant="xp" label="XP" />
-        </div>
-        <QuestTracker engine={quests} />
-      </Hud.Anchor>
-
-      <Hud.Anchor anchor="top-right">
-        <label style={{ pointerEvents: 'auto' }}>
-          Theme{' '}
-          <select value={theme} onChange={(e) => setTheme(e.target.value as (typeof THEMES)[number])}>
-            {THEMES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </label>
-      </Hud.Anchor>
-
-      <Hud.Anchor anchor="bottom">
-        <div id="gallery-actions" style={{ display: 'flex', gap: 8 }}>
-          <Button onClick={() => dialogue.start('elder')}>Talk</Button>
-          <Button onClick={() => quests.startQuest('herbs')}>Start quest</Button>
-          <Button onClick={() => quests.reportProgress('herbs', 'gather')}>+1 herb</Button>
-          <Button onClick={() => toggleWindow('inventory')}>Inventory</Button>
-          <Button onClick={() => toggleWindow('quest-log')}>Quest log</Button>
-          <Button onClick={() => setHp((h) => Math.max(h - 15, 0))}>Take damage</Button>
-          <Button onClick={() => useToastStore.getState().show({ message: 'Item acquired!', variant: 'success', icon: '✨' })}>
-            Toast
-          </Button>
-          <Button onClick={() => void confirm({ title: 'Leave area?', message: 'Progress will be saved.' })}>
-            Confirm
-          </Button>
-          <Button onClick={() => tutorial.start('intro')}>Tutorial</Button>
-          <Button onClick={() => achievements.unlock('first-steps')}>Achievement</Button>
-        </div>
-        <Hotbar>
-          <Tooltip content="Health Potion">
-            <Slot icon="🧪" quantity={3} keybind="1" onClick={() => inventory.use('potion')} />
-          </Tooltip>
-          <Slot icon="🗡️" keybind="2" rarity="rare" />
-          <Slot keybind="3" />
-          <Slot keybind="4" />
-        </Hotbar>
-      </Hud.Anchor>
-
-      <Hud.Anchor anchor="bottom">
-        <DialogueBox engine={dialogue} portrait={() => <span>🧓</span>} />
-      </Hud.Anchor>
-
-      <InventoryWindow engine={inventory} rarityOf={(item) => (item.category === 'material' ? 'rare' : undefined)} />
-      <QuestLogWindow engine={quests} />
-      <ToastViewport store={useToastStore} />
-      <AlertHost store={useAlertStore} />
-      <TutorialOverlay engine={tutorial} />
-      <AchievementPopup engine={achievements} />
-    </Hud>
+          <QuestTracker engine={quests} />
+        </Hud.Anchor>
+        <Hud.Anchor anchor="bottom">
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button onClick={() => dialogue.start('guide')}>Talk</Button>
+            <Button onClick={() => quests.startQuest('tour')}>Quest</Button>
+            <Button onClick={() => toggleWindow('inventory')}>Bag</Button>
+            <Button onClick={() => setHp((h) => Math.max(h - 15, 0))}>Damage</Button>
+            <Button onClick={() => useToastStore.getState().show({ message: 'Saved.', variant: 'info' })}>
+              Toast
+            </Button>
+          </div>
+          <Hotbar>
+            <Slot icon="🧪" quantity={5} keybind="1" onClick={() => inventory.use('potion')} />
+            <Slot keybind="2" />
+          </Hotbar>
+        </Hud.Anchor>
+        <Hud.Anchor anchor="bottom">
+          <DialogueBox engine={dialogue} portrait={() => <span>🧭</span>} />
+        </Hud.Anchor>
+        <InventoryWindow engine={inventory} />
+        <QuestLogWindow engine={quests} />
+        <ToastViewport store={useToastStore} />
+      </Hud>
+    </div>
   )
 }
 ```
 
-- [ ] **Step 5: Add `ui-gallery` to the changeset ignore list**
+- [ ] **Step 7: Add `ui-gallery` to the changeset ignore list**
 
 In `.changeset/config.json`, change:
 
@@ -2967,18 +3231,18 @@ to:
   ]
 ```
 
-- [ ] **Step 6: Install, typecheck, run**
+- [ ] **Step 8: Install, typecheck, run**
 
 Run: `pnpm install && pnpm --filter @overworld-engine/ui build && pnpm --filter ui-gallery typecheck && pnpm --filter ui-gallery build`
-Expected: all clean. **The `ui-gallery` typecheck passing is the compile-time proof that real engines satisfy every `*Like` interface** — if it fails on an `engine=` prop, fix the interface in `packages/ui/src/engineTypes.ts` (widen/correct the mirror), never by importing engine types.
+Expected: all clean. **The `ui-gallery` typecheck passing is the compile-time proof that real engines satisfy every `*Like` interface** — if it fails on an `engine=` prop, fix the interface in `packages/ui/src/engineTypes.ts` (widen/correct the mirror), never by importing engine types. (If `@ladle/react@^4.0.0` fails to resolve or serve against this workspace's React/Vite versions, pin the newest major that supports React 18 and note it in the commit.)
 
-Then: `pnpm --filter ui-gallery dev` — open the printed URL; verify base look renders, dialogue/quest/inventory/toast/alert/tutorial/achievement flows all work. (Theme dropdown entries beyond `base` remain unstyled until Tasks 18–21.)
+Then: `pnpm --filter ui-gallery dev` — open the printed URL (Ladle defaults to port 61000); walk every story in the sidebar: primitives render in base look, dialogue/quest/inventory/toast/alert/tutorial/achievement flows all work, Full HUD wires everything together. (Theme dropdown entries beyond `base` remain unstyled until Tasks 18–21.)
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add examples/ui-gallery .changeset/config.json pnpm-lock.yaml
-git commit -m "feat(examples): ui-gallery demo app exercising @overworld-engine/ui with real engines
+git commit -m "feat(examples): ui-gallery Ladle workbench exercising @overworld-engine/ui with real engines
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
