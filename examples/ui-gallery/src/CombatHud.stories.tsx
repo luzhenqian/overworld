@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BuffBar, CastBar } from '@overworld-engine/ui'
+import { BuffBar, CastBar, TargetFrame } from '@overworld-engine/ui'
 
 export default { title: 'HUD / Combat' }
 
@@ -35,3 +35,32 @@ export const Buffs = () => {
     />
   )
 }
+
+export const Targets = () => (
+  <div style={{ display: 'grid', gap: 12, maxWidth: 320 }}>
+    <TargetFrame
+      name="Ancient Dragon"
+      level={60}
+      hp={82000}
+      hpMax={120000}
+      resource={40}
+      resourceMax={100}
+      classification="boss"
+      reaction="hostile"
+      portrait="🐉"
+      buffs={[
+        { id: 'enrage', icon: '🔥', remaining: 8, duration: 12, kind: 'buff' },
+        { id: 'slow', icon: '🐌', remaining: 3, duration: 6, kind: 'debuff' },
+      ]}
+    />
+    <TargetFrame
+      name="Village Elder"
+      level={5}
+      hp={120}
+      hpMax={120}
+      classification="normal"
+      reaction="friendly"
+      portrait="🧙"
+    />
+  </div>
+)

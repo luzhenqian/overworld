@@ -546,6 +546,59 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
+/* ---------------- TargetFrame ---------------- */
+.ow-target-frame {
+  display: flex;
+  gap: var(--ow-space-2);
+  padding: var(--ow-space-2);
+  min-width: 200px;
+  background: var(--ow-color-surface);
+  border: var(--ow-panel-border-width) solid var(--ow-color-border);
+  border-image: var(--ow-panel-border-image);
+  border-radius: var(--ow-radius);
+  box-shadow: var(--ow-shadow);
+  pointer-events: auto;
+}
+.ow-target-portrait {
+  flex: none;
+  width: var(--ow-slot-size);
+  height: var(--ow-slot-size);
+  display: grid;
+  place-items: center;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  font-size: 1.4em;
+}
+.ow-target-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ow-space-1);
+  min-width: 0;
+}
+.ow-target-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ow-space-1);
+}
+.ow-target-level {
+  font-size: 0.75em;
+  color: var(--ow-color-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ow-target-name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ow-target-frame[data-ow-reaction="hostile"] .ow-target-name { color: var(--ow-color-hp); }
+.ow-target-frame[data-ow-reaction="friendly"] .ow-target-name { color: var(--ow-color-rarity-uncommon); }
+.ow-target-frame[data-ow-classification="rare"] { border-color: var(--ow-color-rarity-rare); }
+.ow-target-frame[data-ow-classification="elite"] { border-color: var(--ow-color-rarity-epic); }
+.ow-target-frame[data-ow-classification="boss"] { border-color: var(--ow-color-rarity-legendary); }
+
 /* ---------------- Motion ---------------- */
 @media (prefers-reduced-motion: reduce) {
   .ow-root *,
