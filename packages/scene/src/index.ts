@@ -48,7 +48,7 @@ export type { NPCVisualHeights, BuildingVisualHeights } from './visualHeights'
 // Hooks
 export { useModelLoader, useModelClips } from './useModelLoader'
 export type { UseModelLoaderOptions } from './useModelLoader'
-export { resolveClip, pickNpcClipName } from './animationClips'
+export { resolveClip, pickNpcClipName, deriveNpcAnimState } from './animationClips'
 export type { NPCAnimationMap } from './animationClips'
 export { ModelErrorBoundary } from './ModelErrorBoundary'
 export type { ModelErrorBoundaryProps } from './ModelErrorBoundary'

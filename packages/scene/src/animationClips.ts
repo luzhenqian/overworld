@@ -34,3 +34,12 @@ export function pickNpcClipName(
   const requested = state === 'walk' ? animationMap?.walk : animationMap?.run
   return resolveClip(names, requested, -1) ?? idle
 }
+
+/** Derive an NPC animation state from a locomotion status (e.g. ai AgentStatus). */
+export function deriveNpcAnimState(status: {
+  isMoving: boolean
+  running?: boolean
+}): 'idle' | 'walk' | 'run' {
+  if (!status.isMoving) return 'idle'
+  return status.running ? 'run' : 'walk'
+}
