@@ -1115,6 +1115,18 @@ importers:
         specifier: ^5.0.0
         version: 5.0.14(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
 
+  packages/ui:
+    dependencies:
+      '@overworld-engine/core':
+        specifier: workspace:*
+        version: link:../core
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.14(@types/react@19.2.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+
 packages:
 
   '@acemir/cssom@0.9.31':
