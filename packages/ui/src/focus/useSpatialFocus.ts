@@ -13,7 +13,13 @@ export interface SpatialFocusApi {
   currentFocusKey: () => string
 }
 
+const spatialFocusApi: SpatialFocusApi = {
+  setFocus,
+  navigate: navigateByDirection,
+  currentFocusKey: getCurrentFocusKey,
+}
+
 /** Imperative spatial-focus controls (thin wrapper over norigin's module API). */
 export function useSpatialFocus(): SpatialFocusApi {
-  return { setFocus, navigate: navigateByDirection, currentFocusKey: getCurrentFocusKey }
+  return spatialFocusApi
 }

@@ -15,6 +15,8 @@ export interface ModalProps {
  */
 export function Modal({ open, onDismiss, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+  const onDismissRef = useRef(onDismiss)
+  onDismissRef.current = onDismiss
 
   useEffect(() => {
     if (!open) return
@@ -26,7 +28,7 @@ export function Modal({ open, onDismiss, children }: ModalProps) {
 
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
-        onDismiss?.()
+        onDismissRef.current?.()
         return
       }
       if (e.key !== 'Tab') return
@@ -42,7 +44,7 @@ export function Modal({ open, onDismiss, children }: ModalProps) {
       document.removeEventListener('keydown', onKeyDown)
       previouslyFocused?.focus?.()
     }
-  }, [open, onDismiss])
+  }, [open])
 
   if (!open) return null
   return (
