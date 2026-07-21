@@ -19,6 +19,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./focus": {
+      "types": "./dist/focus/index.d.ts",
+      "import": "./dist/focus/index.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./themes/*": "./dist/themes/*"
   },
@@ -36,7 +40,16 @@
   },
   "peerDependencies": {
     "react": "^18.0.0",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "@noriginmedia/norigin-spatial-navigation": "^3.2.1"
+  },
+  "peerDependenciesMeta": {
+    "@noriginmedia/norigin-spatial-navigation": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@noriginmedia/norigin-spatial-navigation": "^3.2.1"
   },
   "license": "MIT",
   "publishConfig": {
