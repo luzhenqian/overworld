@@ -27,6 +27,7 @@ import { npcVisualHeights, DEFAULT_NPC_SCALE } from './visualHeights'
 import { SpriteLabel } from './SpriteLabel'
 import { Lod } from './LodSwitch'
 import type { LodLevel } from './lod'
+import { useQualityStore, qualityToLodCap } from './quality'
 import type { LabelMode } from './types'
 import type { NPCTheme, NPCIndicator } from './types'
 import { pickNpcClipName, type NPCAnimationMap } from './animationClips'
@@ -238,6 +239,8 @@ export function BaseNPC({
 }: BaseNPCProps) {
   const groupRef = useRef<THREE.Group>(null)
 
+  const lodCap = useQualityStore((s) => qualityToLodCap(s.preset === 'custom' ? 'high' : s.preset))
+
   // Follow a live position ref (moving NPC), if supplied. No-op — and no
   // behavior change vs. before this prop existed — when `positionRef` is
   // omitted.
@@ -293,7 +296,7 @@ export function BaseNPC({
       <group rotation={rotation}>
         {modelPath ? (
           levels ? (
-            <Lod position={position} levels={levels} render={renderModel} />
+            <Lod position={position} levels={levels} deviceCap={lodCap} render={renderModel} />
           ) : (
             renderModel(modelPath)
           )

@@ -36,6 +36,18 @@ export interface QualitySettings {
 
 export type QualityPresetName = 'high' | 'medium' | 'low'
 
+/** Map a quality tier to the most-detailed LOD index it may render (0 = allow highest). */
+export function qualityToLodCap(preset: QualityPresetName): number {
+  switch (preset) {
+    case 'low':
+      return 2
+    case 'medium':
+      return 1
+    default:
+      return 0
+  }
+}
+
 /** Built-in quality tiers. Treat the entries as read-only. */
 export const QUALITY_PRESETS: Record<QualityPresetName, QualitySettings> = {
   high: { dpr: [1, 2], shadows: true, shadowMapSize: 2048, particleMultiplier: 1 },

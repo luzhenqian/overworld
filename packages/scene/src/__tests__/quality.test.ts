@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { QUALITY_PRESETS, detectQualityPreset, isSoftwareRenderer, useQualityStore } from '../quality'
+import {
+  QUALITY_PRESETS,
+  detectQualityPreset,
+  isSoftwareRenderer,
+  useQualityStore,
+  qualityToLodCap,
+} from '../quality'
 
 describe('QUALITY_PRESETS', () => {
   it('exposes the documented high/medium/low tiers', () => {
@@ -196,5 +202,13 @@ describe('detectQualityPreset with renderer', () => {
   })
   it('no-arg call is unchanged (high in the SSR/test default)', () => {
     expect(detectQualityPreset()).toBe('high')
+  })
+})
+
+describe('qualityToLodCap', () => {
+  it('caps more aggressively on lower tiers', () => {
+    expect(qualityToLodCap('high')).toBe(0) // no cap, allow highest detail
+    expect(qualityToLodCap('medium')).toBe(1)
+    expect(qualityToLodCap('low')).toBe(2)
   })
 })

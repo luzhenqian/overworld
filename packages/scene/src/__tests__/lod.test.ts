@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { selectLodLevel } from '../lod'
+import { selectLodLevel, levelsToDispose, orderPreload } from '../lod'
 
 const levels = [
   { distance: 0, modelPath: 'hi.glb' },
@@ -29,5 +29,26 @@ describe('selectLodLevel', () => {
   it('clamps an out-of-range prevIndex instead of throwing', () => {
     expect(() => selectLodLevel(5, levels, { prevIndex: 99 })).not.toThrow()
     expect(selectLodLevel(5, levels, { prevIndex: 99 }).index).toBe(0)
+  })
+})
+
+describe('levelsToDispose', () => {
+  it('returns the level indices no longer shown after a switch', () => {
+    expect(levelsToDispose(0, 2, levels)).toEqual([0, 1]) // left 0 and 1, now on 2
+  })
+  it('returns [] when the index is unchanged', () => {
+    expect(levelsToDispose(1, 1, levels)).toEqual([])
+  })
+  it('handles switching to a nearer level', () => {
+    expect(levelsToDispose(2, 0, levels)).toEqual([1, 2])
+  })
+})
+
+describe('orderPreload', () => {
+  it('orders remaining levels nearest-first around the current index', () => {
+    expect(orderPreload(levels, 1)).toEqual([0, 2]) // neighbours by distance from index 1
+  })
+  it('excludes the current index', () => {
+    expect(orderPreload(levels, 0)).toEqual([1, 2])
   })
 })

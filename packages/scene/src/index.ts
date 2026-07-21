@@ -86,7 +86,7 @@ export { Portal } from './Portal'
 export type { PortalProps } from './Portal'
 export { Lod } from './LodSwitch'
 export type { LodProps } from './LodSwitch'
-export { selectLodLevel } from './lod'
+export { selectLodLevel, levelsToDispose, orderPreload } from './lod'
 export type { LodLevel } from './lod'
 export { Decorations, useDecorationCollision } from './Decorations'
 export type { DecorationsProps } from './Decorations'
@@ -107,6 +107,7 @@ export {
   detectQualityPreset,
   isSoftwareRenderer,
   readWebglRenderer,
+  qualityToLodCap,
 } from './quality'
 export type { QualitySettings, QualityPresetName, QualityState } from './quality'
 export { ApplyQuality } from './ApplyQuality'
