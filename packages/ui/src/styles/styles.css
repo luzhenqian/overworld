@@ -18,7 +18,9 @@
   --ow-color-hp: #c0504d;
   --ow-color-mp: #4d7ec0;
   --ow-color-xp: #c0a84d;
-  --ow-color-rarity-common: #9aa0b0;
+  --ow-color-rarity-poor: #9d9d9d;
+  --ow-color-rarity-common: #f0f0f0;
+  --ow-color-rarity-uncommon: #4caf50;
   --ow-color-rarity-rare: #4d7ec0;
   --ow-color-rarity-epic: #9b59b6;
   --ow-color-rarity-legendary: #e67e22;
@@ -199,7 +201,9 @@
   border-color: var(--ow-color-accent);
   box-shadow: 0 0 0 1px var(--ow-color-accent);
 }
+.ow-slot[data-ow-rarity="poor"] { border-color: var(--ow-color-rarity-poor); }
 .ow-slot[data-ow-rarity="common"] { border-color: var(--ow-color-rarity-common); }
+.ow-slot[data-ow-rarity="uncommon"] { border-color: var(--ow-color-rarity-uncommon); }
 .ow-slot[data-ow-rarity="rare"] { border-color: var(--ow-color-rarity-rare); }
 .ow-slot[data-ow-rarity="epic"] { border-color: var(--ow-color-rarity-epic); }
 .ow-slot[data-ow-rarity="legendary"] { border-color: var(--ow-color-rarity-legendary); }
@@ -435,6 +439,195 @@
 }
 .ow-tutorial-content { margin: 0 0 var(--ow-space-3); }
 .ow-tutorial-actions { display: flex; justify-content: flex-end; gap: var(--ow-space-2); }
+
+/* ---------------- CastBar ---------------- */
+.ow-castbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ow-space-2);
+  pointer-events: auto;
+}
+.ow-castbar-icon {
+  flex: none;
+  width: calc(var(--ow-slot-size) * 0.6);
+  height: calc(var(--ow-slot-size) * 0.6);
+  display: grid;
+  place-items: center;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  font-size: 1.1em;
+}
+.ow-castbar-track {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+  height: 18px;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  overflow: hidden;
+}
+.ow-castbar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ow-color-accent);
+  transition: width 80ms linear;
+}
+.ow-castbar[data-ow-state="interrupted"] .ow-castbar-fill { background: var(--ow-color-danger); }
+.ow-castbar[data-ow-state="success"] .ow-castbar-fill { background: var(--ow-color-xp); }
+.ow-castbar[data-ow-state="channeling"] .ow-castbar-fill { background: var(--ow-color-mp); }
+.ow-castbar-label,
+.ow-castbar-time {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.78em;
+  color: var(--ow-color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.ow-castbar-label { left: var(--ow-space-2); }
+.ow-castbar-time { right: var(--ow-space-2); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .ow-castbar-fill { transition: none; }
+}
+
+/* ---------------- BuffBar ---------------- */
+.ow-buffbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ow-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  pointer-events: auto;
+}
+.ow-buff {
+  position: relative;
+  width: calc(var(--ow-slot-size) * 0.66);
+  height: calc(var(--ow-slot-size) * 0.66);
+  display: grid;
+  place-items: center;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  overflow: hidden;
+}
+.ow-buff[data-ow-kind="debuff"] { border-color: var(--ow-color-danger); }
+.ow-buff-icon { font-size: 1em; line-height: 1; }
+/* `--ow-buff-sweep` is the fraction REMAINING; darken the elapsed complement,
+   so a fresh buff shows a clear icon and darkens as it expires. */
+.ow-buff-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from 0deg, transparent var(--ow-buff-sweep, 100%), rgba(0, 0, 0, 0.55) 0);
+}
+.ow-buff-stacks {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 0.62em;
+  font-weight: 700;
+  color: var(--ow-color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.ow-buff-time {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.6em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ow-color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------------- TargetFrame ---------------- */
+.ow-target-frame {
+  display: flex;
+  gap: var(--ow-space-2);
+  padding: var(--ow-space-2);
+  min-width: 200px;
+  background: var(--ow-color-surface);
+  border: var(--ow-panel-border-width) solid var(--ow-color-border);
+  border-image: var(--ow-panel-border-image);
+  border-radius: var(--ow-radius);
+  box-shadow: var(--ow-shadow);
+  pointer-events: auto;
+}
+.ow-target-portrait {
+  flex: none;
+  width: var(--ow-slot-size);
+  height: var(--ow-slot-size);
+  display: grid;
+  place-items: center;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  font-size: 1.4em;
+}
+.ow-target-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ow-space-1);
+  min-width: 0;
+}
+.ow-target-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ow-space-1);
+}
+.ow-target-level {
+  font-size: 0.75em;
+  color: var(--ow-color-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ow-target-name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ow-target-frame[data-ow-reaction="hostile"] .ow-target-name { color: var(--ow-color-hp); }
+.ow-target-frame[data-ow-reaction="neutral"] .ow-target-name { color: var(--ow-color-xp); }
+.ow-target-frame[data-ow-reaction="friendly"] .ow-target-name { color: var(--ow-color-rarity-uncommon); }
+.ow-target-frame[data-ow-classification="rare"] { border-color: var(--ow-color-rarity-rare); }
+.ow-target-frame[data-ow-classification="elite"] { border-color: var(--ow-color-rarity-epic); }
+.ow-target-frame[data-ow-classification="boss"] { border-color: var(--ow-color-rarity-legendary); }
+
+/* ---------------- Nameplate ---------------- */
+.ow-nameplate {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 120px;
+  pointer-events: auto;
+}
+.ow-nameplate-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--ow-space-1);
+  font-size: 0.75em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.ow-nameplate-level {
+  color: var(--ow-color-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ow-nameplate-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ow-nameplate[data-ow-reaction="hostile"] .ow-nameplate-name { color: var(--ow-color-hp); }
+.ow-nameplate[data-ow-reaction="neutral"] .ow-nameplate-name { color: var(--ow-color-xp); }
+.ow-nameplate[data-ow-reaction="friendly"] .ow-nameplate-name { color: var(--ow-color-rarity-uncommon); }
 
 /* ---------------- Motion ---------------- */
 @media (prefers-reduced-motion: reduce) {

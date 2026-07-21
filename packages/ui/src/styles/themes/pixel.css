@@ -12,6 +12,12 @@
   --ow-color-hp: #c04a3a;
   --ow-color-mp: #3a6ac0;
   --ow-color-xp: #c0952e;
+  --ow-color-rarity-poor: #a0a0a0;
+  --ow-color-rarity-common: #ffffff;
+  --ow-color-rarity-uncommon: #4fdb3a;
+  --ow-color-rarity-rare: #4aa3ff;
+  --ow-color-rarity-epic: #c74aff;
+  --ow-color-rarity-legendary: #ff9d2e;
   --ow-font-display: "Courier New", monospace;
   --ow-font-body: "Courier New", monospace;
   --ow-radius: 0px;

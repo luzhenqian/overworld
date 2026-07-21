@@ -12,6 +12,12 @@
   --ow-color-hp: #1fbf75;
   --ow-color-mp: #2e86de;
   --ow-color-xp: #c8aa6e;
+  --ow-color-rarity-poor: #7a8a99;
+  --ow-color-rarity-common: #f0e6d2;
+  --ow-color-rarity-uncommon: #1fbf75;
+  --ow-color-rarity-rare: #2e86de;
+  --ow-color-rarity-epic: #9b6cd6;
+  --ow-color-rarity-legendary: #c8aa6e;
   --ow-font-display: Optima, "Palatino Linotype", Palatino, Georgia, serif;
   --ow-font-body: "Segoe UI", system-ui, sans-serif;
   --ow-radius: 0px;
