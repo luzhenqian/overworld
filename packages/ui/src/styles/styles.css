@@ -639,3 +639,42 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------- MinimapFrame ---------------- */
+.ow-minimap-frame {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--ow-space-1);
+  padding: var(--ow-space-2);
+  background: var(--ow-color-surface);
+  border: var(--ow-panel-border-width) solid var(--ow-color-border);
+  border-image: var(--ow-panel-border-image);
+  border-radius: var(--ow-radius);
+  box-shadow: var(--ow-shadow);
+  pointer-events: auto;
+}
+.ow-minimap-frame-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ow-space-2);
+}
+.ow-minimap-frame-label {
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ow-color-text-dim);
+}
+.ow-minimap-frame-body {
+  position: relative;
+  display: flex;
+}
+.ow-minimap-frame-coords {
+  display: flex;
+  justify-content: center;
+  gap: var(--ow-space-3);
+  font-size: 0.72em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ow-color-text-dim);
+}

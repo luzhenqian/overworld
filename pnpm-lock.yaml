@@ -748,6 +748,9 @@ importers:
       '@overworld-engine/inventory':
         specifier: workspace:*
         version: link:../../packages/inventory
+      '@overworld-engine/minimap':
+        specifier: workspace:*
+        version: link:../../packages/minimap
       '@overworld-engine/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
