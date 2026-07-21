@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/inspector",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Developer dev-overlay for Overworld: live event-bus stream and zustand store inspector",
   "type": "module",
   "main": "./dist/index.js",
