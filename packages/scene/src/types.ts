@@ -7,6 +7,7 @@
  * and {@link createSceneTheme} to derive game-specific themes.
  */
 import type { Vec3 } from '@overworld-engine/core'
+import type { NPCAnimationMap } from './animationClips'
 
 // ========== Configuration interfaces ==========
 
@@ -22,6 +23,8 @@ export interface NPCConfig {
   name?: string
   /** Optional distance LODs (near→far); the base `modelPath` is LOD0. */
   lods?: import('./lod').LodLevel[]
+  /** Optional animation clips for an animated NPC GLB. `idle` plays by default. */
+  animationMap?: NPCAnimationMap
 }
 
 /** Static placement/config for one building in a scene. */

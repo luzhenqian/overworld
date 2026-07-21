@@ -43,3 +43,11 @@ export function selectLodLevel(
   const clamped = Math.min(Math.max(idx, 0), levels.length - 1)
   return { index: clamped, level: levels[clamped]! }
 }
+
+/** Remaining level indices ordered nearest-first around `currentIndex` (excludes it). */
+export function orderPreload(levels: LodLevel[], currentIndex: number): number[] {
+  return levels
+    .map((_, i) => i)
+    .filter((i) => i !== currentIndex)
+    .sort((a, b) => Math.abs(a - currentIndex) - Math.abs(b - currentIndex) || a - b)
+}

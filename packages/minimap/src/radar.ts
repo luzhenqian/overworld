@@ -1,7 +1,12 @@
 import type { Vec3, EntityKind } from '@overworld-engine/core'
 import type { WorldBounds } from './projection'
 
-export interface RadarEntity { id: string; position: Vec3; name?: string }
+/**
+ * Radar input entity. `BuildingConfig`/`NPCConfig` from `@overworld-engine/scene`
+ * structurally satisfy this shape (id + position, optional name/kind) — pass
+ * them directly; no import, no mapping.
+ */
+export interface RadarEntity { id: string; position: Vec3; name?: string; kind?: EntityKind }
 export interface RadarConfig {
   worldBounds: WorldBounds
   buildings?: RadarEntity[]
@@ -54,7 +59,7 @@ export function selectRadarMarkers(
       const r = toRadar(e.position, playerPos, playerHeading, range)
       return {
         id: e.id,
-        kind,
+        kind: e.kind ?? kind,
         x: r.x,
         y: r.y,
         offScreen: r.offScreen,
@@ -73,4 +78,38 @@ export function computeOffscreenIndicator(
 ): { angle: number; edge: boolean } {
   const r = toRadar(markerWorld, playerPos, playerHeading, range)
   return { angle: r.angle, edge: r.offScreen }
+}
+
+/**
+ * Infer facing heading (radians) from movement between two positions. When the
+ * step is smaller than `deadZone`, the previous heading is retained (avoids
+ * spin when the player is stationary or nudging).
+ */
+export function inferHeading(
+  prev: { x: number; z: number },
+  next: { x: number; z: number },
+  lastHeading: number,
+  deadZone = 0.01
+): number {
+  const dx = next.x - prev.x
+  const dz = next.z - prev.z
+  if (Math.hypot(dx, dz) < deadZone) return lastHeading
+  return Math.atan2(dx, dz)
+}
+
+/** Stateful heading tracker: feed successive positions (e.g. from `player:moved`). */
+export function createHeadingTracker(deadZone = 0.01): {
+  update(pos: { x: number; z: number }): number
+  heading(): number
+} {
+  let last: { x: number; z: number } | null = null
+  let heading = 0
+  return {
+    update(pos) {
+      if (last) heading = inferHeading(last, pos, heading, deadZone)
+      last = pos
+      return heading
+    },
+    heading: () => heading,
+  }
 }

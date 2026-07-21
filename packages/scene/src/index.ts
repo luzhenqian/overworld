@@ -46,8 +46,10 @@ export {
 export type { NPCVisualHeights, BuildingVisualHeights } from './visualHeights'
 
 // Hooks
-export { useModelLoader } from './useModelLoader'
+export { useModelLoader, useModelClips } from './useModelLoader'
 export type { UseModelLoaderOptions } from './useModelLoader'
+export { resolveClip, pickNpcClipName, deriveNpcAnimState } from './animationClips'
+export type { NPCAnimationMap } from './animationClips'
 export { ModelErrorBoundary } from './ModelErrorBoundary'
 export type { ModelErrorBoundaryProps } from './ModelErrorBoundary'
 export { useProximityDetection } from './useProximityDetection'
@@ -84,11 +86,17 @@ export { Portal } from './Portal'
 export type { PortalProps } from './Portal'
 export { Lod } from './LodSwitch'
 export type { LodProps } from './LodSwitch'
-export { selectLodLevel } from './lod'
+export { selectLodLevel, orderPreload } from './lod'
 export type { LodLevel } from './lod'
 export { Decorations, useDecorationCollision } from './Decorations'
 export type { DecorationsProps } from './Decorations'
-export { instanceMatrix, decorationColliders, collidersForSets } from './decorationInstancing'
+export {
+  instanceMatrix,
+  decorationColliders,
+  collidersForSets,
+  setCentroid,
+  selectDecorationModel,
+} from './decorationInstancing'
 export type { DecorationSet } from './decorationInstancing'
 
 // Interaction
@@ -103,6 +111,9 @@ export {
   useQualityStore,
   useParticleMultiplier,
   detectQualityPreset,
+  isSoftwareRenderer,
+  readWebglRenderer,
+  qualityToLodCap,
 } from './quality'
 export type { QualitySettings, QualityPresetName, QualityState } from './quality'
 export { ApplyQuality } from './ApplyQuality'

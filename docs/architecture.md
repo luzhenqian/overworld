@@ -302,6 +302,25 @@ GitHub luzhenqian/overworld。
   注入引擎(引擎结构化传入,不 import);配合 core `defineMigrations`(顺序版本迁移,
   喂 `persistOptions.migrate`)做内容/存档演进。examples/content-packs 演示 v2 热更新。
 
+## v2.1 已落地(2026-07-21):world-production 反馈缺口收尾
+
+针对 v2.0.0(world-production)逐项重新审计后关闭的 8 个反馈缺口,按所属包拆分、
+增量式(不破坏既有 API)交付:
+
+- `scene`:GPU 感知质量检测(软件渲染 → 强制 low);NPC 动画契约
+  (`animationMap.idle`、默认 idle 播放、`onModelReady`);移动 NPC 通过
+  `animStateRef` 驱动 idle↔walk↔run 交叉淡入;运行时 LOD 设备档位封顶 +
+  就近优先预加载;装饰物按集合切 LOD。(**逐实例 LOD 释放未交付** ——
+  模型用 `gltf.scene.clone()` 构建,与 drei 全局缓存共享几何/材质引用,
+  逐实体 `dispose()` 会破坏兄弟实例,判定不安全故主动放弃。)
+- `environment`:独立的曝光度与月光强度旋钮;昼夜光照颜色改为逐帧插值
+  (修复原先 0.5 处的硬切换跳变);`transitionDuration` 作为可声明的
+  预设字段暴露(未接运行时补间,YAGNI)。
+- `loading`:跨 zone 进度聚合;按优先级分桶排序 zone 加载顺序;真实的
+  zone 重试(重新拉取失败资源);资源加载失败会上抛到 `failZone`。
+- `minimap`:`createHeadingTracker` 根据连续位置推断朝向;`RadarEntity`
+  改为结构化 config 形状(不 import scene)。
+
 ## 版本路线(v1.6+)
 
 微信 useGLTF 官方适配器 vendor 化、编辑器可视化关卡跳转/门户连线、内容包签名与

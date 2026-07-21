@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import type { Vec3 } from '@overworld-engine/core'
 import { useGLTF } from '@react-three/drei'
 import { playerPositionRef } from './playerStore'
-import { selectLodLevel, type LodLevel } from './lod'
+import { selectLodLevel, orderPreload, type LodLevel } from './lod'
 
 export interface LodProps {
   position: Vec3
@@ -16,8 +16,14 @@ export interface LodProps {
 
 /**
  * Distance-based LOD switch driven by playerPositionRef. Re-renders only when
- * the selected level index changes (not every frame). Preloads the adjacent
- * farther level so switches don't hitch.
+ * the selected level index changes (not every frame). Preloads the next two
+ * nearest-first levels around the new index so switches don't hitch.
+ *
+ * Does NOT dispose geometries/materials: useModelLoader/useModelClips build
+ * models via gltf.scene.clone(), which shares BufferGeometry/Material by
+ * reference with drei's global GLTF cache and every sibling entity using the
+ * same modelPath. Per-instance disposal on unmount would corrupt other live
+ * entities and future mounts.
  */
 export function Lod({ position, levels, hysteresis, deviceCap, render }: LodProps) {
   const [index, setIndex] = useState(0)
@@ -36,9 +42,10 @@ export function Lod({ position, levels, hysteresis, deviceCap, render }: LodProp
     if (next !== indexRef.current) {
       indexRef.current = next
       setIndex(next)
-      // Preload the adjacent farther level to avoid a hitch on the next switch.
-      const ahead = levels[next + 1]
-      if (ahead) useGLTF.preload(ahead.modelPath)
+      // Priority preload: nearest-first around the new index (bounded to the next 2).
+      for (const i of orderPreload(levels, next).slice(0, 2)) {
+        useGLTF.preload(levels[i]!.modelPath)
+      }
     }
   })
 

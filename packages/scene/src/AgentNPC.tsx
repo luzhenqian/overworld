@@ -42,11 +42,15 @@ import { useFrame } from '@react-three/fiber'
 import type { Group } from 'three'
 import type { Vec3 } from '@overworld-engine/core'
 import { useCollisionStore } from './collisionStore'
+import { deriveNpcAnimState } from './animationClips'
 
 /** Structural view of an `ai` agent (createAgent result). No import of `ai`. */
 export interface AgentLike {
   position: readonly [number, number]
   readonly heading: number
+  /** Optional locomotion status — when present, drives animStateRef. */
+  readonly isMoving?: boolean
+  readonly running?: boolean
   update(deltaMs: number): unknown
 }
 
@@ -60,6 +64,8 @@ export interface AgentNPCProps {
   rotationOffset?: number
   /** false = render-only (agent updated elsewhere). Default true. */
   driven?: boolean
+  /** Optional shared ref written each frame with the derived anim state; wire into BaseNPC.animStateRef. */
+  animStateRef?: { current: 'idle' | 'walk' | 'run' }
   children?: React.ReactNode
 }
 
@@ -78,6 +84,7 @@ export function AgentNPC({
   y = 0,
   rotationOffset = 0,
   driven = true,
+  animStateRef,
   children,
 }: AgentNPCProps) {
   const groupRef = useRef<Group>(null)
@@ -97,6 +104,12 @@ export function AgentNPC({
       const diff = target - g.rotation.y
       const normalized = Math.atan2(Math.sin(diff), Math.cos(diff))
       g.rotation.y += normalized * 0.15
+    }
+    if (animStateRef) {
+      animStateRef.current = deriveNpcAnimState({
+        isMoving: agent.isMoving ?? true,
+        running: agent.running,
+      })
     }
   })
 

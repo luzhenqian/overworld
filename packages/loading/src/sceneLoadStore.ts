@@ -59,3 +59,16 @@ export const useSceneLoadStore = create<SceneLoadState>((set) => ({
   retryZone: (zone) => set((s) => ({ errors: s.errors.filter((e) => e.zone !== zone) })),
   reset: () => set({ phase: 'idle', progress: 0, phases: freshPhases(), errors: [] }),
 }))
+
+/** Weighted-average progress across zones (0..1). Empty list = 1 (nothing to load). */
+export function aggregateZoneProgress(zones: Array<{ progress: number; weight?: number }>): number {
+  if (zones.length === 0) return 1
+  let sum = 0
+  let wsum = 0
+  for (const z of zones) {
+    const w = z.weight ?? 1
+    sum += Math.max(0, Math.min(1, z.progress)) * w
+    wsum += w
+  }
+  return wsum === 0 ? 1 : sum / wsum
+}

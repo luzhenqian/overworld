@@ -14,21 +14,23 @@
  * retries). The themed fallback capsule renders while the model loads, when
  * it fails to load, and when `modelPath` is omitted.
  */
-import { Suspense, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Text, Billboard, Float } from '@react-three/drei'
+import { Text, Billboard, Float, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import type { Vec3 } from '@overworld-engine/core'
 import { useSceneStore } from './sceneStore'
 import { useCollisionStore } from './collisionStore'
-import { useModelLoader } from './useModelLoader'
+import { useModelLoader, useModelClips } from './useModelLoader'
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { npcVisualHeights, DEFAULT_NPC_SCALE } from './visualHeights'
 import { SpriteLabel } from './SpriteLabel'
 import { Lod } from './LodSwitch'
 import type { LodLevel } from './lod'
+import { useQualityStore, qualityToLodCap } from './quality'
 import type { LabelMode } from './types'
 import type { NPCTheme, NPCIndicator } from './types'
+import { pickNpcClipName, type NPCAnimationMap } from './animationClips'
 
 const INDICATOR_STYLE: Record<NPCIndicator, { symbol: string; color: string }> = {
   'quest-available': { symbol: '!', color: '#F59E0B' },
@@ -92,6 +94,17 @@ export interface BaseNPCProps {
    * present, the model switches based on distance to the player via `<Lod>`.
    */
   lods?: LodLevel[]
+  /** Animation clips for an animated GLB. Enables the animated model path; `idle` plays by default. */
+  animationMap?: NPCAnimationMap
+  /** Extension hook for authored state machines: called once the model + mixer are ready. */
+  onModelReady?: (ctx: {
+    scene: THREE.Group
+    actions: Record<string, THREE.AnimationAction | null>
+    mixer: THREE.AnimationMixer
+    names: string[]
+  }) => void
+  /** Per-frame animation state (moving NPCs, see AgentNPC). Defaults to 'idle' when omitted. */
+  animStateRef?: { current: 'idle' | 'walk' | 'run' }
 }
 
 /** Themed placeholder capsule: loading state, load failure and no-model NPCs. */
@@ -139,6 +152,67 @@ function NPCModel({
   return <primitive object={model} scale={scale} />
 }
 
+/**
+ * Animated counterpart to {@link NPCModel}: loads the GLB's clips via
+ * {@link useModelClips}, drives them with drei's `useAnimations`, and
+ * crossfades between idle/walk/run as `animStateRef` changes. Enabled only
+ * when `BaseNPC` receives an `animationMap` — see `renderModel` below.
+ */
+function AnimatedNPCModel({
+  modelPath,
+  scale,
+  modifyMaterial,
+  animationMap,
+  animStateRef,
+  onModelReady,
+  fallback,
+}: {
+  modelPath: string
+  scale: number
+  modifyMaterial?: (child: THREE.Mesh) => void
+  animationMap: NPCAnimationMap | undefined
+  animStateRef?: { current: 'idle' | 'walk' | 'run' }
+  onModelReady?: BaseNPCProps['onModelReady']
+  fallback: React.ReactNode
+}) {
+  const { model, animations } = useModelClips({ modelPath, modifyMaterial })
+  const { actions, names, mixer } = useAnimations(animations, model ?? undefined)
+  const currentAction = useRef<THREE.AnimationAction | null>(null)
+  const currentState = useRef<'idle' | 'walk' | 'run'>('idle')
+
+  // Fire the ready hook once names resolve.
+  useEffect(() => {
+    if (model && names.length > 0) onModelReady?.({ scene: model, actions, mixer, names })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model, names.length])
+
+  // Start idle immediately, then crossfade whenever animStateRef changes.
+  const applyState = (state: 'idle' | 'walk' | 'run') => {
+    if (names.length === 0) return
+    const name = pickNpcClipName(names, animationMap, state)
+    const next = name ? (actions[name] ?? null) : null
+    if (!next || next === currentAction.current) return
+    next.setLoop(THREE.LoopRepeat, Infinity)
+    next.reset().fadeIn(0.2).play()
+    currentAction.current?.fadeOut(0.2)
+    currentAction.current = next
+  }
+  useEffect(() => {
+    applyState('idle')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actions, names])
+  useFrame(() => {
+    const want = animStateRef?.current ?? 'idle'
+    if (want !== currentState.current) {
+      currentState.current = want
+      applyState(want)
+    }
+  })
+
+  if (!model) return <>{fallback}</>
+  return <primitive object={model} scale={scale} />
+}
+
 export function BaseNPC({
   npcId,
   modelPath,
@@ -159,8 +233,13 @@ export function BaseNPC({
   labelHeight,
   modifyMaterial,
   lods,
+  animationMap,
+  onModelReady,
+  animStateRef,
 }: BaseNPCProps) {
   const groupRef = useRef<THREE.Group>(null)
+
+  const lodCap = useQualityStore((s) => qualityToLodCap(s.preset === 'custom' ? 'high' : s.preset))
 
   // Follow a live position ref (moving NPC), if supplied. No-op — and no
   // behavior change vs. before this prop existed — when `positionRef` is
@@ -182,15 +261,28 @@ export function BaseNPC({
   )
 
   // Key by URL so editing modelPath resets a previous load failure.
+  const animated = Boolean(animationMap)
   const renderModel = (path: string) => (
     <ModelErrorBoundary key={path} modelPath={path} fallback={fallback}>
       <Suspense fallback={fallback}>
-        <NPCModel
-          modelPath={path}
-          scale={scale}
-          modifyMaterial={modifyMaterial}
-          fallback={fallback}
-        />
+        {animated ? (
+          <AnimatedNPCModel
+            modelPath={path}
+            scale={scale}
+            modifyMaterial={modifyMaterial}
+            animationMap={animationMap}
+            animStateRef={animStateRef}
+            onModelReady={onModelReady}
+            fallback={fallback}
+          />
+        ) : (
+          <NPCModel
+            modelPath={path}
+            scale={scale}
+            modifyMaterial={modifyMaterial}
+            fallback={fallback}
+          />
+        )}
       </Suspense>
     </ModelErrorBoundary>
   )
@@ -204,7 +296,7 @@ export function BaseNPC({
       <group rotation={rotation}>
         {modelPath ? (
           levels ? (
-            <Lod position={position} levels={levels} render={renderModel} />
+            <Lod position={position} levels={levels} deviceCap={lodCap} render={renderModel} />
           ) : (
             renderModel(modelPath)
           )

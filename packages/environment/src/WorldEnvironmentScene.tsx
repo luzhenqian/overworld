@@ -6,6 +6,7 @@ import { getDaylightFactor } from './phase'
 import {
   resolvePreset,
   resolveLight,
+  resolveExposure,
   type WorldEnvironmentPreset,
   type WorldEnvironmentPresetName,
 } from './worldEnvironment'
@@ -50,6 +51,7 @@ function Stars({ count, multiplier }: { count: number; multiplier: number }) {
 export function WorldEnvironment({ preset = 'clear-noon', engine, quality, children }: WorldEnvironmentProps) {
   const resolved = resolvePreset(preset)
   const scene = useThree((s) => s.scene)
+  const gl = useThree((s) => s.gl)
   const ambientRef = useRef<THREE.AmbientLight>(null)
   const sunRef = useRef<THREE.DirectionalLight>(null)
   const fogRef = useRef<THREE.Fog | THREE.FogExp2 | null>(null)
@@ -69,13 +71,21 @@ export function WorldEnvironment({ preset = 'clear-noon', engine, quality, child
 
   const daylight0 = engine ? getDaylightFactor(engine.store.getState().timeOfDay, engine.phases) : 1
   const light0 = resolveLight(resolved, daylight0)
+  if (resolved.exposure !== undefined) gl.toneMappingExposure = resolveExposure(resolved, daylight0)
 
   useFrame(() => {
     if (!engine) return
     const d = getDaylightFactor(engine.store.getState().timeOfDay, engine.phases)
     const l = resolveLight(resolved, d)
-    if (ambientRef.current) ambientRef.current.intensity = l.ambient.intensity
-    if (sunRef.current) sunRef.current.intensity = l.sun.intensity
+    if (ambientRef.current) {
+      ambientRef.current.intensity = l.ambient.intensity
+      ambientRef.current.color.set(l.ambient.color)
+    }
+    if (sunRef.current) {
+      sunRef.current.intensity = l.sun.intensity
+      sunRef.current.color.set(l.sun.color)
+    }
+    if (resolved.exposure !== undefined) gl.toneMappingExposure = resolveExposure(resolved, d)
   })
 
   const shadows = quality?.shadows ?? true

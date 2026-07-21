@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { selectLodLevel } from '../lod'
+import { selectLodLevel, orderPreload } from '../lod'
 
 const levels = [
   { distance: 0, modelPath: 'hi.glb' },
@@ -29,5 +29,14 @@ describe('selectLodLevel', () => {
   it('clamps an out-of-range prevIndex instead of throwing', () => {
     expect(() => selectLodLevel(5, levels, { prevIndex: 99 })).not.toThrow()
     expect(selectLodLevel(5, levels, { prevIndex: 99 }).index).toBe(0)
+  })
+})
+
+describe('orderPreload', () => {
+  it('orders remaining levels nearest-first around the current index', () => {
+    expect(orderPreload(levels, 1)).toEqual([0, 2]) // neighbours by distance from index 1
+  })
+  it('excludes the current index', () => {
+    expect(orderPreload(levels, 0)).toEqual([1, 2])
   })
 })

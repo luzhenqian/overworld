@@ -1,8 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { useCollisionStore } from './collisionStore'
-import { instanceMatrix, collidersForSets, type DecorationSet } from './decorationInstancing'
+import { playerPositionRef } from './playerStore'
+import { instanceMatrix, collidersForSets, selectDecorationModel, type DecorationSet } from './decorationInstancing'
+import { useQualityStore, qualityToLodCap } from './quality'
+import type { LodLevel } from './lod'
 
 export interface DecorationsProps {
   sets: DecorationSet[]
@@ -24,7 +28,26 @@ export function useDecorationCollision(sets: DecorationSet[], enabled: boolean):
 
 /** Instanced meshes for one decoration set (one InstancedMesh per source mesh). */
 function DecorationSetMesh({ set }: { set: DecorationSet }) {
-  const { scene } = useGLTF(set.modelPath)
+  // Model path for the currently selected LOD level. Sets without `lod`
+  // never diverge from `set.modelPath` (the useFrame below early-returns).
+  const [modelPath, setModelPath] = useState(set.modelPath)
+  const indexRef = useRef(0)
+  const lodCap = useQualityStore((s) => qualityToLodCap(s.preset === 'custom' ? 'high' : s.preset))
+  useFrame(() => {
+    if (!set.lod || set.lod.length === 0) return
+    const p = playerPositionRef.current
+    const { index, modelPath: next } = selectDecorationModel(set, { x: p[0], z: p[2] }, indexRef.current, lodCap)
+    if (index !== indexRef.current) {
+      indexRef.current = index
+      setModelPath(next)
+      // Preload the neighboring LOD level so an uncached switch doesn't suspend.
+      const levels: LodLevel[] = [{ distance: 0, modelPath: set.modelPath }, ...set.lod]
+      const preloadPath = levels[index + 1]?.modelPath
+      if (preloadPath) useGLTF.preload(preloadPath)
+    }
+  })
+
+  const { scene } = useGLTF(modelPath)
   const matrices = useMemo(() => set.instances.map(instanceMatrix), [set.instances])
 
   // Collect (geometry, material) pairs from the source model.
@@ -41,7 +64,7 @@ function DecorationSetMesh({ set }: { set: DecorationSet }) {
     <>
       {parts.map((part, pi) => (
         <instancedMesh
-          key={pi}
+          key={`${modelPath}-${pi}`}
           args={[part.geometry, part.material, matrices.length]}
           castShadow
           receiveShadow
@@ -66,7 +89,9 @@ export function Decorations({ sets, registerCollision = true }: DecorationsProps
   return (
     <>
       {sets.map((set) => (
-        <DecorationSetMesh key={set.id} set={set} />
+        <Suspense key={set.id} fallback={null}>
+          <DecorationSetMesh set={set} />
+        </Suspense>
       ))}
     </>
   )

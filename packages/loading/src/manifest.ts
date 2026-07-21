@@ -80,6 +80,8 @@ export interface PreloadManifestOptions {
    * (`fonts` is always skipped — see {@link AssetManifest.fonts}).
    */
   categories?: AssetCategory[]
+  /** Progress 0..1 as trackable (image/audio) assets settle. Models count as kicked-off. */
+  onProgress?: (fraction: number) => void
 }
 
 /** URLs already handed to a preloader this session (across all calls). */
@@ -96,15 +98,32 @@ const preloadedUrls = new Set<string>()
  *
  * Each URL is only ever preloaded once per session, so calling this from
  * several places (or re-rendering) is cheap. In Node/SSR (no `window`) the
- * function is a no-op.
+ * function is a no-op and resolves immediately.
  *
- * This does NOT register loading-store tasks and reports no progress — use
- * `useSceneLoadProgress` inside the Canvas for real model progress.
+ * Returns a promise that settles once every *trackable* asset has settled,
+ * and drives `options.onProgress` (0..1) as they do. This does NOT register
+ * loading-store tasks — use `useSceneLoadProgress` inside the Canvas for real
+ * model progress.
+ *
+ * If any image/audio fails to load, `onProgress` still reaches 1 (every
+ * asset still counts as settled) but the returned promise *rejects* with the
+ * first error once all jobs have settled, so callers can surface it (e.g.
+ * `sceneLoad.tsx`'s `failZone`). The failed URL is evicted from the
+ * dedup cache so a subsequent call (e.g. `retry()`) re-attempts it;
+ * successfully-loaded URLs stay deduped.
+ *
+ * Honest limitation: `useGLTF.preload` exposes no completion event, so
+ * models cannot be tracked to real completion. They count toward the total
+ * asset count but are treated as settled the instant they're kicked off
+ * (fire-and-forget); only `images` and `audio` settle on their real
+ * load/error events. A manifest of only models therefore resolves and
+ * reports `onProgress(1)` immediately even though the browser is still
+ * fetching them in the background.
  */
-export function preloadManifest(
+export async function preloadManifest(
   manifest: AssetManifest,
   options?: PreloadManifestOptions
-): void {
+): Promise<void> {
   if (typeof window === 'undefined') return
 
   const wants = (category: AssetCategory): boolean =>
@@ -115,23 +134,68 @@ export function preloadManifest(
     return true
   }
 
-  if (wants('models')) {
-    for (const url of manifest.models ?? []) {
-      if (fresh(url)) useGLTF.preload(url)
-    }
-  }
-  if (wants('images')) {
-    for (const url of manifest.images ?? []) {
-      if (fresh(url)) new Image().src = url
-    }
-  }
-  if (wants('audio')) {
-    for (const url of manifest.audio ?? []) {
-      if (!fresh(url)) continue
-      const audio = new Audio()
-      audio.preload = 'auto'
-      audio.src = url
-    }
-  }
+  const models = wants('models') ? (manifest.models ?? []).filter(fresh) : []
+  const images = wants('images') ? (manifest.images ?? []).filter(fresh) : []
+  const audio = wants('audio') ? (manifest.audio ?? []).filter(fresh) : []
   // fonts: intentionally skipped.
+  const total = models.length + images.length + audio.length
+  if (total === 0) {
+    options?.onProgress?.(1)
+    return
+  }
+
+  let settled = 0
+  const bump = () => options?.onProgress?.(settled / total)
+  let firstError: unknown = null
+  const track = (url: string, p: Promise<unknown>) =>
+    p.then(
+      () => {
+        settled++
+        bump()
+      },
+      (e) => {
+        settled++
+        bump()
+        // Evict so a later retry() re-issues the request for this URL.
+        preloadedUrls.delete(url)
+        if (firstError == null) firstError = e
+      }
+    )
+
+  const jobs: Promise<unknown>[] = []
+  for (const url of models) {
+    useGLTF.preload(url)
+    settled++ // models: no completion event; count as kicked-off
+  }
+  bump()
+  for (const url of images) {
+    jobs.push(
+      track(
+        url,
+        new Promise<void>((res, rej) => {
+          const img = new Image()
+          img.onload = () => res()
+          img.onerror = () => rej(new Error(`Failed to preload image: ${url}`))
+          img.src = url
+        })
+      )
+    )
+  }
+  for (const url of audio) {
+    jobs.push(
+      track(
+        url,
+        new Promise<void>((res, rej) => {
+          const a = new Audio()
+          a.preload = 'auto'
+          a.oncanplaythrough = () => res()
+          a.onerror = () => rej(new Error(`Failed to preload audio: ${url}`))
+          a.src = url
+        })
+      )
+    )
+  }
+  await Promise.all(jobs)
+  options?.onProgress?.(1)
+  if (firstError != null) throw firstError
 }

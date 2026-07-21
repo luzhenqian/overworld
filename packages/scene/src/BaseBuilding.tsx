@@ -20,6 +20,7 @@ import { buildingVisualHeights } from './visualHeights'
 import { SpriteLabel } from './SpriteLabel'
 import { Lod } from './LodSwitch'
 import type { LodLevel } from './lod'
+import { useQualityStore, qualityToLodCap } from './quality'
 import type { BuildingTheme, LabelMode } from './types'
 
 export interface BaseBuildingProps {
@@ -117,6 +118,8 @@ export function BaseBuilding({
 }: BaseBuildingProps) {
   const groupRef = useRef<THREE.Group>(null)
 
+  const lodCap = useQualityStore((s) => qualityToLodCap(s.preset === 'custom' ? 'high' : s.preset))
+
   const isNearby = useSceneStore((state) => state.nearbyBuildingId === buildingId)
 
   const heights = buildingVisualHeights(scale, labelHeight)
@@ -141,7 +144,7 @@ export function BaseBuilding({
       <group rotation={rotation}>
         {modelPath ? (
           levels ? (
-            <Lod position={position} levels={levels} render={renderModel} />
+            <Lod position={position} levels={levels} deviceCap={lodCap} render={renderModel} />
           ) : (
             renderModel(modelPath)
           )
