@@ -20,6 +20,7 @@ export function AchievementPopup({ engine, duration = 4000 }: AchievementPopupPr
   const unlocked = useStore(engine.store, (s) => s.unlocked)
   const prevRef = useRef(unlocked)
   const [cards, setCards] = useState<{ id: string; key: number }[]>([])
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
   useEffect(() => {
     const fresh = newlyUnlocked(prevRef.current, unlocked)
@@ -28,12 +29,20 @@ export function AchievementPopup({ engine, duration = 4000 }: AchievementPopupPr
     const added = fresh.map((id) => ({ id, key: ++popupKey }))
     setCards((c) => [...c, ...added])
     const keys = added.map((a) => a.key)
-    const timer = setTimeout(
-      () => setCards((c) => c.filter((card) => !keys.includes(card.key))),
-      duration,
-    )
-    return () => clearTimeout(timer)
+    const timer = setTimeout(() => {
+      timersRef.current.delete(timer)
+      setCards((c) => c.filter((card) => !keys.includes(card.key)))
+    }, duration)
+    timersRef.current.add(timer)
   }, [unlocked, duration])
+
+  // Cancel all pending dismissal timers on unmount only.
+  useEffect(() => {
+    const timers = timersRef.current
+    return () => {
+      timers.forEach((t) => clearTimeout(t))
+    }
+  }, [])
 
   if (cards.length === 0) return null
   return (
