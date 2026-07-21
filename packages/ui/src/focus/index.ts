@@ -9,3 +9,8 @@ export {
   navigateByDirection,
 } from '@noriginmedia/norigin-spatial-navigation'
 export type { Direction } from '@noriginmedia/norigin-spatial-navigation'
+
+export { Focusable } from './Focusable'
+export type { FocusableProps } from './Focusable'
+export { useSpatialFocus } from './useSpatialFocus'
+export type { SpatialFocusApi } from './useSpatialFocus'
