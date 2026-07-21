@@ -94,6 +94,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
 }
+.ow-panel-title-text { flex: 1; }
 .ow-panel-close {
   border: none;
   background: none;
@@ -192,6 +193,7 @@
   cursor: pointer;
   padding: 0;
 }
+.ow-slot-icon { line-height: 1; pointer-events: none; }
 .ow-slot:hover { border-color: var(--ow-color-accent); }
 .ow-slot[data-ow-state="selected"] {
   border-color: var(--ow-color-accent);
@@ -255,6 +257,7 @@
   background: rgba(0, 0, 0, 0.55);
   pointer-events: auto;
 }
+.ow-modal { min-width: 240px; max-width: min(480px, 90vw); }
 .ow-alert-message { margin: 0 0 var(--ow-space-3); max-width: 320px; }
 .ow-alert-actions { display: flex; justify-content: flex-end; gap: var(--ow-space-2); }
 
@@ -306,6 +309,7 @@
   border-radius: var(--ow-radius);
   min-width: 200px;
 }
+.ow-quest-tracker-quest { display: flex; flex-direction: column; gap: 2px; }
 .ow-quest-tracker-title {
   font-family: var(--ow-font-display);
   font-weight: 600;
@@ -318,6 +322,7 @@
   gap: var(--ow-space-2);
   font-size: 0.85em;
 }
+.ow-quest-objective-text { flex: 1; }
 .ow-quest-objective[data-ow-state="completed"] {
   color: var(--ow-color-text-dim);
   text-decoration: line-through;
@@ -385,6 +390,8 @@
 .ow-toast[data-ow-variant="success"] { border-left-color: #4dc07a; }
 .ow-toast[data-ow-variant="warning"] { border-left-color: var(--ow-color-xp); }
 .ow-toast[data-ow-variant="error"] { border-left-color: var(--ow-color-danger); }
+.ow-toast-icon { font-size: 1.2em; }
+.ow-toast-message { flex: 1; min-width: 120px; }
 .ow-toast-dismiss {
   border: none;
   background: none;
@@ -408,6 +415,7 @@
 }
 
 /* ---------------- Tutorial ---------------- */
+.ow-tutorial { pointer-events: none; }
 .ow-tutorial-highlight {
   position: fixed;
   z-index: 250;
