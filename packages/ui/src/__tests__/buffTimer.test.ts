@@ -12,6 +12,9 @@ describe('buffSweepPct', () => {
   test('duration <= 0 means permanent (no sweep)', () => {
     expect(buffSweepPct(5, 0)).toBe(0)
   })
+  test('negative duration is permanent (0)', () => {
+    expect(buffSweepPct(5, -3)).toBe(0)
+  })
 })
 
 describe('formatBuffTime', () => {
@@ -33,5 +36,9 @@ describe('formatBuffTime', () => {
   test('empty string at or below zero', () => {
     expect(formatBuffTime(0)).toBe('')
     expect(formatBuffTime(-5)).toBe('')
+  })
+  test('rounds up across a bucket boundary into the higher bucket', () => {
+    expect(formatBuffTime(59.5)).toBe('1:00')
+    expect(formatBuffTime(9.97)).toBe('10s')
   })
 })
