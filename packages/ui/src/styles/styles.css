@@ -594,6 +594,7 @@
   text-overflow: ellipsis;
 }
 .ow-target-frame[data-ow-reaction="hostile"] .ow-target-name { color: var(--ow-color-hp); }
+.ow-target-frame[data-ow-reaction="neutral"] .ow-target-name { color: var(--ow-color-xp); }
 .ow-target-frame[data-ow-reaction="friendly"] .ow-target-name { color: var(--ow-color-rarity-uncommon); }
 .ow-target-frame[data-ow-classification="rare"] { border-color: var(--ow-color-rarity-rare); }
 .ow-target-frame[data-ow-classification="elite"] { border-color: var(--ow-color-rarity-epic); }

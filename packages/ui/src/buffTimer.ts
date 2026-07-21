@@ -14,7 +14,7 @@ export function buffSweepPct(remaining: number, duration: number): number {
  *   0–10s  → one decimal, no unit ("3.2")
  *   ≤ 0    → "" (render nothing)
  * Bucketing accounts for rounding so a value just under a boundary renders in
- * the bucket it rounds INTO (59.6 → "1:00", not "60s"; 9.97 → "10s", not "10.0").
+ * the bucket it rounds INTO (59.5 → "1:00", not "60s"; 9.97 → "10s", not "10.0").
  */
 export function formatBuffTime(seconds: number): string {
   if (seconds <= 0) return ''
