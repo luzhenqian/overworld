@@ -16,7 +16,6 @@ import { playerPositionRef, playerRotationRef, consumePlayerTeleport } from './p
 import { ModelErrorBoundary } from './ModelErrorBoundary'
 import { FollowCamera } from './FollowCamera'
 import { resolveInputBlocked } from './inputBlocked'
-import { resolveClip } from './animationClips'
 
 const DEFAULT_SPEED = 0.15
 const DEFAULT_PLAYER_RADIUS = 0.5
@@ -124,7 +123,8 @@ function resolveAction(
   mappedName: string | undefined,
   fallbackIndex: number
 ): THREE.AnimationAction | null {
-  const name = resolveClip(names, mappedName, fallbackIndex)
+  if (mappedName) return actions[mappedName] ?? null
+  const name = names[fallbackIndex]
   return name ? (actions[name] ?? null) : null
 }
 
