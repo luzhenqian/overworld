@@ -14,3 +14,7 @@ export { Focusable } from './Focusable'
 export type { FocusableProps } from './Focusable'
 export { useSpatialFocus } from './useSpatialFocus'
 export type { SpatialFocusApi } from './useSpatialFocus'
+
+export { useGamepadFocus } from './useGamepadFocus'
+export type { UseGamepadFocusOptions } from './useGamepadFocus'
+export { axisToDirection } from '../gamepadAxis'

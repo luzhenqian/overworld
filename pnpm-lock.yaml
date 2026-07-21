@@ -736,6 +736,9 @@ importers:
 
   examples/ui-gallery:
     dependencies:
+      '@noriginmedia/norigin-spatial-navigation':
+        specifier: ^3.2.1
+        version: 3.2.1(react@18.3.1)
       '@overworld-engine/achievements':
         specifier: workspace:*
         version: link:../../packages/achievements
