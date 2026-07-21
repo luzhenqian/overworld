@@ -193,14 +193,32 @@ describe('isSoftwareRenderer', () => {
 })
 
 describe('detectQualityPreset with renderer', () => {
+  // Node 22+ exposes `navigator.hardwareConcurrency`, so the CPU heuristic is
+  // NOT the "no navigator" path — its result depends on the host's core count
+  // (a 2-core CI runner yields 'medium', a many-core dev box 'high'). Stub a
+  // fixed desktop navigator so these assertions are deterministic everywhere.
+  beforeEach(() => {
+    vi.stubGlobal('navigator', { hardwareConcurrency: 8 })
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('forces low for a software renderer regardless of other signals', () => {
+    // Software short-circuit runs before the heuristic, so the 8-core stub
+    // (which would otherwise yield 'high') must NOT rescue it.
     expect(detectQualityPreset({ renderer: 'Google SwiftShader' })).toBe('low')
   })
   it('ignores a real GPU string and falls back to the heuristic', () => {
-    // No navigator in this test env → heuristic returns 'high'.
+    // A real GPU is not a software renderer, so it does not force low — the
+    // result is the plain heuristic verdict, identical to the no-renderer call.
+    expect(detectQualityPreset({ renderer: 'NVIDIA GeForce RTX 4090' })).toBe(
+      detectQualityPreset(),
+    )
+    // With the stubbed 8-core desktop navigator that heuristic is 'high'.
     expect(detectQualityPreset({ renderer: 'NVIDIA GeForce RTX 4090' })).toBe('high')
   })
-  it('no-arg call is unchanged (high in the SSR/test default)', () => {
+  it('no-arg call is unchanged: widening the signature did not alter the default path', () => {
     expect(detectQualityPreset()).toBe('high')
   })
 })
