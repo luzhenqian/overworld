@@ -1,1 +1,86 @@
-/* theme skin — filled in later task */
+/* @overworld-engine/ui — theme: tactical (modern military FPS) */
+
+.ow-root[data-ow-theme="tactical"] {
+  --ow-color-surface: rgba(18, 22, 18, 0.92);
+  --ow-color-surface-2: rgba(28, 34, 28, 0.94);
+  --ow-color-border: #6b7264;
+  --ow-color-text: #dde4d6;
+  --ow-color-text-dim: #8a927f;
+  --ow-color-accent: #a8b820;
+  --ow-color-accent-text: #161a12;
+  --ow-color-danger: #c74436;
+  --ow-color-hp: #c74436;
+  --ow-color-mp: #3d9987;
+  --ow-color-xp: #d5a021;
+  --ow-font-display: "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --ow-font-body: "Segoe UI", system-ui, sans-serif;
+  --ow-radius: 2px;
+  --ow-radius-sm: 1px;
+  --ow-panel-border-width: 1px;
+  --ow-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+}
+
+.ow-root[data-ow-theme="tactical"] .ow-panel {
+  position: relative;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  border-color: var(--ow-color-border);
+}
+/* scanline texture */
+.ow-root[data-ow-theme="tactical"] .ow-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, 0.02) 2px 3px);
+}
+.ow-root[data-ow-theme="tactical"] .ow-panel-title {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.8em;
+  background: rgba(168, 184, 32, 0.12);
+}
+.ow-root[data-ow-theme="tactical"] .ow-panel-title-text::before { content: "▸ "; color: var(--ow-color-accent); }
+.ow-root[data-ow-theme="tactical"] .ow-button {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8em;
+  background: var(--ow-color-accent);
+  border-color: #57601a;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+.ow-root[data-ow-theme="tactical"] .ow-button[data-ow-variant="ghost"] {
+  background: transparent;
+  color: var(--ow-color-text);
+  border: 1px solid var(--ow-color-border);
+}
+.ow-root[data-ow-theme="tactical"] .ow-slot,
+.ow-root[data-ow-theme="tactical"] .ow-hotbar { background: rgba(12, 15, 12, 0.9); }
+.ow-root[data-ow-theme="tactical"] .ow-slot-key {
+  color: var(--ow-color-accent);
+  font-family: var(--ow-font-display);
+}
+.ow-root[data-ow-theme="tactical"] .ow-bar-track {
+  border-radius: 0;
+  height: 10px;
+  background: rgba(8, 10, 8, 0.9);
+}
+.ow-root[data-ow-theme="tactical"] .ow-bar-label {
+  text-transform: uppercase;
+  font-family: var(--ow-font-display);
+  letter-spacing: 0.1em;
+}
+.ow-root[data-ow-theme="tactical"] .ow-quest-tracker {
+  border-left: 3px solid var(--ow-color-accent);
+  border-radius: 0;
+}
+.ow-root[data-ow-theme="tactical"] .ow-dialogue-speaker {
+  color: var(--ow-color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.ow-root[data-ow-theme="tactical"] .ow-toast,
+.ow-root[data-ow-theme="tactical"] .ow-achievement { border-radius: 0; }
+.ow-root[data-ow-theme="tactical"] .ow-tutorial-highlight {
+  border: 1px dashed var(--ow-color-accent);
+  border-radius: 0;
+}
