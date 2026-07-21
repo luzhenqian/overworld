@@ -13,9 +13,15 @@ export interface WorldEnvironmentPreset {
       position?: Vec3
       castShadow?: boolean
     }
+    /** Distinct night light; falls back to the sun's night values when omitted. */
+    moon?: DayNightValue<{ color: string; intensity: number }>
   }
   envMapIntensity?: number
   stars?: boolean | { count: number }
+  /** Tone-mapping exposure, interpolated by daylight. Scalar or day/night pair. */
+  exposure?: number | { day: number; night: number }
+  /** Imperative day<->night transition duration (ms). Consumed by the component. */
+  transitionDuration?: number
 }
 
 export const WORLD_ENV_PRESETS = {
@@ -73,18 +79,45 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  const n = parseInt(h.length === 3 ? h.replace(/(.)/g, '$1$1') : h, 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+function toHex(n: number): string {
+  return Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0')
+}
+
+/** Linearly interpolate two #rrggbb colors. t is clamped to [0,1]. */
+export function lerpColor(a: string, b: string, t: number): string {
+  const tt = Math.max(0, Math.min(1, t))
+  const [ar, ag, ab] = hexToRgb(a)
+  const [br, bg, bb] = hexToRgb(b)
+  return `#${toHex(lerp(ar, br, tt))}${toHex(lerp(ag, bg, tt))}${toHex(lerp(ab, bb, tt))}`
+}
+
+/** Resolve tone-mapping exposure for the given daylight factor. Defaults to 1. */
+export function resolveExposure(preset: WorldEnvironmentPreset, daylight: number): number {
+  const e = preset.exposure
+  if (e === undefined) return 1
+  if (typeof e === 'number') return e
+  return lerp(e.night, e.day, daylight)
+}
+
 /** Resolve ambient/sun light values for the given daylight factor (0=night, 1=day). */
 export function resolveLight(preset: WorldEnvironmentPreset, daylight: number) {
   const amb = preset.lighting?.ambient
   const sun = preset.lighting?.sun
+  const moon = preset.lighting?.moon
   return {
     ambient: amb
-      ? { color: daylight >= 0.5 ? amb.day.color : amb.night.color, intensity: lerp(amb.night.intensity, amb.day.intensity, daylight) }
+      ? { color: lerpColor(amb.night.color, amb.day.color, daylight), intensity: lerp(amb.night.intensity, amb.day.intensity, daylight) }
       : { color: '#ffffff', intensity: 0.5 },
     sun: sun
       ? {
-          color: daylight >= 0.5 ? sun.day.color : sun.night.color,
-          intensity: lerp(sun.night.intensity, sun.day.intensity, daylight),
+          // Night side uses the moon light when provided, else the sun's night values.
+          color: lerpColor(moon?.night.color ?? sun.night.color, sun.day.color, daylight),
+          intensity: lerp(moon?.night.intensity ?? sun.night.intensity, sun.day.intensity, daylight),
           position: sun.position ?? ([10, 40, 10] as Vec3),
           castShadow: sun.castShadow ?? true,
         }

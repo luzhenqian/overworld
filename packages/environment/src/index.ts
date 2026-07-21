@@ -36,5 +36,7 @@ export {
   WORLD_ENV_PRESETS,
   resolvePreset,
   resolveLight,
+  lerpColor,
+  resolveExposure,
 } from './worldEnvironment'
 export type { WorldEnvironmentPreset, WorldEnvironmentPresetName } from './worldEnvironment'
