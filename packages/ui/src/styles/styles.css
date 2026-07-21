@@ -440,6 +440,59 @@
 .ow-tutorial-content { margin: 0 0 var(--ow-space-3); }
 .ow-tutorial-actions { display: flex; justify-content: flex-end; gap: var(--ow-space-2); }
 
+/* ---------------- CastBar ---------------- */
+.ow-castbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ow-space-2);
+  pointer-events: auto;
+}
+.ow-castbar-icon {
+  flex: none;
+  width: calc(var(--ow-slot-size) * 0.6);
+  height: calc(var(--ow-slot-size) * 0.6);
+  display: grid;
+  place-items: center;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  font-size: 1.1em;
+}
+.ow-castbar-track {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+  height: 18px;
+  background: var(--ow-color-surface-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  overflow: hidden;
+}
+.ow-castbar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ow-color-accent);
+  transition: width 80ms linear;
+}
+.ow-castbar[data-ow-state="interrupted"] .ow-castbar-fill { background: var(--ow-color-danger); }
+.ow-castbar[data-ow-state="success"] .ow-castbar-fill { background: var(--ow-color-xp); }
+.ow-castbar[data-ow-state="channeling"] .ow-castbar-fill { background: var(--ow-color-mp); }
+.ow-castbar-label,
+.ow-castbar-time {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.78em;
+  color: var(--ow-color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.ow-castbar-label { left: var(--ow-space-2); }
+.ow-castbar-time { right: var(--ow-space-2); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .ow-castbar-fill { transition: none; }
+}
+
 /* ---------------- Motion ---------------- */
 @media (prefers-reduced-motion: reduce) {
   .ow-root *,

@@ -49,7 +49,7 @@ const preview: Preview = {
     backgrounds: { disable: true },
     options: {
       storySort: {
-        order: ['Primitives', 'Engines', 'Integrated'],
+        order: ['Primitives', 'HUD', 'Engines', 'Integrated'],
       },
     },
   },
