@@ -7,10 +7,11 @@ export type { AssetCategory, AssetManifest, PreloadManifestOptions } from './man
 export {
   useSceneLoadStore,
   aggregateSceneProgress,
+  aggregateZoneProgress,
   SCENE_PHASES,
 } from './sceneLoadStore'
 export type { ScenePhase, SceneLoadState, PhaseState, SceneLoadError } from './sceneLoadStore'
-export { orderZonesByDistance } from './zoneStreaming'
+export { orderZonesByDistance, orderZones } from './zoneStreaming'
 export type { ZoneManifest, ZoneBounds } from './zoneStreaming'
 export { useZoneStreaming, FirstFramePhase, installSceneLoadDebugHandle } from './sceneLoad'
 export type { ZoneStreamingResult } from './sceneLoad'

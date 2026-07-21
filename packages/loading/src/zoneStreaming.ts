@@ -27,3 +27,13 @@ export function orderZonesByDistance(zones: ZoneManifest[], pos: Vec3): ZoneMani
     return b.priority - a.priority
   })
 }
+
+/** Priority-bucket-first ordering (higher priority first), nearest-first within a bucket. */
+export function orderZones(zones: ZoneManifest[], pos: Vec3): ZoneManifest[] {
+  return [...zones].sort((a, b) => {
+    if (a.priority !== b.priority) return b.priority - a.priority
+    const da = a.bounds ? distanceToBounds(pos, a.bounds) : Infinity
+    const db = b.bounds ? distanceToBounds(pos, b.bounds) : Infinity
+    return da - db
+  })
+}

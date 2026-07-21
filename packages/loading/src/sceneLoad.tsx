@@ -2,41 +2,65 @@ import { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { Vec3 } from '@overworld-engine/core'
 import { preloadManifest } from './manifest'
-import { useSceneLoadStore } from './sceneLoadStore'
-import { orderZonesByDistance, type ZoneManifest } from './zoneStreaming'
+import { aggregateZoneProgress, useSceneLoadStore } from './sceneLoadStore'
+import { orderZones, type ZoneManifest } from './zoneStreaming'
 
-export interface ZoneStreamingResult { pending: string[]; loaded: string[]; failed: string[] }
+export interface ZoneStreamingResult {
+  pending: string[]
+  loaded: string[]
+  failed: string[]
+  /** Weighted-average progress (0..1) across all zones — see `aggregateZoneProgress`. */
+  progress: number
+  /** Clears the started marker and error for `id`, then re-kicks its preload. */
+  retry: (id: string) => void
+}
 
 /**
- * Nearby-first zone streaming: preloads each zone's manifest in
- * distance order from the player. Fire-and-forget; failures surface via
- * useSceneLoadStore().failZone. Re-orders whenever the zone set changes.
+ * Priority-bucket-first zone streaming: preloads each zone's manifest,
+ * higher-priority zones first and nearest-first within a bucket (see
+ * `orderZones`). Fire-and-forget — `preloadManifest` is invoked without
+ * blocking rendering; its returned promise only drives local state
+ * (`loaded`/`progress`) and failure surfacing via `useSceneLoadStore().failZone`.
+ * Re-orders whenever the zone set changes.
  */
 export function useZoneStreaming(
   zones: ZoneManifest[],
   playerPosRef: { current: Vec3 }
 ): ZoneStreamingResult {
   const [loaded, setLoaded] = useState<string[]>([])
+  const [progressById, setProgressById] = useState<Record<string, number>>({})
   const startedRef = useRef<Set<string>>(new Set())
 
-  useEffect(() => {
-    const ordered = orderZonesByDistance(zones, playerPosRef.current)
-    ordered.forEach((z) => {
-      if (startedRef.current.has(z.id)) return
-      startedRef.current.add(z.id)
-      try {
-        preloadManifest(z.manifest)
-        setLoaded((l) => [...l, z.id])
-      } catch (err) {
-        useSceneLoadStore.getState().failZone(z.id, String((err as Error)?.message ?? err))
-      }
+  const start = (z: ZoneManifest) => {
+    if (startedRef.current.has(z.id)) return
+    startedRef.current.add(z.id)
+    preloadManifest(z.manifest, {
+      onProgress: (f) => setProgressById((m) => ({ ...m, [z.id]: f })),
     })
+      .then(() => setLoaded((l) => (l.includes(z.id) ? l : [...l, z.id])))
+      .catch((err) =>
+        useSceneLoadStore.getState().failZone(z.id, String((err as Error)?.message ?? err))
+      )
+  }
+
+  useEffect(() => {
     // playerPosRef read once per zone-set change; streaming is coarse-grained.
+    orderZones(zones, playerPosRef.current).forEach(start)
   }, [zones, playerPosRef])
+
+  const retry = (id: string) => {
+    startedRef.current.delete(id)
+    setLoaded((l) => l.filter((x) => x !== id))
+    setProgressById((m) => ({ ...m, [id]: 0 }))
+    useSceneLoadStore.getState().retryZone(id)
+    const z = zones.find((x) => x.id === id)
+    if (z) start(z)
+  }
 
   const pending = zones.map((z) => z.id).filter((id) => !loaded.includes(id))
   const failed = useSceneLoadStore((s) => s.errors).map((e) => e.zone).filter(Boolean) as string[]
-  return { pending, loaded, failed }
+  const progress = aggregateZoneProgress(zones.map((z) => ({ progress: progressById[z.id] ?? 0 })))
+  return { pending, loaded, failed, progress, retry }
 }
 
 /**

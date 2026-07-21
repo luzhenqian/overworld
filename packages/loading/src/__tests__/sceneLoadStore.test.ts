@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSceneLoadStore, aggregateSceneProgress } from '../sceneLoadStore'
+import { aggregateZoneProgress } from '../sceneLoadStore'
 
 describe('sceneLoadStore', () => {
   beforeEach(() => useSceneLoadStore.getState().reset())
@@ -37,5 +38,17 @@ describe('sceneLoadStore', () => {
     expect(useSceneLoadStore.getState().errors).toEqual([{ zone: 'north', message: 'timeout' }])
     st.retryZone('north')
     expect(useSceneLoadStore.getState().errors).toEqual([])
+  })
+})
+
+describe('aggregateZoneProgress', () => {
+  it('averages per-zone progress', () => {
+    expect(aggregateZoneProgress([{ progress: 1 }, { progress: 0 }])).toBe(0.5)
+  })
+  it('honors weights', () => {
+    expect(aggregateZoneProgress([{ progress: 1, weight: 3 }, { progress: 0, weight: 1 }])).toBe(0.75)
+  })
+  it('is 1 for an empty list (nothing to load)', () => {
+    expect(aggregateZoneProgress([])).toBe(1)
   })
 })
