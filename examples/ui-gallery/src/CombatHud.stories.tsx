@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BuffBar, CastBar, TargetFrame } from '@overworld-engine/ui'
+import { BuffBar, CastBar, Nameplate, TargetFrame } from '@overworld-engine/ui'
 
 export default { title: 'HUD / Combat' }
 
@@ -62,5 +62,13 @@ export const Targets = () => (
       reaction="friendly"
       portrait="🧙"
     />
+  </div>
+)
+
+export const Nameplates = () => (
+  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+    <Nameplate name="Goblin" level={3} hp={45} hpMax={60} reaction="hostile" showLevel />
+    <Nameplate name="Wolf" hp={30} hpMax={80} reaction="neutral" />
+    <Nameplate name="Guard" hp={200} hpMax={200} reaction="friendly" />
   </div>
 )
