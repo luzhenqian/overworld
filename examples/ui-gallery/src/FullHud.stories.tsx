@@ -17,7 +17,7 @@ import {
   ToastViewport,
   useUiStore,
 } from '@overworld-engine/ui'
-import { ThemeContext } from '../.ladle/components'
+import { ThemeContext } from '../.storybook/theme'
 
 export default { title: 'Integrated / Full HUD' }
 

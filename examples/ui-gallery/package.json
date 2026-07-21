@@ -4,10 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "ladle serve",
-    "build": "tsc --noEmit && ladle build",
-    "typecheck": "tsc --noEmit",
-    "preview": "ladle preview"
+    "dev": "storybook dev -p 6006",
+    "build": "tsc --noEmit && storybook build -o build",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@overworld-engine/achievements": "workspace:*",
@@ -23,9 +22,11 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@ladle/react": "^4.0.0",
+    "@storybook/react-vite": "^9.1.20",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "typescript": "^5.6.3"
+    "storybook": "^9.1.20",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.1"
   }
 }
