@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/ui",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Headless game UI: HUD primitives, engine-bound components, four CSS theme skins",
   "keywords": [
     "overworld",

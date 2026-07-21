@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/environment",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Day-night cycle and weather system for Overworld games",
   "keywords": [
     "overworld",

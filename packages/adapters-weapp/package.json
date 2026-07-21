@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/adapters-weapp",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "WeChat mini-game adapters for Overworld: storage, socket transport, audio backend, R3F canvas root, touch joystick",
   "type": "module",
   "main": "./dist/index.js",
