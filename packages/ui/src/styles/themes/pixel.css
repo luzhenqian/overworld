@@ -24,7 +24,7 @@
 
 /* 8x8 hard-edged pixel frame, scaled crisp */
 .ow-root[data-ow-theme="pixel"] .ow-panel {
-  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M2 0h4v1h1v1h1v4h-1v1h-1v1H2V7H1V6H0V2h1V1h1z' fill='%236d3f1f'/%3E%3Cpath d='M2 1h4v1h1v4H6v1H2V6H1V2h1z' fill='%23f8e7b7'/%3E%3C/svg%3E") 3 / 9px stretch;
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M2 0h4v1h1v1h1v4h-1v1h-1v1H2V7H1V6H0V2h1V1h1z' fill='%236d3f1f'/%3E%3Cpath d='M2 1h4v1h1v4H6v1H2V6H1V2h1z' fill='%23f8e7b7'/%3E%3C/svg%3E") 3 / 9px stretch;
   box-shadow: var(--ow-shadow);
 }
 .ow-root[data-ow-theme="pixel"] .ow-panel-title { border-bottom: 2px dashed var(--ow-color-border); }

@@ -23,7 +23,7 @@
 /* gold double-frame with cloud-curl corners (inline SVG, 9-slice) */
 .ow-root[data-ow-theme="xianxia"] .ow-panel {
   background: var(--ow-color-surface);
-  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 4h40v40H4z' fill='none' stroke='%23c9a227' stroke-width='2'/%3E%3Cpath d='M8 8h32v32H8z' fill='none' stroke='%23c9a227' stroke-width='0.8' opacity='0.6'/%3E%3Cpath d='M4 14c6 0 10-4 10-10M44 14c-6 0-10-4-10-10M4 34c6 0 10 4 10 10M44 34c-6 0-10 4-10 10' fill='none' stroke='%23c9a227' stroke-width='1.6'/%3E%3C/svg%3E") 14 / 14px stretch;
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath d='M4 4h40v40H4z' fill='none' stroke='%23c9a227' stroke-width='2'/%3E%3Cpath d='M8 8h32v32H8z' fill='none' stroke='%23c9a227' stroke-width='0.8' opacity='0.6'/%3E%3Cpath d='M4 14c6 0 10-4 10-10M44 14c-6 0-10-4-10-10M4 34c6 0 10 4 10 10M44 34c-6 0-10 4-10 10' fill='none' stroke='%23c9a227' stroke-width='1.6'/%3E%3C/svg%3E") 14 / 14px stretch;
 }
 .ow-root[data-ow-theme="xianxia"] .ow-panel-title {
   border-bottom: 1px solid rgba(201, 162, 39, 0.45);

@@ -12,7 +12,7 @@
   --ow-color-hp: #1fbf75;
   --ow-color-mp: #2e86de;
   --ow-color-xp: #c8aa6e;
-  --ow-font-display: "Cinzel", "Trajan Pro", serif;
+  --ow-font-display: Optima, "Palatino Linotype", Palatino, Georgia, serif;
   --ow-font-body: "Segoe UI", system-ui, sans-serif;
   --ow-radius: 0px;
   --ow-radius-sm: 0px;
@@ -24,7 +24,7 @@
 .ow-root[data-ow-theme="hextech"] .ow-panel {
   background: var(--ow-color-surface);
   clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M12 2h24l10 10v24l-10 10H12L2 36V12z' fill='none' stroke='%23c8aa6e' stroke-width='2'/%3E%3Cpath d='M14 5h20l9 9v20l-9 9H14L5 34V14z' fill='none' stroke='%230ac8b9' stroke-width='0.8' opacity='0.7'/%3E%3C/svg%3E") 14 / 12px stretch;
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath d='M12 2h24l10 10v24l-10 10H12L2 36V12z' fill='none' stroke='%23c8aa6e' stroke-width='2'/%3E%3Cpath d='M14 5h20l9 9v20l-9 9H14L5 34V14z' fill='none' stroke='%230ac8b9' stroke-width='0.8' opacity='0.7'/%3E%3C/svg%3E") 14 / 12px stretch;
 }
 .ow-root[data-ow-theme="hextech"] .ow-panel-title {
   text-transform: uppercase;

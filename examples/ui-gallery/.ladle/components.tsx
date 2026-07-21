@@ -31,7 +31,7 @@ export const Provider: GlobalProvider = ({ children }) => {
         data-ow-theme={theme === 'base' ? undefined : theme}
         style={{ minHeight: '100vh', background: '#202430', padding: 16 }}
       >
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, color: '#e8eaf0' }}>
           <label>
             Theme{' '}
             <select value={theme} onChange={(e) => setTheme(e.target.value as ThemeName)}>
