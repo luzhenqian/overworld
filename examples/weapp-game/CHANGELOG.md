@@ -1,5 +1,19 @@
 # weapp-game
 
+## 1.5.4
+
+### Patch Changes
+
+- @overworld-engine/adapters-weapp@2.2.0
+- @overworld-engine/core@2.2.0
+- @overworld-engine/dialogue@2.2.0
+- @overworld-engine/input@2.2.0
+- @overworld-engine/inventory@2.2.0
+- @overworld-engine/net@2.2.0
+- @overworld-engine/platform@2.2.0
+- @overworld-engine/quest@2.2.0
+- @overworld-engine/scene@2.2.0
+
 ## 1.5.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/achievements",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Headless achievement engine driven by the event bus",
   "keywords": [
     "overworld",
