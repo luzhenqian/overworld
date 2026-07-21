@@ -1,1 +1,59 @@
-/* theme skin — filled in later task */
+/* @overworld-engine/ui — theme: hextech (arcane magitech) */
+
+.ow-root[data-ow-theme="hextech"] {
+  --ow-color-surface: linear-gradient(170deg, rgba(9, 20, 40, 0.96), rgba(6, 12, 24, 0.97));
+  --ow-color-surface-2: rgba(12, 28, 52, 0.95);
+  --ow-color-border: #c8aa6e;
+  --ow-color-text: #f0e6d2;
+  --ow-color-text-dim: #8fa3b0;
+  --ow-color-accent: #0ac8b9;
+  --ow-color-accent-text: #04121c;
+  --ow-color-danger: #be3044;
+  --ow-color-hp: #1fbf75;
+  --ow-color-mp: #2e86de;
+  --ow-color-xp: #c8aa6e;
+  --ow-font-display: "Cinzel", "Trajan Pro", serif;
+  --ow-font-body: "Segoe UI", system-ui, sans-serif;
+  --ow-radius: 0px;
+  --ow-radius-sm: 0px;
+  --ow-panel-border-width: 1px;
+  --ow-shadow: 0 6px 24px rgba(0, 0, 0, 0.7), 0 0 12px rgba(10, 200, 185, 0.12);
+}
+
+/* chamfered corners + gold frame with teal inner line */
+.ow-root[data-ow-theme="hextech"] .ow-panel {
+  background: var(--ow-color-surface);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M12 2h24l10 10v24l-10 10H12L2 36V12z' fill='none' stroke='%23c8aa6e' stroke-width='2'/%3E%3Cpath d='M14 5h20l9 9v20l-9 9H14L5 34V14z' fill='none' stroke='%230ac8b9' stroke-width='0.8' opacity='0.7'/%3E%3C/svg%3E") 14 / 12px stretch;
+}
+.ow-root[data-ow-theme="hextech"] .ow-panel-title {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.9em;
+  color: #c8aa6e;
+  border-bottom: 1px solid rgba(200, 170, 110, 0.4);
+}
+.ow-root[data-ow-theme="hextech"] .ow-button {
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
+  background: linear-gradient(180deg, #0e3b52, #072331);
+  border: 1px solid #0ac8b9;
+  color: #0ac8b9;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85em;
+}
+.ow-root[data-ow-theme="hextech"] .ow-button:hover { box-shadow: 0 0 10px rgba(10, 200, 185, 0.5); filter: none; }
+.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="danger"] { border-color: var(--ow-color-danger); color: #ff8fa0; }
+.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="ghost"] { border-color: rgba(200, 170, 110, 0.5); color: var(--ow-color-text); background: transparent; }
+.ow-root[data-ow-theme="hextech"] .ow-slot { background: rgba(4, 14, 26, 0.9); border-color: rgba(200, 170, 110, 0.5); }
+.ow-root[data-ow-theme="hextech"] .ow-slot:hover { border-color: var(--ow-color-accent); box-shadow: 0 0 8px rgba(10, 200, 185, 0.4); }
+.ow-root[data-ow-theme="hextech"] .ow-hotbar { background: rgba(6, 12, 24, 0.9); }
+.ow-root[data-ow-theme="hextech"] .ow-bar-track { border-color: rgba(200, 170, 110, 0.6); background: rgba(2, 8, 16, 0.85); }
+.ow-root[data-ow-theme="hextech"] .ow-bar-fill { box-shadow: 0 0 8px currentColor; }
+.ow-root[data-ow-theme="hextech"] .ow-dialogue-speaker { color: #c8aa6e; text-transform: uppercase; letter-spacing: 0.1em; }
+.ow-root[data-ow-theme="hextech"] .ow-toast,
+.ow-root[data-ow-theme="hextech"] .ow-achievement { background: var(--ow-color-surface); }
+.ow-root[data-ow-theme="hextech"] .ow-tutorial-highlight {
+  border-color: var(--ow-color-accent);
+  box-shadow: 0 0 0 9999px rgba(2, 8, 16, 0.6), 0 0 16px rgba(10, 200, 185, 0.6);
+}
