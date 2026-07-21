@@ -90,7 +90,13 @@ export { selectLodLevel, orderPreload } from './lod'
 export type { LodLevel } from './lod'
 export { Decorations, useDecorationCollision } from './Decorations'
 export type { DecorationsProps } from './Decorations'
-export { instanceMatrix, decorationColliders, collidersForSets } from './decorationInstancing'
+export {
+  instanceMatrix,
+  decorationColliders,
+  collidersForSets,
+  setCentroid,
+  selectDecorationModel,
+} from './decorationInstancing'
 export type { DecorationSet } from './decorationInstancing'
 
 // Interaction
