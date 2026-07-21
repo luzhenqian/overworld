@@ -12,6 +12,12 @@
   --ow-color-hp: #c74436;
   --ow-color-mp: #3d9987;
   --ow-color-xp: #d5a021;
+  --ow-color-rarity-poor: #8a8f98;
+  --ow-color-rarity-common: #d7dde3;
+  --ow-color-rarity-uncommon: #6fae3a;
+  --ow-color-rarity-rare: #4a90c2;
+  --ow-color-rarity-epic: #a05fc0;
+  --ow-color-rarity-legendary: #e0a53c;
   --ow-font-display: "Oswald", "Arial Narrow", system-ui, sans-serif;
   --ow-font-body: "Segoe UI", system-ui, sans-serif;
   --ow-radius: 2px;

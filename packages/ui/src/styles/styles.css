@@ -18,7 +18,9 @@
   --ow-color-hp: #c0504d;
   --ow-color-mp: #4d7ec0;
   --ow-color-xp: #c0a84d;
-  --ow-color-rarity-common: #9aa0b0;
+  --ow-color-rarity-poor: #9d9d9d;
+  --ow-color-rarity-common: #f0f0f0;
+  --ow-color-rarity-uncommon: #4caf50;
   --ow-color-rarity-rare: #4d7ec0;
   --ow-color-rarity-epic: #9b59b6;
   --ow-color-rarity-legendary: #e67e22;
@@ -199,7 +201,9 @@
   border-color: var(--ow-color-accent);
   box-shadow: 0 0 0 1px var(--ow-color-accent);
 }
+.ow-slot[data-ow-rarity="poor"] { border-color: var(--ow-color-rarity-poor); }
 .ow-slot[data-ow-rarity="common"] { border-color: var(--ow-color-rarity-common); }
+.ow-slot[data-ow-rarity="uncommon"] { border-color: var(--ow-color-rarity-uncommon); }
 .ow-slot[data-ow-rarity="rare"] { border-color: var(--ow-color-rarity-rare); }
 .ow-slot[data-ow-rarity="epic"] { border-color: var(--ow-color-rarity-epic); }
 .ow-slot[data-ow-rarity="legendary"] { border-color: var(--ow-color-rarity-legendary); }

@@ -12,6 +12,12 @@
   --ow-color-hp: #b03a2e;
   --ow-color-mp: #2e6da4;
   --ow-color-xp: #c9a227;
+  --ow-color-rarity-poor: #9a938a;
+  --ow-color-rarity-common: #f2ede0;
+  --ow-color-rarity-uncommon: #6fbf73;
+  --ow-color-rarity-rare: #5aa0d8;
+  --ow-color-rarity-epic: #b06fd8;
+  --ow-color-rarity-legendary: #e0b64c;
   --ow-font-display: "STKaiti", "KaiTi", "Noto Serif SC", serif;
   --ow-font-body: "Songti SC", "Noto Serif SC", serif;
   --ow-radius: 10px;
