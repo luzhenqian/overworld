@@ -1,1 +1,66 @@
-/* theme skin — filled in later task */
+/* @overworld-engine/ui — theme: xianxia (ornate eastern fantasy) */
+
+.ow-root[data-ow-theme="xianxia"] {
+  --ow-color-surface: linear-gradient(160deg, rgba(46, 18, 14, 0.96), rgba(28, 10, 8, 0.97));
+  --ow-color-surface-2: rgba(58, 26, 18, 0.95);
+  --ow-color-border: #c9a227;
+  --ow-color-text: #f3e6c8;
+  --ow-color-text-dim: #b7a179;
+  --ow-color-accent: #c9a227;
+  --ow-color-accent-text: #2e120e;
+  --ow-color-danger: #a53326;
+  --ow-color-hp: #b03a2e;
+  --ow-color-mp: #2e6da4;
+  --ow-color-xp: #c9a227;
+  --ow-font-display: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  --ow-font-body: "Songti SC", "Noto Serif SC", serif;
+  --ow-radius: 10px;
+  --ow-radius-sm: 6px;
+  --ow-panel-border-width: 2px;
+  --ow-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(201, 162, 39, 0.08);
+}
+
+/* gold double-frame with cloud-curl corners (inline SVG, 9-slice) */
+.ow-root[data-ow-theme="xianxia"] .ow-panel {
+  background: var(--ow-color-surface);
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M4 4h40v40H4z' fill='none' stroke='%23c9a227' stroke-width='2'/%3E%3Cpath d='M8 8h32v32H8z' fill='none' stroke='%23c9a227' stroke-width='0.8' opacity='0.6'/%3E%3Cpath d='M4 14c6 0 10-4 10-10M44 14c-6 0-10-4-10-10M4 34c6 0 10 4 10 10M44 34c-6 0-10 4-10 10' fill='none' stroke='%23c9a227' stroke-width='1.6'/%3E%3C/svg%3E") 14 / 14px stretch;
+}
+.ow-root[data-ow-theme="xianxia"] .ow-panel-title {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.45);
+  letter-spacing: 0.12em;
+}
+.ow-root[data-ow-theme="xianxia"] .ow-panel-title-text::before { content: "❖ "; color: var(--ow-color-border); }
+.ow-root[data-ow-theme="xianxia"] .ow-button {
+  background: linear-gradient(180deg, #dcb63a, #a9821c);
+  border-color: #7a5e12;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.4);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-button[data-ow-variant="ghost"] {
+  background: transparent;
+  border-color: rgba(201, 162, 39, 0.5);
+  color: var(--ow-color-text);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-slot,
+.ow-root[data-ow-theme="xianxia"] .ow-hotbar {
+  background: rgba(20, 8, 6, 0.85);
+  border-color: rgba(201, 162, 39, 0.55);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-bar-track {
+  border-color: rgba(201, 162, 39, 0.7);
+  background: rgba(16, 6, 4, 0.8);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-bar-fill {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 40%), var(--ow-color-accent);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-bar[data-ow-variant="hp"] .ow-bar-fill {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 40%), var(--ow-color-hp);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-bar[data-ow-variant="mp"] .ow-bar-fill {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 40%), var(--ow-color-mp);
+}
+.ow-root[data-ow-theme="xianxia"] .ow-dialogue-speaker { letter-spacing: 0.15em; }
+.ow-root[data-ow-theme="xianxia"] .ow-toast,
+.ow-root[data-ow-theme="xianxia"] .ow-achievement {
+  background: var(--ow-color-surface);
+  border-left-width: 4px;
+}
