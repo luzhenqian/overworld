@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/content",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Content packs for Overworld: validate-then-apply versioned dialogue/quest/item/achievement bundles into engines",
   "type": "module",
   "main": "./dist/index.js",

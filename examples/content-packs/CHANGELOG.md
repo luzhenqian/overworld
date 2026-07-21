@@ -1,5 +1,18 @@
 # content-packs
 
+## 1.5.6
+
+### Patch Changes
+
+- @overworld-engine/achievements@2.4.0
+- @overworld-engine/content@2.4.0
+- @overworld-engine/core@2.4.0
+- @overworld-engine/devtools@2.4.0
+- @overworld-engine/dialogue@2.4.0
+- @overworld-engine/inventory@2.4.0
+- @overworld-engine/quest@2.4.0
+- @overworld-engine/scene@2.4.0
+
 ## 1.5.5
 
 ### Patch Changes
