@@ -66,4 +66,7 @@ describe('selectDecorationModel', () => {
     const plain: DecorationSet = { id: 'x', modelPath: 'x.glb', instances: [{ position: [0, 0, 0] }] }
     expect(selectDecorationModel(plain, { x: 999, z: 999 }).modelPath).toBe('x.glb')
   })
+  it('caps to deviceCap index for low-tier devices even when near the centroid', () => {
+    expect(selectDecorationModel(lodSet, { x: 3, z: 3 }, 0, 1).index).toBe(1)
+  })
 })

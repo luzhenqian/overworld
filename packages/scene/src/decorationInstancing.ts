@@ -64,11 +64,12 @@ export function selectDecorationModel(
   set: DecorationSet,
   playerPos: { x: number; z: number },
   prevIndex = 0,
+  deviceCap = 0,
 ): { index: number; modelPath: string } {
   if (!set.lod || set.lod.length === 0) return { index: 0, modelPath: set.modelPath }
   const levels: LodLevel[] = [{ distance: 0, modelPath: set.modelPath }, ...set.lod]
   const c = setCentroid(set)
   const dist = Math.hypot(playerPos.x - c.x, playerPos.z - c.z)
-  const { index, level } = selectLodLevel(dist, levels, { prevIndex })
+  const { index, level } = selectLodLevel(dist, levels, { prevIndex, deviceCap })
   return { index, modelPath: level.modelPath }
 }
