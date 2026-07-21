@@ -23,9 +23,6 @@
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "@overworld-engine/core": "workspace:*"
-  },
   "peerDependencies": {
     "react": "^18.0.0",
     "zustand": "^5.0.0"
