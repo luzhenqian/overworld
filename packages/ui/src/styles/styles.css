@@ -1,1 +1,440 @@
-/* @overworld-engine/ui base layer — filled in later task */
+/* ============================================================
+   @overworld-engine/ui — base layer
+   Tokens + layout skeleton + neutral default look.
+   Themes override tokens/decorations under
+   .ow-root[data-ow-theme="…"]. All state hooks are data-ow-*.
+   ============================================================ */
+
+.ow-root {
+  /* ------ design tokens (theme override surface) ------ */
+  --ow-color-surface: rgba(24, 26, 32, 0.92);
+  --ow-color-surface-2: rgba(38, 41, 50, 0.95);
+  --ow-color-border: #4a5060;
+  --ow-color-text: #e8eaf0;
+  --ow-color-text-dim: #9aa0b0;
+  --ow-color-accent: #6c9bd2;
+  --ow-color-accent-text: #10131a;
+  --ow-color-danger: #c0504d;
+  --ow-color-hp: #c0504d;
+  --ow-color-mp: #4d7ec0;
+  --ow-color-xp: #c0a84d;
+  --ow-color-rarity-common: #9aa0b0;
+  --ow-color-rarity-rare: #4d7ec0;
+  --ow-color-rarity-epic: #9b59b6;
+  --ow-color-rarity-legendary: #e67e22;
+  --ow-font-display: system-ui, sans-serif;
+  --ow-font-body: system-ui, sans-serif;
+  --ow-radius: 6px;
+  --ow-radius-sm: 3px;
+  --ow-space-1: 4px;
+  --ow-space-2: 8px;
+  --ow-space-3: 12px;
+  --ow-space-4: 20px;
+  --ow-ui-scale: 1;
+  --ow-panel-border-width: 1px;
+  --ow-panel-border-image: none;
+  --ow-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --ow-slot-size: 48px;
+
+  font-family: var(--ow-font-body);
+  font-size: calc(14px * var(--ow-ui-scale));
+  color: var(--ow-color-text);
+  line-height: 1.45;
+}
+
+.ow-root *,
+.ow-root *::before,
+.ow-root *::after {
+  box-sizing: border-box;
+}
+
+/* ---------------- HUD overlay ---------------- */
+.ow-hud {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 100;
+}
+.ow-hud-anchor {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ow-space-2);
+  padding: var(--ow-space-3);
+}
+.ow-hud-anchor > * { pointer-events: auto; }
+.ow-hud-anchor[data-ow-anchor="top-left"] { top: 0; left: 0; }
+.ow-hud-anchor[data-ow-anchor="top"] { top: 0; left: 50%; transform: translateX(-50%); align-items: center; }
+.ow-hud-anchor[data-ow-anchor="top-right"] { top: 0; right: 0; align-items: flex-end; }
+.ow-hud-anchor[data-ow-anchor="left"] { top: 50%; left: 0; transform: translateY(-50%); }
+.ow-hud-anchor[data-ow-anchor="center"] { top: 50%; left: 50%; transform: translate(-50%, -50%); align-items: center; }
+.ow-hud-anchor[data-ow-anchor="right"] { top: 50%; right: 0; transform: translateY(-50%); align-items: flex-end; }
+.ow-hud-anchor[data-ow-anchor="bottom-left"] { bottom: 0; left: 0; }
+.ow-hud-anchor[data-ow-anchor="bottom"] { bottom: 0; left: 50%; transform: translateX(-50%); align-items: center; }
+.ow-hud-anchor[data-ow-anchor="bottom-right"] { bottom: 0; right: 0; align-items: flex-end; }
+
+/* ---------------- Panel ---------------- */
+.ow-panel {
+  background: var(--ow-color-surface);
+  border: var(--ow-panel-border-width) solid var(--ow-color-border);
+  border-image: var(--ow-panel-border-image);
+  border-radius: var(--ow-radius);
+  box-shadow: var(--ow-shadow);
+  min-width: 180px;
+}
+.ow-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ow-space-2);
+  padding: var(--ow-space-2) var(--ow-space-3);
+  border-bottom: 1px solid var(--ow-color-border);
+  font-family: var(--ow-font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ow-panel-close {
+  border: none;
+  background: none;
+  color: var(--ow-color-text-dim);
+  font-size: 1.2em;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 var(--ow-space-1);
+}
+.ow-panel-close:hover { color: var(--ow-color-text); }
+.ow-panel-body { padding: var(--ow-space-3); }
+
+/* ---------------- Buttons ---------------- */
+.ow-button {
+  font: inherit;
+  font-family: var(--ow-font-display);
+  padding: var(--ow-space-1) var(--ow-space-3);
+  border-radius: var(--ow-radius-sm);
+  border: 1px solid var(--ow-color-border);
+  background: var(--ow-color-accent);
+  color: var(--ow-color-accent-text);
+  cursor: pointer;
+}
+.ow-button[data-ow-variant="ghost"] {
+  background: transparent;
+  color: var(--ow-color-text);
+}
+.ow-button[data-ow-variant="danger"] {
+  background: var(--ow-color-danger);
+  color: var(--ow-color-text);
+}
+.ow-button:hover { filter: brightness(1.15); }
+.ow-button:active { transform: translateY(1px); }
+.ow-icon-button {
+  font: inherit;
+  display: inline-grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  border-radius: var(--ow-radius-sm);
+  border: 1px solid var(--ow-color-border);
+  background: var(--ow-color-surface-2);
+  color: var(--ow-color-text);
+  cursor: pointer;
+}
+
+/* ---------------- Bar ---------------- */
+.ow-bar { display: flex; align-items: center; gap: var(--ow-space-2); min-width: 160px; }
+.ow-bar-label { font-size: 0.85em; color: var(--ow-color-text-dim); min-width: 2.2em; }
+.ow-bar-track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  background: rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.ow-bar-fill,
+.ow-bar-ghost {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+}
+.ow-bar-fill { background: var(--ow-color-accent); transition: width 0.12s ease-out; }
+.ow-bar-ghost { background: rgba(255, 255, 255, 0.45); transition: width 0.9s ease 0.25s; }
+.ow-bar[data-ow-variant="hp"] .ow-bar-fill { background: var(--ow-color-hp); }
+.ow-bar[data-ow-variant="mp"] .ow-bar-fill { background: var(--ow-color-mp); }
+.ow-bar[data-ow-variant="xp"] .ow-bar-fill { background: var(--ow-color-xp); }
+.ow-bar-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.75em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------------- Slots ---------------- */
+.ow-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ow-columns, 5), var(--ow-slot-size));
+  gap: var(--ow-space-1);
+}
+.ow-slot {
+  position: relative;
+  width: var(--ow-slot-size);
+  height: var(--ow-slot-size);
+  display: grid;
+  place-items: center;
+  font-size: 1.4em;
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  background: var(--ow-color-surface-2);
+  color: var(--ow-color-text);
+  cursor: pointer;
+  padding: 0;
+}
+.ow-slot:hover { border-color: var(--ow-color-accent); }
+.ow-slot[data-ow-state="selected"] {
+  border-color: var(--ow-color-accent);
+  box-shadow: 0 0 0 1px var(--ow-color-accent);
+}
+.ow-slot[data-ow-rarity="common"] { border-color: var(--ow-color-rarity-common); }
+.ow-slot[data-ow-rarity="rare"] { border-color: var(--ow-color-rarity-rare); }
+.ow-slot[data-ow-rarity="epic"] { border-color: var(--ow-color-rarity-epic); }
+.ow-slot[data-ow-rarity="legendary"] { border-color: var(--ow-color-rarity-legendary); }
+.ow-slot-qty {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 0.55em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.ow-slot-key {
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  font-size: 0.5em;
+  color: var(--ow-color-text-dim);
+}
+.ow-hotbar {
+  display: flex;
+  gap: var(--ow-space-1);
+  padding: var(--ow-space-1);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius);
+  background: var(--ow-color-surface);
+}
+
+/* ---------------- Tooltip ---------------- */
+.ow-tooltip-trigger { display: inline-block; }
+.ow-tooltip {
+  z-index: 400;
+  max-width: 260px;
+  padding: var(--ow-space-1) var(--ow-space-2);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius-sm);
+  background: var(--ow-color-surface-2);
+  box-shadow: var(--ow-shadow);
+  font-size: 0.85em;
+  pointer-events: none;
+}
+
+/* ---------------- Window / Modal ---------------- */
+.ow-window {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+.ow-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+.ow-alert-message { margin: 0 0 var(--ow-space-3); max-width: 320px; }
+.ow-alert-actions { display: flex; justify-content: flex-end; gap: var(--ow-space-2); }
+
+/* ---------------- Dialogue ---------------- */
+.ow-dialogue { max-width: 560px; width: min(560px, 92vw); }
+.ow-dialogue-layout { display: flex; gap: var(--ow-space-3); cursor: pointer; }
+.ow-dialogue-portrait { flex: none; font-size: 2.4em; }
+.ow-dialogue-main { position: relative; flex: 1; min-height: 3.6em; }
+.ow-dialogue-speaker {
+  font-family: var(--ow-font-display);
+  font-weight: 700;
+  color: var(--ow-color-accent);
+  margin-bottom: var(--ow-space-1);
+}
+.ow-dialogue-text { margin: 0; white-space: pre-wrap; }
+.ow-dialogue-continue {
+  position: absolute;
+  right: 0;
+  bottom: -0.4em;
+  animation: ow-blink 1s steps(2) infinite;
+  color: var(--ow-color-text-dim);
+}
+.ow-dialogue-choices {
+  list-style: none;
+  margin: var(--ow-space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ow-space-1);
+}
+.ow-dialogue-choices .ow-button { width: 100%; text-align: left; }
+@keyframes ow-blink { 50% { opacity: 0; } }
+
+/* ---------------- Quest tracker / log ---------------- */
+.ow-quest-tracker,
+.ow-quest-tracker ul,
+.ow-quest-log ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ow-quest-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ow-space-2);
+  padding: var(--ow-space-2) var(--ow-space-3);
+  background: var(--ow-color-surface);
+  border: 1px solid var(--ow-color-border);
+  border-radius: var(--ow-radius);
+  min-width: 200px;
+}
+.ow-quest-tracker-title {
+  font-family: var(--ow-font-display);
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--ow-color-accent);
+}
+.ow-quest-objective {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ow-space-2);
+  font-size: 0.85em;
+}
+.ow-quest-objective[data-ow-state="completed"] {
+  color: var(--ow-color-text-dim);
+  text-decoration: line-through;
+}
+.ow-quest-objective-count { color: var(--ow-color-text-dim); }
+.ow-quest-log { min-width: 280px; display: flex; flex-direction: column; gap: var(--ow-space-2); }
+.ow-quest-log-heading {
+  margin: 0;
+  font-family: var(--ow-font-display);
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ow-color-text-dim);
+}
+.ow-quest-log-entry { padding: var(--ow-space-1) 0; }
+.ow-quest-log-entry[data-ow-state="completed"] { color: var(--ow-color-text-dim); }
+.ow-quest-log-empty { margin: 0; color: var(--ow-color-text-dim); font-size: 0.85em; }
+
+/* ---------------- Inventory ---------------- */
+.ow-inventory-empty { grid-column: 1 / -1; margin: 0; color: var(--ow-color-text-dim); }
+.ow-inventory-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--ow-space-3);
+  margin-top: var(--ow-space-3);
+  padding-top: var(--ow-space-2);
+  border-top: 1px solid var(--ow-color-border);
+}
+.ow-inventory-detail-text p { margin: var(--ow-space-1) 0 0; font-size: 0.85em; color: var(--ow-color-text-dim); }
+.ow-inventory-actions { display: flex; gap: var(--ow-space-2); }
+
+/* ---------------- Toasts / achievements ---------------- */
+.ow-toasts,
+.ow-achievements {
+  position: fixed;
+  z-index: 350;
+  list-style: none;
+  margin: 0;
+  padding: var(--ow-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ow-space-2);
+  pointer-events: none;
+}
+.ow-toasts[data-ow-anchor="top-right"] { top: 0; right: 0; }
+.ow-toasts[data-ow-anchor="top-left"] { top: 0; left: 0; }
+.ow-toasts[data-ow-anchor="bottom-right"] { bottom: 0; right: 0; }
+.ow-toasts[data-ow-anchor="bottom-left"] { bottom: 0; left: 0; }
+.ow-achievements { top: 0; left: 50%; transform: translateX(-50%); }
+.ow-toast,
+.ow-achievement {
+  display: flex;
+  align-items: center;
+  gap: var(--ow-space-2);
+  padding: var(--ow-space-2) var(--ow-space-3);
+  background: var(--ow-color-surface);
+  border: 1px solid var(--ow-color-border);
+  border-left: 3px solid var(--ow-color-accent);
+  border-radius: var(--ow-radius-sm);
+  box-shadow: var(--ow-shadow);
+  pointer-events: auto;
+  animation: ow-slide-in 0.25s ease-out;
+}
+.ow-toast[data-ow-variant="success"] { border-left-color: #4dc07a; }
+.ow-toast[data-ow-variant="warning"] { border-left-color: var(--ow-color-xp); }
+.ow-toast[data-ow-variant="error"] { border-left-color: var(--ow-color-danger); }
+.ow-toast-dismiss {
+  border: none;
+  background: none;
+  color: var(--ow-color-text-dim);
+  cursor: pointer;
+  font-size: 1.1em;
+  line-height: 1;
+}
+.ow-achievement { border-left-color: var(--ow-color-xp); }
+.ow-achievement-kicker {
+  display: block;
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ow-color-text-dim);
+}
+.ow-achievement-title { font-family: var(--ow-font-display); font-weight: 700; }
+.ow-achievement-icon { font-size: 1.6em; }
+@keyframes ow-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+/* ---------------- Tutorial ---------------- */
+.ow-tutorial-highlight {
+  position: fixed;
+  z-index: 250;
+  border: 2px solid var(--ow-color-accent);
+  border-radius: var(--ow-radius-sm);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.ow-tutorial-card {
+  position: fixed;
+  z-index: 260;
+  bottom: var(--ow-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  max-width: 360px;
+}
+.ow-tutorial-content { margin: 0 0 var(--ow-space-3); }
+.ow-tutorial-actions { display: flex; justify-content: flex-end; gap: var(--ow-space-2); }
+
+/* ---------------- Motion ---------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ow-root *,
+  .ow-root *::before,
+  .ow-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
