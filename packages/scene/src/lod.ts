@@ -44,18 +44,6 @@ export function selectLodLevel(
   return { index: clamped, level: levels[clamped]! }
 }
 
-/** Level indices left behind when switching prev→next (to dispose their clones). */
-export function levelsToDispose(prevIndex: number, nextIndex: number, levels: LodLevel[]): number[] {
-  if (prevIndex === nextIndex) return []
-  const lo = Math.min(prevIndex, nextIndex)
-  const hi = Math.max(prevIndex, nextIndex)
-  const out: number[] = []
-  for (let i = lo; i <= hi; i++) {
-    if (i !== nextIndex && i >= 0 && i < levels.length) out.push(i)
-  }
-  return out
-}
-
 /** Remaining level indices ordered nearest-first around `currentIndex` (excludes it). */
 export function orderPreload(levels: LodLevel[], currentIndex: number): number[] {
   return levels
