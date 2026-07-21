@@ -105,6 +105,13 @@ const preloadedUrls = new Set<string>()
  * loading-store tasks — use `useSceneLoadProgress` inside the Canvas for real
  * model progress.
  *
+ * If any image/audio fails to load, `onProgress` still reaches 1 (every
+ * asset still counts as settled) but the returned promise *rejects* with the
+ * first error once all jobs have settled, so callers can surface it (e.g.
+ * `sceneLoad.tsx`'s `failZone`). The failed URL is evicted from the
+ * dedup cache so a subsequent call (e.g. `retry()`) re-attempts it;
+ * successfully-loaded URLs stay deduped.
+ *
  * Honest limitation: `useGLTF.preload` exposes no completion event, so
  * models cannot be tracked to real completion. They count toward the total
  * asset count but are treated as settled the instant they're kicked off
@@ -113,11 +120,11 @@ const preloadedUrls = new Set<string>()
  * reports `onProgress(1)` immediately even though the browser is still
  * fetching them in the background.
  */
-export function preloadManifest(
+export async function preloadManifest(
   manifest: AssetManifest,
   options?: PreloadManifestOptions
 ): Promise<void> {
-  if (typeof window === 'undefined') return Promise.resolve()
+  if (typeof window === 'undefined') return
 
   const wants = (category: AssetCategory): boolean =>
     options?.categories === undefined || options.categories.includes(category)
@@ -134,20 +141,24 @@ export function preloadManifest(
   const total = models.length + images.length + audio.length
   if (total === 0) {
     options?.onProgress?.(1)
-    return Promise.resolve()
+    return
   }
 
   let settled = 0
   const bump = () => options?.onProgress?.(settled / total)
-  const track = (p: Promise<unknown>) =>
+  let firstError: unknown = null
+  const track = (url: string, p: Promise<unknown>) =>
     p.then(
       () => {
         settled++
         bump()
       },
-      () => {
+      (e) => {
         settled++
         bump()
+        // Evict so a later retry() re-issues the request for this URL.
+        preloadedUrls.delete(url)
+        if (firstError == null) firstError = e
       }
     )
 
@@ -160,10 +171,11 @@ export function preloadManifest(
   for (const url of images) {
     jobs.push(
       track(
+        url,
         new Promise<void>((res, rej) => {
           const img = new Image()
           img.onload = () => res()
-          img.onerror = () => rej()
+          img.onerror = () => rej(new Error(`Failed to preload image: ${url}`))
           img.src = url
         })
       )
@@ -172,17 +184,18 @@ export function preloadManifest(
   for (const url of audio) {
     jobs.push(
       track(
+        url,
         new Promise<void>((res, rej) => {
           const a = new Audio()
           a.preload = 'auto'
           a.oncanplaythrough = () => res()
-          a.onerror = () => rej()
+          a.onerror = () => rej(new Error(`Failed to preload audio: ${url}`))
           a.src = url
         })
       )
     )
   }
-  return Promise.all(jobs).then(() => {
-    options?.onProgress?.(1)
-  })
+  await Promise.all(jobs)
+  options?.onProgress?.(1)
+  if (firstError != null) throw firstError
 }
