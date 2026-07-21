@@ -1,7 +1,7 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Vec3 } from '@overworld-engine/core'
 import { MiniMap, useMinimapStore } from '@overworld-engine/minimap'
-import { MinimapFrame } from '@overworld-engine/ui'
+import { Compass, MinimapFrame } from '@overworld-engine/ui'
 
 export default { title: 'HUD / Navigation' }
 
@@ -20,5 +20,25 @@ export const Framed = () => {
         markerColors={{ npc: '#60a5fa', shop: '#f472b6', quest: '#facc15' }}
       />
     </MinimapFrame>
+  )
+}
+
+export const CompassStrip = () => {
+  const [heading, setHeading] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setHeading((h) => (h + 0.02) % (Math.PI * 2)), 50)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <div style={{ maxWidth: 360 }}>
+      <Compass
+        heading={heading}
+        markers={[
+          { id: 'quest', bearing: 0.6, icon: '❗', color: '#facc15' },
+          { id: 'shop', bearing: 2.4, icon: '🛒', color: '#f472b6' },
+          { id: 'home', bearing: 4.7, icon: '🏠' },
+        ]}
+      />
+    </div>
   )
 }
