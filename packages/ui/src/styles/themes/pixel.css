@@ -1,1 +1,63 @@
-/* theme skin — filled in later task */
+/* @overworld-engine/ui — theme: pixel (retro top-down RPG) */
+
+.ow-root[data-ow-theme="pixel"] {
+  --ow-color-surface: #f8e7b7;
+  --ow-color-surface-2: #efd89a;
+  --ow-color-border: #6d3f1f;
+  --ow-color-text: #4a2c14;
+  --ow-color-text-dim: #8a6a45;
+  --ow-color-accent: #3f7d3a;
+  --ow-color-accent-text: #f8e7b7;
+  --ow-color-danger: #a33327;
+  --ow-color-hp: #c04a3a;
+  --ow-color-mp: #3a6ac0;
+  --ow-color-xp: #c0952e;
+  --ow-font-display: "Courier New", monospace;
+  --ow-font-body: "Courier New", monospace;
+  --ow-radius: 0px;
+  --ow-radius-sm: 0px;
+  --ow-panel-border-width: 4px;
+  --ow-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+  image-rendering: pixelated;
+  font-weight: 700;
+}
+
+/* 8x8 hard-edged pixel frame, scaled crisp */
+.ow-root[data-ow-theme="pixel"] .ow-panel {
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M2 0h4v1h1v1h1v4h-1v1h-1v1H2V7H1V6H0V2h1V1h1z' fill='%236d3f1f'/%3E%3Cpath d='M2 1h4v1h1v4H6v1H2V6H1V2h1z' fill='%23f8e7b7'/%3E%3C/svg%3E") 3 / 9px stretch;
+  box-shadow: var(--ow-shadow);
+}
+.ow-root[data-ow-theme="pixel"] .ow-panel-title { border-bottom: 2px dashed var(--ow-color-border); }
+.ow-root[data-ow-theme="pixel"] .ow-button {
+  border: 3px solid var(--ow-color-border);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+  font-weight: 700;
+}
+.ow-root[data-ow-theme="pixel"] .ow-button:active { transform: translate(2px, 2px); box-shadow: none; }
+.ow-root[data-ow-theme="pixel"] .ow-button:hover { filter: none; outline: 2px solid var(--ow-color-xp); }
+.ow-root[data-ow-theme="pixel"] .ow-slot {
+  border: 3px solid var(--ow-color-border);
+  background: var(--ow-color-surface-2);
+}
+.ow-root[data-ow-theme="pixel"] .ow-slot[data-ow-state="selected"] { outline: 3px solid var(--ow-color-xp); box-shadow: none; }
+.ow-root[data-ow-theme="pixel"] .ow-hotbar { border: 3px solid var(--ow-color-border); background: var(--ow-color-surface); }
+.ow-root[data-ow-theme="pixel"] .ow-slot-qty,
+.ow-root[data-ow-theme="pixel"] .ow-slot-key { text-shadow: none; color: var(--ow-color-text); }
+.ow-root[data-ow-theme="pixel"] .ow-bar-track {
+  border: 3px solid var(--ow-color-border);
+  height: 16px;
+  background: #d9c48c;
+}
+.ow-root[data-ow-theme="pixel"] .ow-bar-fill,
+.ow-root[data-ow-theme="pixel"] .ow-bar-ghost { transition: none; }
+.ow-root[data-ow-theme="pixel"] .ow-bar-value { color: var(--ow-color-text); text-shadow: none; }
+.ow-root[data-ow-theme="pixel"] .ow-dialogue-text { line-height: 1.7; }
+.ow-root[data-ow-theme="pixel"] .ow-dialogue-continue { animation-timing-function: steps(1); }
+.ow-root[data-ow-theme="pixel"] .ow-toast,
+.ow-root[data-ow-theme="pixel"] .ow-achievement {
+  border: 3px solid var(--ow-color-border);
+  border-left: 6px solid var(--ow-color-accent);
+  box-shadow: var(--ow-shadow);
+}
+.ow-root[data-ow-theme="pixel"] .ow-tooltip { border: 3px solid var(--ow-color-border); box-shadow: var(--ow-shadow); }
+.ow-root[data-ow-theme="pixel"] .ow-tutorial-highlight { border: 3px dashed var(--ow-color-border); }
