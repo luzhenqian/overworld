@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/inventory",
-  "version": "2.4.1",
+  "version": "3.0.0",
   "description": "Headless inventory/item engine",
   "keywords": [
     "overworld",
