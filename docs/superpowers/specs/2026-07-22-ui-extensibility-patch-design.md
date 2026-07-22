@@ -187,6 +187,7 @@ export const Modal = { Root: ModalRoot, Content: ModalContent, Close: ModalClose
 
 - `Modal` 从函数组件变为 `{ Root, Content, Close }` 命名空间对象，导出名不变
 - 新增导出 `Slot`（来自 `primitives/Slot.tsx`）
+- **命名冲突**：`SlotGrid.tsx` 已有一个背包格子组件也叫 `Slot`/`SlotProps`（`index.ts:36-37`），与新原语撞名。组件本身不改，只把 barrel 里的导出名改为 `InventorySlot`/`InventorySlotProps`；`Slot`/`SlotProps` 让给新的 asChild 原语，与 Radix 命名惯例保持一致。这也是破坏性变更，一并写进 changeset
 
 ## 测试计划
 
