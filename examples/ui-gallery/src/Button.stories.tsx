@@ -11,3 +11,14 @@ export const Variants = () => (
     <IconButton label="Settings">⚙️</IconButton>
   </div>
 )
+
+export const AsChild = () => (
+  <div style={{ display: 'flex', gap: 8 }}>
+    <Button asChild>
+      <a href="https://github.com/luzhenqian/overworld" target="_blank" rel="noreferrer">
+        Renders an &lt;a&gt;
+      </a>
+    </Button>
+  </div>
+)
+AsChild.storyName = 'asChild'

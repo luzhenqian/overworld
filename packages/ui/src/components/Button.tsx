@@ -1,17 +1,21 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type ElementType } from 'react'
+import { Slot } from '../primitives/Slot'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'ghost' | 'danger'
+  /** Render props/ref onto the single child element instead of a `<button>`. */
+  asChild?: boolean
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'primary', className, ...rest },
+  { variant = 'primary', className, asChild, ...rest },
   ref,
 ) {
+  const Comp: ElementType = asChild ? Slot : 'button'
   return (
-    <button
+    <Comp
       ref={ref}
-      type="button"
+      {...(asChild ? {} : { type: 'button' })}
       className={className ? `ow-button ${className}` : 'ow-button'}
       data-ow-variant={variant}
       {...rest}
@@ -22,16 +26,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Accessible name — required because the content is icon-only. */
   label: string
+  /** Render props/ref onto the single child element instead of a `<button>`. */
+  asChild?: boolean
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, className, ...rest },
+  { label, className, asChild, ...rest },
   ref,
 ) {
+  const Comp: ElementType = asChild ? Slot : 'button'
   return (
-    <button
+    <Comp
       ref={ref}
-      type="button"
+      {...(asChild ? {} : { type: 'button' })}
       className={className ? `ow-icon-button ${className}` : 'ow-icon-button'}
       aria-label={label}
       {...rest}
