@@ -39,8 +39,11 @@
   color: #c8aa6e;
   border-bottom: 1px solid rgba(200, 170, 110, 0.4);
 }
+/* Buttons: one chamfered-tag family echoing the panel bevel, weight rising
+   ghost → primary/danger. Replaces the old side-pointed chevron whose clipped
+   border left transparent ghost buttons looking like floating brackets. */
 .ow-root[data-ow-theme="hextech"] .ow-button {
-  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
   background: linear-gradient(180deg, #0e3b52, #072331);
   border: 1px solid #0ac8b9;
   color: #0ac8b9;
@@ -49,8 +52,22 @@
   font-size: 0.85em;
 }
 .ow-root[data-ow-theme="hextech"] .ow-button:hover { box-shadow: 0 0 10px rgba(10, 200, 185, 0.5); filter: none; }
-.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="danger"] { border-color: var(--ow-color-danger); color: #ff8fa0; }
-.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="ghost"] { border-color: rgba(200, 170, 110, 0.5); color: var(--ow-color-text); background: transparent; }
+.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="danger"] {
+  background: linear-gradient(180deg, rgba(90, 24, 38, 0.9), rgba(44, 12, 20, 0.92));
+  border-color: var(--ow-color-danger);
+  color: #ff8fa0;
+}
+/* Ghost = a lighter tag: faint translucent fill + soft gold edge, so it reads as
+   a button in the same family, not weightless floating text. */
+.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="ghost"] {
+  background: linear-gradient(180deg, rgba(16, 34, 54, 0.5), rgba(8, 20, 34, 0.62));
+  border-color: rgba(200, 170, 110, 0.45);
+  color: var(--ow-color-text);
+}
+.ow-root[data-ow-theme="hextech"] .ow-button[data-ow-variant="ghost"]:hover {
+  border-color: rgba(200, 170, 110, 0.85);
+  box-shadow: 0 0 8px rgba(200, 170, 110, 0.25);
+}
 .ow-root[data-ow-theme="hextech"] .ow-slot { background: rgba(4, 14, 26, 0.9); border-color: rgba(200, 170, 110, 0.5); }
 .ow-root[data-ow-theme="hextech"] .ow-slot:hover { border-color: var(--ow-color-accent); box-shadow: 0 0 8px rgba(10, 200, 185, 0.4); }
 .ow-root[data-ow-theme="hextech"] .ow-hotbar { background: rgba(6, 12, 24, 0.9); }
