@@ -1,5 +1,12 @@
 # @overworld-engine/content
 
+## 3.0.0
+
+### Patch Changes
+
+- @overworld-engine/core@3.0.0
+- @overworld-engine/devtools@3.0.0
+
 ## 2.4.1
 
 ### Patch Changes

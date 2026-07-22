@@ -1,5 +1,25 @@
 # desktop-tauri
 
+## 1.5.8
+
+### Patch Changes
+
+- @overworld-engine/achievements@3.0.0
+- @overworld-engine/ai@3.0.0
+- @overworld-engine/core@3.0.0
+- @overworld-engine/devtools@3.0.0
+- @overworld-engine/dialogue@3.0.0
+- @overworld-engine/editor@3.0.0
+- @overworld-engine/environment@3.0.0
+- @overworld-engine/input@3.0.0
+- @overworld-engine/inventory@3.0.0
+- @overworld-engine/minimap@3.0.0
+- @overworld-engine/net@3.0.0
+- @overworld-engine/notifications@3.0.0
+- @overworld-engine/platform@3.0.0
+- @overworld-engine/quest@3.0.0
+- @overworld-engine/scene@3.0.0
+
 ## 1.5.7
 
 ### Patch Changes

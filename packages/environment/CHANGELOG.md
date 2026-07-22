@@ -1,5 +1,11 @@
 # @overworld-engine/environment
 
+## 3.0.0
+
+### Patch Changes
+
+- @overworld-engine/core@3.0.0
+
 ## 2.4.1
 
 ### Patch Changes
