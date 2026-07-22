@@ -14,9 +14,18 @@ export const ModalStory = () => {
   return (
     <>
       <Button onClick={() => setOpen(true)}>Open modal</Button>
-      <Modal open={open} onDismiss={() => setOpen(false)}>
-        <Panel title="Confirm">Backdrop click dismisses.</Panel>
-      </Modal>
+      <Modal.Root open={open} onDismiss={() => setOpen(false)}>
+        <Modal.Content>
+          <Panel title="Confirm">
+            Backdrop click dismisses.
+            <footer style={{ marginTop: 12 }}>
+              <Modal.Close asChild>
+                <Button variant="ghost">Close</Button>
+              </Modal.Close>
+            </footer>
+          </Panel>
+        </Modal.Content>
+      </Modal.Root>
     </>
   )
 }
