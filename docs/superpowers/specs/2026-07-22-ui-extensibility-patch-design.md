@@ -22,7 +22,15 @@
 
 - 新增根级 `.dependency-cruiser.cjs`：规则为 `packages/*/src` 之间禁止相互 import，`@overworld-engine/core` 除外；`examples/*`、`apps/*`、`benchmarks` 不受限（它们本来就该组合多个包）
 - 根 `package.json` 新增脚本 `"depcruise": "depcruise packages --config .dependency-cruiser.cjs"`
-- `.github/workflows/ci.yml` 的 `packages` job 里，在 `Install dependencies` 之后、`Build packages` 之前加一步 `Check package boundaries`，跑 `pnpm depcruise`
+- **依赖解析实测发现**：包间用 `@overworld-engine/xxx` 包名 import，经 pnpm workspace 符号链接解析到对应包的 `exports`/`main`（指向 `dist`），因此 depcruise 必须在 `pnpm -r build` **之后**才能正确解析；`.github/workflows/ci.yml` 的 `packages` job 里，新增的 `Check package boundaries` 步骤放在 `Build packages` 之后（与 `Typecheck packages` 同理，该 job 里 typecheck 也依赖已构建的 `dist`）
+- **已知例外（白名单，写进规则配置，不动这 4 处代码）**：
+  - `packages/inspector/src/EventBusInspector.tsx` → `@overworld-engine/devtools`
+  - `packages/content/src/validateContentPack.ts` → `@overworld-engine/devtools`
+  - `packages/adapters-weapp/src/joystick.ts` → `@overworld-engine/input`
+  - `packages/adapters-weapp/src/bridge.ts` → `@overworld-engine/platform`
+
+  这 4 处是实测跑出来的、package.json 里未声明依赖的既有跨包 import，不在本次 ui 短板修补范围内，按用户决策原样白名单放行，不修复也不补依赖声明
+- **测试文件豁免**：`**/__tests__/**` 整体排除在边界规则外——interop/contract 测试（如 `relay/src/__tests__/interop.test.ts` 测 relay+net 互通、`adapters-weapp` 的 `joystick.test.ts`/`bridge.test.ts`/`audioContract.test.ts`）合理需要引用对端真实类型，这类跨包引用只发生在测试代码里，不影响运行时产物的边界
 
 ## 2. `packages/ui/README.md`
 
