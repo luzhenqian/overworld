@@ -8,6 +8,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
+    "depcruise": "depcruise packages --config .dependency-cruiser.cjs",
     "docs:dev": "pnpm --filter docs dev",
     "docs:build": "pnpm --filter docs build",
     "docs:start": "pnpm --filter docs start",
@@ -17,11 +18,13 @@
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
+    "@changesets/cli": "^2.27.10",
     "@react-three/drei": "^9.117.0",
     "@react-three/fiber": "^8.17.10",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.170.0",
+    "dependency-cruiser": "^18.1.0",
     "jsdom": "^27.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -29,8 +32,7 @@
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",
     "vitest": "^4.0.18",
-    "zustand": "^5.0.2",
-    "@changesets/cli": "^2.27.10"
+    "zustand": "^5.0.2"
   },
   "license": "MIT"
 }
