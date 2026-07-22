@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Slot, SlotGrid } from '@overworld-engine/ui'
+import { InventorySlot, SlotGrid } from '@overworld-engine/ui'
 import { Focusable, FocusProvider, useGamepadFocus } from '@overworld-engine/ui/focus'
 
 export default { title: 'HUD / Focus' }
@@ -19,7 +19,7 @@ export const SpatialGrid = () => {
           {ITEMS.map((icon, i) => (
             <Focusable<HTMLButtonElement> key={i} onEnterPress={() => setPicked(icon)}>
               {({ ref, focused }) => (
-                <Slot ref={ref} icon={icon} selected={focused} onClick={() => setPicked(icon)} />
+                <InventorySlot ref={ref} icon={icon} selected={focused} onClick={() => setPicked(icon)} />
               )}
             </Focusable>
           ))}

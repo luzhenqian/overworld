@@ -10,10 +10,10 @@ import {
   DialogueBox,
   Hotbar,
   Hud,
+  InventorySlot,
   InventoryWindow,
   QuestLogWindow,
   QuestTracker,
-  Slot,
   ToastViewport,
   useUiStore,
 } from '@overworld-engine/ui'
@@ -70,8 +70,8 @@ export const FullHud = () => {
             </Button>
           </div>
           <Hotbar>
-            <Slot icon="🧪" quantity={5} keybind="1" onClick={() => inventory.use('potion')} />
-            <Slot keybind="2" />
+            <InventorySlot icon="🧪" quantity={5} keybind="1" onClick={() => inventory.use('potion')} />
+            <InventorySlot keybind="2" />
           </Hotbar>
         </Hud.Anchor>
         <Hud.Anchor anchor="bottom">
