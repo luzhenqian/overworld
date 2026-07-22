@@ -1,5 +1,15 @@
 # scene-authoring
 
+## 1.5.7
+
+### Patch Changes
+
+- @overworld-engine/core@2.4.1
+- @overworld-engine/devtools@2.4.1
+- @overworld-engine/editor@2.4.1
+- @overworld-engine/input@2.4.1
+- @overworld-engine/scene@2.4.1
+
 ## 1.5.6
 
 ### Patch Changes
