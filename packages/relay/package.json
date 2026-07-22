@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/relay",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Reference WebSocket relay server for @overworld-engine/net: room-scoped verbatim broadcast, heartbeat reaping",
   "type": "module",
   "main": "./dist/index.js",
