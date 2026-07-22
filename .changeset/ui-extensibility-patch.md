@@ -16,7 +16,12 @@ instead of a single component. Migrate:
 
 **Breaking:** the barrel export `Slot` (the inventory grid slot component,
 from `SlotGrid.tsx`) is renamed to `InventorySlot`. The name `Slot` now
-refers to the new asChild primitive (see below).
+refers to the new asChild primitive (see below). The corresponding type
+`SlotProps` (inventory meaning) is renamed to `InventorySlotProps` as well —
+note that `SlotProps` still resolves (to the new primitive's prop type
+instead of erroring), so consumers importing it for the inventory meaning
+will hit a type mismatch rather than a compile error, and should switch to
+`InventorySlotProps`.
 
 **Feature:** `Button` and `IconButton` accept `asChild`, rendering their
 props/ref onto a single child element instead of their own `<button>`. Backed

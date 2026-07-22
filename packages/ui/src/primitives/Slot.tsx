@@ -1,5 +1,14 @@
 import { cloneElement, forwardRef, isValidElement, type HTMLAttributes, type ReactElement, type ReactNode, type Ref } from 'react'
 
+// Ambient declaration so this file can check `process.env.NODE_ENV` without
+// depending on `@types/node` (which `packages/ui` deliberately does not
+// include). This only affects TypeScript's view of this file — at runtime,
+// Node/vitest provide a real global `process`, and in bundled browser output
+// bundlers typically replace `process.env.NODE_ENV` at build time; the
+// `typeof process !== 'undefined'` guard below prevents a ReferenceError in
+// the rare case a bundler leaves the reference untouched.
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
 export interface SlotProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode
 }
@@ -46,7 +55,11 @@ export function mergeRefs<T>(...refs: Array<Ref<T> | undefined>): (value: T | nu
  */
 export const Slot = forwardRef<HTMLElement, SlotProps>(function Slot({ children, ...slotProps }, forwardedRef) {
   if (!isValidElement(children)) {
-    console.error('<Slot> expects exactly one valid React element child; rendering children as-is.')
+    if (typeof process === 'undefined' || process?.env?.NODE_ENV !== 'production') {
+      console.error('<Slot> expects exactly one valid React element child; rendering children as-is.')
+    }
+    if (typeof forwardedRef === 'function') forwardedRef(null)
+    else if (forwardedRef) forwardedRef.current = null
     return <>{children ?? null}</>
   }
   const child = children as ReactElement<Record<string, unknown>> & PropsWithRef
