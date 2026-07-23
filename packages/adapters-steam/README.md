@@ -35,7 +35,7 @@ And grant its commands in `src-tauri/capabilities/default.json`:
 ```diff
    "permissions": [
      "core:default",
-+    "steam:default"
++    "overworld-steam:default"
    ]
 ```
 

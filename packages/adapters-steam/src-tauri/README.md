@@ -22,5 +22,5 @@ tauri::Builder::default()
     .expect("error while running tauri application");
 ```
 
-Then add `"steam:default"` to your app's `capabilities/*.json` `permissions`
+Then add `"overworld-steam:default"` to your app's `capabilities/*.json` `permissions`
 array.
