@@ -13,7 +13,7 @@ async function callInvoke<T>(
   args?: Record<string, unknown>
 ): Promise<T | undefined> {
   try {
-    return await invoke<T>(`plugin:steam|${command}`, args)
+    return await invoke<T>(`plugin:overworld-steam|${command}`, args)
   } catch (error) {
     console.error(`[overworld] adapters-steam: "${command}" failed`, error)
     return undefined

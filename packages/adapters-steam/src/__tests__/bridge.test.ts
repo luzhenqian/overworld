@@ -25,7 +25,7 @@ describe('createSteamBridge', () => {
 
     expect(result).toBe(true)
     expect(steam.isAvailable()).toBe(true)
-    expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_is_available', undefined)
+    expect(invokeMock).toHaveBeenCalledWith('plugin:overworld-steam|steam_is_available', undefined)
   })
 
   it('ready() resolves false when invoke rejects (no Tauri context / no Steam)', async () => {
@@ -54,7 +54,7 @@ describe('createSteamBridge', () => {
 
     steam.unlockAchievement('FIRST_KILL')
 
-    expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_unlock_achievement', {
+    expect(invokeMock).toHaveBeenCalledWith('plugin:overworld-steam|steam_unlock_achievement', {
       id: 'FIRST_KILL',
     })
   })
@@ -67,7 +67,7 @@ describe('createSteamBridge', () => {
 
     steam.clearAchievement('FIRST_KILL')
 
-    expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_clear_achievement', {
+    expect(invokeMock).toHaveBeenCalledWith('plugin:overworld-steam|steam_clear_achievement', {
       id: 'FIRST_KILL',
     })
   })
@@ -80,7 +80,7 @@ describe('createSteamBridge', () => {
 
     steam.setStat('enemies_killed', 3)
 
-    expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_set_stat', {
+    expect(invokeMock).toHaveBeenCalledWith('plugin:overworld-steam|steam_set_stat', {
       name: 'enemies_killed',
       value: 3,
     })
@@ -97,13 +97,13 @@ describe('createSteamBridge', () => {
     invokeMock.mockClear()
 
     steam.setRichPresence('status', 'Exploring')
-    expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_set_rich_presence', {
+    expect(invokeMock).toHaveBeenCalledWith('plugin:overworld-steam|steam_set_rich_presence', {
       key: 'status',
       value: 'Exploring',
     })
 
     steam.clearRichPresence()
-    expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_clear_rich_presence', undefined)
+    expect(invokeMock).toHaveBeenCalledWith('plugin:overworld-steam|steam_clear_rich_presence', undefined)
   })
 
   it('cloudStorage() is undefined before ready(), defined after ready() succeeds', async () => {

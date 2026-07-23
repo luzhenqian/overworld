@@ -266,10 +266,11 @@ async fn steam_clear_rich_presence(state: tauri::State<'_, SteamHandle>) -> Resu
     reply_rx.await.map_err(|e| e.to_string())
 }
 
-/// Register the `steam` Tauri plugin: spawns the dedicated Steam thread on
-/// setup and exposes the 10 commands above under `plugin:steam|<command>`.
+/// Register the `overworld-steam` Tauri plugin: spawns the dedicated Steam
+/// thread on setup and exposes the 10 commands above under
+/// `plugin:overworld-steam|<command>`.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    Builder::new("steam")
+    Builder::new("overworld-steam")
         .setup(|app, _api| {
             let tx = spawn_steam_thread();
             app.manage(SteamHandle { tx });
