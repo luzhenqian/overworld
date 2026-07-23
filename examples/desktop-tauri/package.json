@@ -26,6 +26,7 @@
     "@overworld-engine/notifications": "workspace:*",
     "@overworld-engine/quest": "workspace:*",
     "@overworld-engine/scene": "workspace:*",
+    "@overworld-engine/adapters-steam": "workspace:*",
     "@react-three/drei": "^9.117.0",
     "@react-three/fiber": "^8.17.10",
     "i18next": "^25.8.0",

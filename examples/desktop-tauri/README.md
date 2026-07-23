@@ -18,6 +18,7 @@
 | 画质 | `useQualityStore.setPreset(recommendedQualityPreset())`(桌面通常 high) |
 | 触控 | `shouldShowTouchControls()` 桌面为 false,摇杆不挂载 |
 | 外链 | `bridge.openExternal()` 走 shell 插件(系统默认浏览器) |
+| Steam | `createSteamBridge()` + `bridgeSteamAchievements()`(`@overworld-engine/adapters-steam`);非 Steam 环境自动降级为 no-op,见该包 README |
 
 ### 异步引导模式(src/main.tsx)
 

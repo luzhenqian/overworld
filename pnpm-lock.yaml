@@ -214,6 +214,9 @@ importers:
       '@overworld-engine/achievements':
         specifier: workspace:*
         version: link:../../packages/achievements
+      '@overworld-engine/adapters-steam':
+        specifier: workspace:*
+        version: link:../../packages/adapters-steam
       '@overworld-engine/ai':
         specifier: workspace:*
         version: link:../../packages/ai
