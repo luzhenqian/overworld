@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-clear-achievement"
+description = "Enables the steam_clear_achievement command without any pre-configured scope."
+commands.allow = ["steam_clear_achievement"]
+
+[[permission]]
+identifier = "deny-steam-clear-achievement"
+description = "Denies the steam_clear_achievement command without any pre-configured scope."
+commands.deny = ["steam_clear_achievement"]

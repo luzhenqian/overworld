@@ -1,0 +1,16 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Allows all Steam bridge commands: achievements, cloud storage, and rich presence."
+permissions = [
+  "allow-steam-is-available",
+  "allow-steam-unlock-achievement",
+  "allow-steam-clear-achievement",
+  "allow-steam-set-stat",
+  "allow-steam-cloud-read",
+  "allow-steam-cloud-write",
+  "allow-steam-cloud-delete",
+  "allow-steam-cloud-list",
+  "allow-steam-set-rich-presence",
+  "allow-steam-clear-rich-presence",
+]

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-cloud-read"
+description = "Enables the steam_cloud_read command without any pre-configured scope."
+commands.allow = ["steam_cloud_read"]
+
+[[permission]]
+identifier = "deny-steam-cloud-read"
+description = "Denies the steam_cloud_read command without any pre-configured scope."
+commands.deny = ["steam_cloud_read"]

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-set-rich-presence"
+description = "Enables the steam_set_rich_presence command without any pre-configured scope."
+commands.allow = ["steam_set_rich_presence"]
+
+[[permission]]
+identifier = "deny-steam-set-rich-presence"
+description = "Denies the steam_set_rich_presence command without any pre-configured scope."
+commands.deny = ["steam_set_rich_presence"]

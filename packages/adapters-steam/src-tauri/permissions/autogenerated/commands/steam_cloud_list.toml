@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-cloud-list"
+description = "Enables the steam_cloud_list command without any pre-configured scope."
+commands.allow = ["steam_cloud_list"]
+
+[[permission]]
+identifier = "deny-steam-cloud-list"
+description = "Denies the steam_cloud_list command without any pre-configured scope."
+commands.deny = ["steam_cloud_list"]

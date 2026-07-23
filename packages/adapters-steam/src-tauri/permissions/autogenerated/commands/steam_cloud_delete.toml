@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-cloud-delete"
+description = "Enables the steam_cloud_delete command without any pre-configured scope."
+commands.allow = ["steam_cloud_delete"]
+
+[[permission]]
+identifier = "deny-steam-cloud-delete"
+description = "Denies the steam_cloud_delete command without any pre-configured scope."
+commands.deny = ["steam_cloud_delete"]

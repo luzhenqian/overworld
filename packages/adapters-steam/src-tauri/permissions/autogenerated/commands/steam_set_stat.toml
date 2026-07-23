@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-set-stat"
+description = "Enables the steam_set_stat command without any pre-configured scope."
+commands.allow = ["steam_set_stat"]
+
+[[permission]]
+identifier = "deny-steam-set-stat"
+description = "Denies the steam_set_stat command without any pre-configured scope."
+commands.deny = ["steam_set_stat"]

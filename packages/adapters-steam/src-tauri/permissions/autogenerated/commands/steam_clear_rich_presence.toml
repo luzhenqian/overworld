@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-steam-clear-rich-presence"
+description = "Enables the steam_clear_rich_presence command without any pre-configured scope."
+commands.allow = ["steam_clear_rich_presence"]
+
+[[permission]]
+identifier = "deny-steam-clear-rich-presence"
+description = "Denies the steam_clear_rich_presence command without any pre-configured scope."
+commands.deny = ["steam_clear_rich_presence"]

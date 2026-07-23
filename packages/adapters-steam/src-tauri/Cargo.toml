@@ -1,0 +1,24 @@
+[package]
+name = "overworld-steam"
+links = "overworld-steam"
+version = "0.1.0"
+description = "Tauri 2 plugin bridging the Steamworks SDK (achievements, Steam Cloud saves, Rich Presence) for Overworld game engine apps"
+authors = ["Overworld"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/luzhenqian/overworld"
+readme = "README.md"
+keywords = ["tauri-plugin", "steam", "steamworks", "gamedev"]
+categories = ["game-development"]
+
+[lib]
+name = "overworld_steam"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+steamworks = "0.13"
+tokio = { version = "1", features = ["sync"] }
