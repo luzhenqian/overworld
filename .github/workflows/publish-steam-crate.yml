@@ -16,20 +16,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          override: true
 
       - name: Check whether this version is already published
         id: version-check
         working-directory: packages/adapters-steam/src-tauri
         run: |
           CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
-          if cargo search overworld-steam --limit 1 | grep -q "\"$CRATE_VERSION\""; then
+          HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'User-Agent: overworld-steam-ci (https://github.com/luzhenqian/overworld)' \
+            "https://crates.io/api/v1/crates/overworld-steam/$CRATE_VERSION")
+          if [ "$HTTP_STATUS" = "200" ]; then
             echo "already_published=true" >> "$GITHUB_OUTPUT"
-          else
+          elif [ "$HTTP_STATUS" = "404" ]; then
             echo "already_published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unexpected HTTP status $HTTP_STATUS from crates.io API" >&2
+            exit 1
           fi
 
       - name: Publish to crates.io
