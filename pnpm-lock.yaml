@@ -868,6 +868,16 @@ importers:
         specifier: ^5.0.0
         version: 5.0.14(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
 
+  packages/adapters-steam:
+    dependencies:
+      '@overworld-engine/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@tauri-apps/api':
+        specifier: ^2.11.0
+        version: 2.11.1
+
   packages/adapters-weapp:
     dependencies:
       '@overworld-engine/core':
