@@ -1,0 +1,38 @@
+name: Publish Steam crate
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/adapters-steam/src-tauri/**'
+
+jobs:
+  publish:
+    name: cargo publish overworld-steam
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Check whether this version is already published
+        id: version-check
+        working-directory: packages/adapters-steam/src-tauri
+        run: |
+          CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          if cargo search overworld-steam --limit 1 | grep -q "\"$CRATE_VERSION\""; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to crates.io
+        if: steps.version-check.outputs.already_published == 'false'
+        working-directory: packages/adapters-steam/src-tauri
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
