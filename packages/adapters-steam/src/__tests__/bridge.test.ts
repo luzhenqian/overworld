@@ -105,4 +105,24 @@ describe('createSteamBridge', () => {
     steam.clearRichPresence()
     expect(invokeMock).toHaveBeenCalledWith('plugin:steam|steam_clear_rich_presence', undefined)
   })
+
+  it('cloudStorage() is undefined before ready(), defined after ready() succeeds', async () => {
+    const steam = createSteamBridge()
+    expect(steam.cloudStorage()).toBeUndefined()
+
+    invokeMock.mockResolvedValueOnce(true) // steam_is_available
+    invokeMock.mockResolvedValueOnce([]) // steam_cloud_list (hydration, empty)
+    await steam.ready()
+
+    expect(steam.cloudStorage()).toBeDefined()
+    expect(steam.cloudStorage()?.keys()).toEqual([])
+  })
+
+  it('cloudStorage() stays undefined when ready() fails', async () => {
+    invokeMock.mockRejectedValueOnce(new Error('no Tauri context'))
+    const steam = createSteamBridge()
+    await steam.ready()
+
+    expect(steam.cloudStorage()).toBeUndefined()
+  })
 })

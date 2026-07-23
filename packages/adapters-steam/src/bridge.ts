@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { createSteamCloudStorage } from './cloudStorage'
 import type { SteamBridge, SteamFlushableStorage } from './types'
 
 /**
@@ -34,6 +35,9 @@ export function createSteamBridge(): SteamBridge {
     async ready() {
       const result = await callInvoke<boolean>('steam_is_available')
       available = result === true
+      if (available) {
+        cloudStorage = await createSteamCloudStorage(callInvoke)
+      }
       return available
     },
 
