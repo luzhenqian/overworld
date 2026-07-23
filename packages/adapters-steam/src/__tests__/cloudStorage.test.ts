@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createSteamCloudStorage } from '../cloudStorage'
+import { createSteamCloudStorage, type InvokeFn } from '../cloudStorage'
 
 describe('createSteamCloudStorage', () => {
   it('hydrates existing keys via steam_cloud_list + steam_cloud_read', async () => {
@@ -7,7 +7,7 @@ describe('createSteamCloudStorage', () => {
       if (command === 'steam_cloud_list') return ['overworld:quest']
       if (command === 'steam_cloud_read' && args?.key === 'overworld:quest') return '{"a":1}'
       throw new Error(`unexpected call: ${command}`)
-    })
+    }) as InvokeFn
 
     const storage = await createSteamCloudStorage(callInvoke)
 
@@ -25,7 +25,7 @@ describe('createSteamCloudStorage', () => {
         return undefined
       }
       throw new Error(`unexpected call: ${command}`)
-    })
+    }) as InvokeFn
 
     const storage = await createSteamCloudStorage(callInvoke)
     storage.setItem('overworld:inventory', '{"b":2}')
@@ -47,7 +47,7 @@ describe('createSteamCloudStorage', () => {
         return undefined
       }
       throw new Error(`unexpected call: ${command}`)
-    })
+    }) as InvokeFn
 
     const storage = await createSteamCloudStorage(callInvoke)
     storage.removeItem('overworld:quest')
@@ -61,7 +61,7 @@ describe('createSteamCloudStorage', () => {
     const callInvoke = vi.fn(async (command: string) => {
       if (command === 'steam_cloud_list') return []
       throw new Error(`unexpected call: ${command}`)
-    })
+    }) as InvokeFn
 
     const storage = await createSteamCloudStorage(callInvoke)
     storage.removeItem('never-existed')
