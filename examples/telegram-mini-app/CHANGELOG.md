@@ -1,5 +1,26 @@
 # telegram-mini-app
 
+## 1.5.10
+
+### Patch Changes
+
+- Updated dependencies [bb73ebf]
+  - @overworld-engine/core@3.2.0
+  - @overworld-engine/achievements@3.2.0
+  - @overworld-engine/ai@3.2.0
+  - @overworld-engine/devtools@3.2.0
+  - @overworld-engine/dialogue@3.2.0
+  - @overworld-engine/editor@3.2.0
+  - @overworld-engine/environment@3.2.0
+  - @overworld-engine/input@3.2.0
+  - @overworld-engine/inventory@3.2.0
+  - @overworld-engine/minimap@3.2.0
+  - @overworld-engine/net@3.2.0
+  - @overworld-engine/platform@3.2.0
+  - @overworld-engine/quest@3.2.0
+  - @overworld-engine/scene@3.2.0
+  - @overworld-engine/notifications@3.2.0
+
 ## 1.5.9
 
 ### Patch Changes

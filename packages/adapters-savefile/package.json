@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/adapters-savefile",
-  "version": "0.1.0",
+  "version": "3.2.0",
   "description": "Tauri adapter for Overworld: a hardened atomic-file-with-backups primitive (temp write, fsync, rotating backups, atomic rename) for desktop game saves",
   "type": "module",
   "main": "./dist/index.js",

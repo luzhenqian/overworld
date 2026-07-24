@@ -1,5 +1,13 @@
 # @overworld-engine/inspector
 
+## 3.2.0
+
+### Patch Changes
+
+- Updated dependencies [bb73ebf]
+  - @overworld-engine/core@3.2.0
+  - @overworld-engine/devtools@3.2.0
+
 ## 3.1.0
 
 ### Patch Changes

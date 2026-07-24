@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/test-kit",
-  "version": "0.1.0",
+  "version": "3.2.0",
   "description": "App-layer integration-test primitives for Overworld games: deterministic event recording and React-hook-wiring checks — not a rendering/E2E framework",
   "type": "module",
   "main": "./dist/index.js",

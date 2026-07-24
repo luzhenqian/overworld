@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/adapters-steam",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Steam adapter for Overworld: Steamworks achievements, cloud saves, and Rich Presence bridged into a Tauri desktop shell",
   "type": "module",
   "main": "./dist/index.js",

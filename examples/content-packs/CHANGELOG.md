@@ -1,5 +1,19 @@
 # content-packs
 
+## 1.5.10
+
+### Patch Changes
+
+- Updated dependencies [bb73ebf]
+  - @overworld-engine/core@3.2.0
+  - @overworld-engine/achievements@3.2.0
+  - @overworld-engine/content@3.2.0
+  - @overworld-engine/devtools@3.2.0
+  - @overworld-engine/dialogue@3.2.0
+  - @overworld-engine/inventory@3.2.0
+  - @overworld-engine/quest@3.2.0
+  - @overworld-engine/scene@3.2.0
+
 ## 1.5.9
 
 ### Patch Changes
