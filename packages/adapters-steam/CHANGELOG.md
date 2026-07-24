@@ -1,5 +1,12 @@
 # @overworld-engine/adapters-steam
 
+## 3.2.0
+
+### Patch Changes
+
+- Updated dependencies [bb73ebf]
+  - @overworld-engine/core@3.2.0
+
 ## 3.1.0
 
 ### Minor Changes
