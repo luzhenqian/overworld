@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'packages/adapters-steam/src-tauri/**'
+  workflow_dispatch: {}
 
 jobs:
   publish:
@@ -19,6 +20,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+
+      - name: Install Linux dependencies (Tauri build requirements)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Check whether this version is already published
         id: version-check
