@@ -2,6 +2,9 @@ import {
   createConditionRegistry,
   createEffectRegistry,
   gameEvents,
+  EventBus,
+  type OverworldEventMap,
+  type RngSource,
 } from '@overworld-engine/core'
 import { createDialogueEngine, relationshipEffects } from '@overworld-engine/dialogue'
 import { createQuestEngine } from '@overworld-engine/quest'
@@ -22,16 +25,50 @@ import {
   playerRotationRef,
   useQualityStore,
 } from '@overworld-engine/scene'
-import { ACHIEVEMENTS, DIALOGUES, ITEMS, NPC_DIALOGUES, QUESTS } from './content'
+import { ACHIEVEMENTS, DIALOGUES, ITEMS, LOOT_POOL, NPC_DIALOGUES, QUESTS } from './content'
 import { useGoldStore } from './gold'
+import { createLootTable } from './loot'
 
 /**
  * Engine wiring — the only place where content, registries and engines meet.
  * `persist: false` keeps the demo stateless across reloads.
  */
 
-export const conditions = createConditionRegistry()
-export const effects = createEffectRegistry()
+/**
+ * Build the deterministic, testable core of the demo: the quest/inventory
+ * engines, their shared condition/effect registries, and the loot table —
+ * all threaded through one event bus.
+ *
+ * Defaults produce a fresh, isolated bus and real (`Math.random`-backed)
+ * loot rolls — safe to call repeatedly with zero cross-call leakage. Pass
+ * `{ events: gameEvents }` for the production singleton below (so it stays
+ * on the same bus every other package in this app uses), or
+ * `{ rng: createSeededRng(seed) }` from a test for byte-identical,
+ * reproducible results (see `@overworld-engine/test-kit`).
+ */
+export function createEngines(overrides?: {
+  events?: EventBus<OverworldEventMap>
+  rng?: RngSource
+}) {
+  const events = overrides?.events ?? new EventBus<OverworldEventMap>()
+  const rng = overrides?.rng ?? { next: Math.random }
+
+  const conditions = createConditionRegistry()
+  const effects = createEffectRegistry()
+
+  const quests = createQuestEngine({ quests: QUESTS, conditions, effects, events, persist: false })
+  const inventory = createInventory({ items: ITEMS, effects, events })
+  const loot = createLootTable(LOOT_POOL, { rng })
+
+  effects.register('loot.random', () => {
+    inventory.add(loot.roll(), 1)
+  })
+
+  return { events, rng, conditions, effects, quests, inventory, loot }
+}
+
+const engines = createEngines({ events: gameEvents })
+export const { conditions, effects, quests, inventory, loot } = engines
 
 export const dialogue = createDialogueEngine({
   dialogues: DIALOGUES,
@@ -40,19 +77,7 @@ export const dialogue = createDialogueEngine({
   persist: false,
 })
 
-export const quests = createQuestEngine({
-  quests: QUESTS,
-  conditions,
-  effects,
-  persist: false,
-})
-
 // inventory/achievements 的持久化是可选配置,省略即不持久化
-export const inventory = createInventory({
-  items: ITEMS,
-  effects,
-})
-
 export const achievements = createAchievements({
   definitions: ACHIEVEMENTS,
   effects,

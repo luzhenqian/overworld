@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`engine wiring: completing gather-crystals grants a deterministic loot roll > emits quest:completed and adds a deterministic reward item to the inventory 1`] = `
+[
+  {
+    "itemId": "crystal",
+    "quantity": 4,
+  },
+]
+`;
