@@ -1,5 +1,13 @@
 # @overworld-engine/adapters-weapp
 
+## 3.1.0
+
+### Patch Changes
+
+- @overworld-engine/core@3.1.0
+- @overworld-engine/input@3.1.0
+- @overworld-engine/platform@3.1.0
+
 ## 3.0.0
 
 ### Patch Changes

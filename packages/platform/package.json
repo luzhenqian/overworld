@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/platform",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Runtime platform detection and capability bridges (web/telegram/tauri/capacitor/weapp) for Overworld games",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/ai",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Grid A* pathfinding and NPC steering behaviors (patrol/wander/follow) for Overworld games",
   "keywords": [
     "overworld",

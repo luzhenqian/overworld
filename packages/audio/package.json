@@ -1,6 +1,6 @@
 {
   "name": "@overworld-engine/audio",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "BGM/SFX manager with scene-track mapping and autoplay policy handling",
   "keywords": [
     "overworld",

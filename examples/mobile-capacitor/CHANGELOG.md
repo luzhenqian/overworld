@@ -1,5 +1,25 @@
 # mobile-capacitor
 
+## 1.5.9
+
+### Patch Changes
+
+- @overworld-engine/achievements@3.1.0
+- @overworld-engine/ai@3.1.0
+- @overworld-engine/core@3.1.0
+- @overworld-engine/devtools@3.1.0
+- @overworld-engine/dialogue@3.1.0
+- @overworld-engine/editor@3.1.0
+- @overworld-engine/environment@3.1.0
+- @overworld-engine/input@3.1.0
+- @overworld-engine/inventory@3.1.0
+- @overworld-engine/minimap@3.1.0
+- @overworld-engine/net@3.1.0
+- @overworld-engine/notifications@3.1.0
+- @overworld-engine/platform@3.1.0
+- @overworld-engine/quest@3.1.0
+- @overworld-engine/scene@3.1.0
+
 ## 1.5.8
 
 ### Patch Changes
