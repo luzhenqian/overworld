@@ -58,6 +58,25 @@ describe('recoverSlot', () => {
     ])
   })
 
+  it('falls back to backup1 when reading current throws (e.g. a permission/I-O error)', async () => {
+    const base = createInMemoryBackend()
+    await commitSlot(base, 'slot', enc('gen1'))
+    await commitSlot(base, 'slot', enc('gen0'))
+
+    const throwing = {
+      ...base,
+      async readFile(path: string) {
+        if (path === 'slot') throw new Error('EACCES: permission denied')
+        return base.readFile(path)
+      },
+    }
+
+    const outcome = await recoverSlot(throwing, 'slot')
+    expect(outcome.result?.source).toBe('backup1')
+    expect(dec(outcome.result!.bytes)).toBe('gen1')
+    expect(outcome.failures).toEqual([{ path: 'slot', reason: 'read-error' }])
+  })
+
   it('honors a caller-supplied isValid, falling back past a physically-valid generation', async () => {
     const backend = createInMemoryBackend()
     await commitSlot(backend, 'slot', enc('good-business-data'))

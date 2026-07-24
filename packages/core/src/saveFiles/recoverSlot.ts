@@ -10,7 +10,7 @@ export interface RecoverResult {
 
 export interface RecoverFailure {
   path: string
-  reason: 'missing' | 'envelope-invalid' | 'validator-rejected'
+  reason: 'missing' | 'envelope-invalid' | 'validator-rejected' | 'read-error'
 }
 
 export interface RecoverOutcome {
@@ -31,6 +31,13 @@ export interface RecoverSlotOptions {
  * optional caller-supplied `isValid`. Every rejected candidate is recorded
  * in `failures`, in order, so callers can surface "recovered from backup 2"
  * style messaging.
+ *
+ * A `readFile` that *throws* (permission error, locked file, I/O error —
+ * anything other than "file doesn't exist") is treated the same as any
+ * other rejected candidate: it's recorded as a `'read-error'` failure and
+ * the walk continues to the next generation, rather than aborting the
+ * entire recovery. Surviving exactly this class of failure is the point of
+ * having a backup chain.
  */
 export async function recoverSlot(
   backend: AtomicFileBackend,
@@ -46,7 +53,13 @@ export async function recoverSlot(
   }
 
   for (const candidate of candidates) {
-    const raw = await backend.readFile(candidate.path)
+    let raw: Uint8Array | null
+    try {
+      raw = await backend.readFile(candidate.path)
+    } catch {
+      failures.push({ path: candidate.path, reason: 'read-error' })
+      continue
+    }
     if (raw === null) {
       failures.push({ path: candidate.path, reason: 'missing' })
       continue
