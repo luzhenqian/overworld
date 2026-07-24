@@ -1,0 +1,53 @@
+{
+  "name": "@overworld-engine/test-kit",
+  "version": "0.1.0",
+  "description": "App-layer integration-test primitives for Overworld games: deterministic event recording and React-hook-wiring checks — not a rendering/E2E framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@overworld-engine/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-test-renderer": "^18.0.0"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "react-test-renderer": "^18.3.1",
+    "@types/react": "^18.3.12",
+    "@types/react-test-renderer": "^18.3.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "overworld",
+    "game",
+    "rpg",
+    "testing"
+  ],
+  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luzhenqian/overworld.git",
+    "directory": "packages/test-kit"
+  }
+}
