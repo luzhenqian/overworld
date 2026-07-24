@@ -32,3 +32,18 @@ export type {
   SaveSlots,
   SaveSlotsConfig,
 } from './saveSlots'
+export {
+  commitSlot,
+  recoverSlot,
+  wrapEnvelope,
+  unwrapEnvelope,
+  bytesEqual,
+} from './saveFiles'
+export type {
+  AtomicFileBackend,
+  CommitSlotOptions,
+  RecoverResult,
+  RecoverFailure,
+  RecoverOutcome,
+  RecoverSlotOptions,
+} from './saveFiles'

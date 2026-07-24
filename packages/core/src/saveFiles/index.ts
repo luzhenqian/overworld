@@ -1,0 +1,6 @@
+export type { AtomicFileBackend } from './types'
+export { commitSlot } from './commitSlot'
+export type { CommitSlotOptions } from './commitSlot'
+export { recoverSlot } from './recoverSlot'
+export type { RecoverResult, RecoverFailure, RecoverOutcome, RecoverSlotOptions } from './recoverSlot'
+export { wrapEnvelope, unwrapEnvelope, bytesEqual } from './envelope'
