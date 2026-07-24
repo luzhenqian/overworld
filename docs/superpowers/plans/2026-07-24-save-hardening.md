@@ -244,7 +244,9 @@ describe('commitSlot', () => {
 
     expect(await dec(backend, 'slot')).toBe('gen0')
     expect(await backend.exists('slot.bak1')).toBe(false)
-    expect(await backend.exists('slot.tmp')).toBe(true) // tmp is left in place, harmless
+    // renameFile(tmp, path) consumes its source (real POSIX rename semantics),
+    // so after a successful commit slot.tmp no longer exists.
+    expect(await backend.exists('slot.tmp')).toBe(false)
   })
 
   it('rotates backups across three generations (default backupCount=2)', async () => {

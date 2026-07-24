@@ -13,7 +13,7 @@ const DIGEST_LENGTH = 32
 const HEADER_LENGTH = MAGIC.length + 1 + 4 + DIGEST_LENGTH // 41
 
 async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as BufferSource))
 }
 
 /** Byte-for-byte equality; used for digest comparison and read-back verification. */

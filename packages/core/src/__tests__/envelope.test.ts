@@ -30,7 +30,8 @@ describe('wrapEnvelope / unwrapEnvelope', () => {
 
   it('rejects a bit-flipped payload (checksum mismatch)', async () => {
     const envelope = await wrapEnvelope(new TextEncoder().encode('data'))
-    envelope[envelope.length - 1] ^= 0xff
+    const lastIndex = envelope.length - 1
+    envelope[lastIndex] = (envelope[lastIndex] ?? 0) ^ 0xff
     expect(await unwrapEnvelope(envelope)).toBeNull()
   })
 
