@@ -47,3 +47,5 @@ export type {
   RecoverOutcome,
   RecoverSlotOptions,
 } from './saveFiles'
+export { createSeededRng } from './rng'
+export type { RngSource } from './rng'
