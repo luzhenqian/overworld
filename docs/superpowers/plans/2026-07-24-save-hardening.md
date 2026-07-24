@@ -444,8 +444,10 @@ describe('recoverSlot', () => {
 
   it('falls back to backup1 when current is missing, reporting the failure', async () => {
     const backend = createInMemoryBackend()
-    await commitSlot(backend, 'slot', enc('gen0'))
+    // gen1 first, gen0 second: after both commits, current=gen0 and
+    // backup1=gen1 (commitSlot rotates the prior current into backup1).
     await commitSlot(backend, 'slot', enc('gen1'))
+    await commitSlot(backend, 'slot', enc('gen0'))
     await backend.deleteFile('slot')
 
     const outcome = await recoverSlot(backend, 'slot')
@@ -485,8 +487,10 @@ describe('recoverSlot', () => {
 
   it('honors a caller-supplied isValid, falling back past a physically-valid generation', async () => {
     const backend = createInMemoryBackend()
-    await commitSlot(backend, 'slot', enc('bad-business-data'))
+    // good data first, bad data second: after both commits, current=bad
+    // and backup1=good (commitSlot rotates the prior current into backup1).
     await commitSlot(backend, 'slot', enc('good-business-data'))
+    await commitSlot(backend, 'slot', enc('bad-business-data'))
 
     const outcome = await recoverSlot(backend, 'slot', {
       isValid: (bytes) => dec(bytes) === 'good-business-data',
