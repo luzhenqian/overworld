@@ -6,11 +6,24 @@ use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{AppHandle, Manager, Runtime};
 
 /// Resolve a caller-supplied relative path against the app's `AppData`
-/// directory, rejecting `..` components so this plugin can only ever touch
-/// files inside that directory.
+/// directory, rejecting `..`, absolute-root, and Windows-prefix components
+/// so this plugin can only ever touch files inside that directory.
+///
+/// This must reject more than just `ParentDir`: `PathBuf::join` REPLACES the
+/// base entirely when the joined path is itself absolute (e.g.
+/// `base.join("/etc/passwd")` returns `/etc/passwd`, and on Windows
+/// `base.join("C:\\Windows\\...")` returns the drive-rooted path), which
+/// would otherwise escape the AppData confinement entirely.
 fn resolve_path<R: Runtime>(app: &AppHandle<R>, path: &str) -> Result<PathBuf, String> {
-    if Path::new(path).components().any(|c| c == Component::ParentDir) {
-        return Err(format!("path must not contain '..': {path}"));
+    if Path::new(path).components().any(|c| {
+        matches!(
+            c,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    }) {
+        return Err(format!(
+            "path must be relative, no '..' or absolute roots: {path}"
+        ));
     }
     let base = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(base.join(path))
