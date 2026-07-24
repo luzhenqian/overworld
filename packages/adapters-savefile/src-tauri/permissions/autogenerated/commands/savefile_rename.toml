@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-savefile-rename"
+description = "Enables the savefile_rename command without any pre-configured scope."
+commands.allow = ["savefile_rename"]
+
+[[permission]]
+identifier = "deny-savefile-rename"
+description = "Denies the savefile_rename command without any pre-configured scope."
+commands.deny = ["savefile_rename"]

@@ -1,0 +1,23 @@
+[package]
+name = "overworld-savefile"
+links = "overworld-savefile"
+version = "0.1.0"
+description = "Tauri 2 plugin providing a hardened atomic-file-with-backups primitive (temp write, fsync, atomic rename) for Overworld game saves"
+authors = ["Overworld"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/luzhenqian/overworld"
+readme = "README.md"
+keywords = ["tauri-plugin", "savegame", "atomic-write", "gamedev"]
+categories = ["game-development", "filesystem"]
+
+[lib]
+name = "overworld_savefile"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+base64 = "0.22"

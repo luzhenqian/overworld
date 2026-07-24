@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-savefile-write"
+description = "Enables the savefile_write command without any pre-configured scope."
+commands.allow = ["savefile_write"]
+
+[[permission]]
+identifier = "deny-savefile-write"
+description = "Denies the savefile_write command without any pre-configured scope."
+commands.deny = ["savefile_write"]

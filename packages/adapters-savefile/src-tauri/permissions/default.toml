@@ -1,0 +1,12 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Allows all savefile primitive commands: write, sync, rename, read, delete, exists."
+permissions = [
+  "allow-savefile-write",
+  "allow-savefile-sync",
+  "allow-savefile-rename",
+  "allow-savefile-read",
+  "allow-savefile-delete",
+  "allow-savefile-exists",
+]
