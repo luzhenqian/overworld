@@ -36,5 +36,9 @@ export type {
 export { APP_EVENTS } from './events'
 export type { AppEventName } from './events'
 
+// Save-file primitive backend (web)
+export { createWebSaveFileBackend } from './webSaveFileBackend'
+export type { WebSaveFileBackendOptions } from './webSaveFileBackend'
+
 // React (optional; requires the react peer)
 export { usePlatform } from './react'
