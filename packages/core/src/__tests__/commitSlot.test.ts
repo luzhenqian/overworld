@@ -66,6 +66,14 @@ describe('commitSlot', () => {
     expect(await backend_bak1_absent(base)).toBe(true)
   })
 
+  // This proves "some valid generation always survives" (the crash-safety
+  // invariant recoverSlot depends on), not "the rotation order itself is
+  // correct" — a badly-reordered rotation could still leave *a* valid
+  // generation reachable via the backup chain while silently corrupting
+  // which generation ends up where. The sibling tests above ('writes the
+  // first generation as current', 'rotates backups across three
+  // generations') are what pin the rotation order; this test and those are
+  // meant to be read together, not as substitutes for each other.
   it('always leaves a recoverable generation no matter which single backend call is interrupted', async () => {
     // Learn how many backend calls one commitSlot makes once two prior
     // generations already exist — the branch that exercises every rotation step.
