@@ -45,6 +45,16 @@ import { createLootTable } from './loot'
  * on the same bus every other package in this app uses), or
  * `{ rng: createSeededRng(seed) }` from a test for byte-identical,
  * reproducible results (see `@overworld-engine/test-kit`).
+ *
+ * Caveat: only `loot.random` is registered inside this factory. `gold.add`,
+ * `quest.start`, and the dialogue relationship effects (plus the
+ * `quest.completed`/`gold.atLeast` conditions) are registered later, at
+ * module scope, against the production singleton returned below — not
+ * against a fresh `createEngines()` instance. A test that calls
+ * `createEngines(...)` directly gets `effects`/`conditions` registries
+ * containing only `loot.random`; effects on unregistered types are
+ * silently skipped (with a console warning), not errored, so register
+ * whatever else your test needs on the returned `effects`/`conditions`.
  */
 export function createEngines(overrides?: {
   events?: EventBus<OverworldEventMap>
