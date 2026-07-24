@@ -203,6 +203,24 @@ wire key(`overworld:slots:slot-a` ⇄ `overworld_003Aslots_003Aslot_002Da`),
 槽位与 live 存档都能跨设备同步。恢复只改写存储,已 hydrate 的 zustand store
 需刷新页面或 `persist.rehydrate()` 才反映(见 core 包的水合警告)。
 
+### Web 存档原语(`AtomicFileBackend`,可选升级)
+
+`createWebSaveFileBackend(options?: { prefix? })` 实现 [`core` 包](/docs/packages/core)
+的 `AtomicFileBackend`,基于 `localStorage`,配合 `commitSlot`/`recoverSlot` 使用:
+
+```ts
+import { createWebSaveFileBackend } from '@overworld-engine/platform'
+import { commitSlot, recoverSlot } from '@overworld-engine/core'
+
+const backend = createWebSaveFileBackend()
+await commitSlot(backend, 'saves/slot-1', payloadBytes)
+const outcome = await recoverSlot(backend, 'saves/slot-1')
+```
+
+`syncFile` 是 no-op——浏览器没有 fsync 等价物,`localStorage.setItem` 本身
+同步落盘,没有额外的"刷盘"步骤可触发。桌面壳的等价实现(真正调用系统
+`fsync`)见 `@overworld-engine/adapters-savefile`。
+
 ## app:* 事件(经 declaration merging 并入框架事件表)
 
 - `app:paused` — 切后台 / 失焦 / 小程序 onHide / 关窗(空负载)

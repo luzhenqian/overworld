@@ -63,6 +63,59 @@ create<State>()(persist(initializer, persistOptions({ name: 'inventory', version
 - `createRestStorage(config)` — 异步 REST 云存档适配器(按 key 尾沿防抖、404=null、`flush()` 关页前落盘)。
 - `createSaveSlots(config)` — 多存档位:live 快照/恢复与命名槽位(`saveTo/loadFrom/listSlots/deleteSlot/clearCurrent`),槽位存于 `overworld:slots:<name>`。可注入 `clock`(`() => number`,默认 `Date.now`)提供 `savedAt` 时间戳——同 seed 重放需注入 clock;引擎值层面无 `Math.random`。
 
+## 存档文件原语(saveFiles)
+
+业务无关的"原子文件 + 轮换备份"原语:临时写入 → fsync → 读回校验 → 备份轮换 →
+原子重命名替换,配合信封校验(magic + 长度 + SHA-256)抓物理损坏。**不含存档头部
+业务字段**(schema_version/rng_roots 等)——那是调用方自己的存档格式。
+
+```ts
+import { commitSlot, recoverSlot, type AtomicFileBackend } from '@overworld-engine/core'
+
+declare const backend: AtomicFileBackend // 见下方后端实现
+
+await commitSlot(backend, 'saves/slot-1', payloadBytes) // 默认保留 2 份轮换备份
+const outcome = await recoverSlot(backend, 'saves/slot-1', {
+  isValid: (bytes) => yourOwnHeaderChecksumPasses(bytes), // 可选:叠加业务级校验
+})
+if (outcome.result) {
+  console.log(`从 ${outcome.result.source} 恢复`) // 'current' | 'backup1' | 'backup2' | ...
+}
+```
+
+- `AtomicFileBackend` — 六个无业务语义的原子操作(`writeFile`/`syncFile`/
+  `renameFile`/`readFile`/`deleteFile`/`exists`),`core` 本身不提供实现,只编排
+  协议。桌面壳用 `@overworld-engine/adapters-savefile` 的
+  `createTauriSaveFileBackend()`(真正调用系统 `fsync`,Tauri 官方
+  `plugin-fs` 的 JS API 不暴露这个能力);Web 用
+  `@overworld-engine/platform` 的 `createWebSaveFileBackend()`(`syncFile`
+  是 no-op——浏览器没有 fsync 等价物)。
+- `commitSlot(backend, path, bytes, { backupCount? })` — 崩溃安全的核心不变式:
+  `renameFile` 在文件系统层是单一原子操作,任意时刻中断,`path` 永远指向"上一个
+  完整代"或"新的完整代",不存在半份文件。
+- `recoverSlot(backend, path, { backupCount?, isValid? })` — 按 `current →
+  backup1 → backup2 → ...` 新到旧扫描,返回第一个通过校验的代 + 之前每一代的失败
+  原因(`missing`/`envelope-invalid`/`validator-rejected`/`read-error`)。
+
+详见 `docs/superpowers/specs/2026-07-24-save-hardening-design.md`。
+
+## 可注入种子的 RNG(rng)
+
+```ts
+import { createSeededRng, type RngSource } from '@overworld-engine/core'
+
+function createLootTable(pool: LootEntry[], options?: { rng?: RngSource }) {
+  // 生产环境传 { next: Math.random };测试传 createSeededRng(seed) 求可复现结果
+}
+```
+
+- `RngSource` — 单方法接口 `{ next(): number }`(返回 `[0, 1)`)。任何需要
+  "可复现随机性"的构造函数都应该把它当可选依赖接受,而不是内部裸调
+  `Math.random()`。
+- `createSeededRng(seed)` — mulberry32,零依赖,不追求密码学强度,只保证同种子
+  同序列。配合 `@overworld-engine/test-kit` 的事件录制/hook 挂载原语,可以脱离
+  渲染层驱动整套引擎装配做确定性集成测试。
+
 ## 公共类型
 
 `Vec3`、`EntityKind`、`EntityRef`、`EffectRef`/`ConditionRef`、

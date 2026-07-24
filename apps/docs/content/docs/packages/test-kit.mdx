@@ -1,0 +1,88 @@
+---
+title: '@overworld-engine/test-kit'
+description: App 层集成测试原语:确定性事件录制 + React hook 接线检查
+---
+
+抓"store ↔ 事件总线 ↔ React 接线"这一层的 bug——内核单测和对拍金测都测不到,
+因为它们不经过 app 层的 store→React→引擎装配。典型场景:一个构造函数漏传了
+某个必需依赖(比如随机数源),第一次真正用到时才崩溃或静默不生效。
+
+**不是**无头浏览器/渲染断言框架:没有 Playwright、没有 Canvas/WebGL 渲染、
+没有预设的"语义化动作"词表——脚本就是普通 Vitest 测试代码,直接调用游戏
+真实导出的 store action/函数。
+
+## 安装
+
+```bash
+pnpm add -D @overworld-engine/test-kit
+```
+
+## `createEventRecorder`
+
+在一条真实事件总线上录制每一次 emit,带单调计数器(不用 `Date.now()`)
+保证顺序断言在任何环境下都确定:
+
+```ts
+import { createEventRecorder } from '@overworld-engine/test-kit'
+
+const recorder = createEventRecorder(bus)
+// ...驱动游戏(调真实 store action / 真实事件)
+expect(recorder.events.map((e) => e.event)).toEqual(['quest:started', 'quest:completed'])
+recorder.stop()
+```
+
+功能上和 `devtools` 包的 `createEventRecorder`、`inspector` 包的
+`createEventStream` 是同一件事,但这里是独立的几十行小实现——仓库的零跨包
+导入规则不允许 `test-kit` 依赖 `devtools`/`inspector` 这些兄弟包,只能依赖
+`core`。
+
+## `renderHook`
+
+在一棵最小的 React 树里挂载单个 hook 并跑它的 effect——不渲染任何真实
+UI/场景,不碰 DOM/Canvas/WebGL,只是给 hook 一个真实的 React 生命周期让
+`useEffect` 真正执行。用来证明"按键/交互 hook 是否真的接到了它该调用的
+action":
+
+```ts
+import { renderHook, createEventRecorder } from '@overworld-engine/test-kit'
+import { gameEvents } from '@overworld-engine/core'
+import { useInteractKey } from '@overworld-engine/scene'
+
+const recorder = createEventRecorder(gameEvents)
+const { unmount } = renderHook(useInteractKey, 'e', { isInputBlocked: () => false })
+
+window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' }))
+expect(recorder.events.map((e) => e.event)).toContain('entity:interact')
+
+unmount()
+```
+
+如果 hook 本身要摸 `window`/`document`(比如 `window.addEventListener`),
+测试文件顶部加 `// @vitest-environment jsdom`——`renderHook` 自己不需要
+DOM,但 hook 的代码可能需要。
+
+## 配合 `core` 的可注入种子 RNG 做确定性测试
+
+本包不管随机性——那是 [`core` 包](/docs/packages/core)的
+`RngSource`/`createSeededRng`。让游戏的工厂函数
+接受一个可选 `rng` 参数,生产环境缺省 `{ next: Math.random }`,测试传固定
+种子:
+
+```ts
+import { createSeededRng } from '@overworld-engine/core'
+
+const engines = createEngines({ rng: createSeededRng(1234) })
+```
+
+## 这个包不做什么
+
+不做无头浏览器、不做 `@react-three/fiber`/Canvas 渲染断言、不发明"语义化
+动作"DSL("打开暂停菜单""进入战斗"这类动词是游戏自己导出的函数/store
+action,本包不替它们造词表)。Store/场景快照断言直接用 Vitest 自带的
+`toMatchSnapshot()` 打在真实 `.getState()` 上,没有另一套快照机制。
+
+## 依赖
+
+`peerDependencies`:`react`、`react-test-renderer`(必须与应用的 React
+版本严格一致——这是 React 自己的要求)。`dependencies` 只有
+`@overworld-engine/core`。

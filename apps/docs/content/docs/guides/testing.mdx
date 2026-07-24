@@ -91,9 +91,12 @@ await page.getByTestId('ow-editor-mode-place').click()
   `createMemoryStorage()`(`@overworld-engine/core`),无 localStorage、无跨用例污染。
 - **网络**:`createLocalTransportHub()`(`@overworld-engine/net`)的消息投递是
   **同步**的,多人逻辑可以在单进程内做确定性单测,无需 flush 或 sleep。
+- **随机数**:任何依赖 `Math.random()` 的构造函数(掉落表、世界生成、
+  战斗随机数)都应该把 `RngSource` 当可选依赖接受;测试传
+  `createSeededRng(seed)`(`@overworld-engine/core`),同种子同结果。
 
 ```ts
-import { EventBus, createMemoryStorage, type OverworldEventMap } from '@overworld-engine/core'
+import { EventBus, createMemoryStorage, createSeededRng, type OverworldEventMap } from '@overworld-engine/core'
 
 let now = 0
 const engine = createQuestEngine({
@@ -104,7 +107,38 @@ const engine = createQuestEngine({
   clock: () => ++now,                        // 确定性时间
   persist: { storage: () => createMemoryStorage() },
 })
+const loot = createLootTable(POOL, { rng: createSeededRng(1234) }) // 确定性随机
 ```
+
+## `@overworld-engine/test-kit`:抓 app 层接线 bug
+
+内核单测(读 store)和 E2E(读 DOM/testid)都测不到**装配层**的 bug —— 一个
+构造函数漏传了必需依赖(比如上面的 `rng`),第一次真正用到时才崩溃或静默
+不生效。这类 bug 内核单测测不到(不经过 app 层的实际装配代码),E2E 又太重、
+太慢,不适合每次改动都跑。`@overworld-engine/test-kit` 补的就是这一层,
+纯 Vitest,不需要真实浏览器:
+
+```ts
+import { createSeededRng } from '@overworld-engine/core'
+import { createEventRecorder, renderHook } from '@overworld-engine/test-kit'
+
+// 装配层:验证"没接上 rng 就会崩",接上后确定性可复现
+const { events, quests, inventory } = createEngines({ rng: createSeededRng(1234) })
+const recorder = createEventRecorder(events)
+quests.startQuest('gather-crystals')
+inventory.add('crystal', 3)
+expect(recorder.events.map((e) => e.event)).toContain('quest:completed')
+
+// React 绑定层:验证按键真的接到了对应 action(不渲染任何 UI/场景)
+const { unmount } = renderHook(useInteractKey, 'e', { isInputBlocked: () => false })
+window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e' }))
+expect(recorder.events.map((e) => e.event)).toContain('entity:interact')
+```
+
+`renderHook` 挂载单个 hook 跑它的 `useEffect`(基于 `react-test-renderer`,
+不碰 DOM/Canvas/WebGL);hook 本身若摸 `window`/`document`,测试文件顶部加
+`// @vitest-environment jsdom`。详见
+[`@overworld-engine/test-kit`](/docs/packages/test-kit)。
 
 ## 惯例小结
 

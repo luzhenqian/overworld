@@ -1,0 +1,96 @@
+---
+title: '@overworld-engine/adapters-steam'
+description: Steam 适配器:Tauri 桌面壳的成就、云存档与 Rich Presence 桥
+---
+
+把 Steamworks 的成就、Steam Cloud 存档、Rich Presence 桥接进 Tauri 桌面壳。
+Steam **不是**一个独立的平台种类——Steam 版本本质仍是 Tauri 应用
+(`detectPlatform()` 照旧返回 `'tauri'`),本包是叠加在其上的可选能力层,
+与 `platform` 包的 `createTauriFileStorage()` 是同一种关系。
+
+**不支持 Steam Overlay**(好友悬浮层):Tauri 的 WebView2 渲染架构不暴露
+Overlay 需要的挂钩,这是上游架构性限制,不是本包工作量问题。成就/云存档/
+Rich Presence 不受影响——它们都是普通 API 调用,不是覆盖层 UI。
+
+## 安装
+
+两次安装——TS 桥(npm)+ Rust 插件(crates.io):
+
+```bash
+pnpm add @overworld-engine/adapters-steam @overworld-engine/core
+cd src-tauri && cargo add overworld-steam
+```
+
+注册插件(`src-tauri/src/lib.rs`):
+
+```rust
+tauri::Builder::default()
+    .plugin(overworld_steam::init())
+    .run(tauri::generate_context!())
+    .expect("error while running tauri application");
+```
+
+授权(`src-tauri/capabilities/default.json`):
+
+```diff
+   "permissions": [
+     "core:default",
++    "overworld-steam:default"
+   ]
+```
+
+## 用法
+
+```ts
+import { createSteamBridge, bridgeSteamAchievements } from '@overworld-engine/adapters-steam'
+
+const steam = createSteamBridge()
+await steam.ready() // Tauri invoke 往返;非 Steam 环境恒为 false
+
+bridgeSteamAchievements(steam) // core 的 achievement:unlocked → 自动转发给 Steam
+
+const storage = steam.cloudStorage() ?? bridge.storage() // 手动显式回退本地存档
+persistOptions({ name: 'inventory', storage: () => storage })
+
+steam.setRichPresence('status', '探索遗迹中')
+```
+
+`SteamBridge` 的每个方法在不可用时(未从 Steam 客户端启动、`steam_appid.txt`
+缺失)都静默 no-op,不抛错、不刷屏日志。用 `steam.isAvailable()`(或
+`ready()` 的返回值)判断要不要在 UI 上提示"通过 Steam 启动可解锁云存档"。
+
+## API
+
+- `createSteamBridge(): SteamBridge`
+- `bridgeSteamAchievements(steam, bus?): () => void` — 订阅 `achievement:unlocked`
+  转发给 Steam,返回取消订阅函数;默认用全局 `gameEvents`,不 import
+  `@overworld-engine/achievements` 本身,纯胶水、可选接入。
+- `SteamBridge` — `isAvailable()`、`ready()`、`unlockAchievement(id)`、
+  `clearAchievement(id)`、`setStat(name, value)`、`cloudStorage()`、
+  `setRichPresence(key, value)`、`clearRichPresence()`。
+- `SteamFlushableStorage` — `getItem`/`setItem`/`removeItem`/`keys`/
+  `flush()`,与 `platform` 包的 `FlushableStorage` 结构兼容但本地独立实现
+  (零跨包依赖)。`cloudStorage()` 首次调用时一次性拉取全部云端 key 到内存
+  镜像,之后同步读、异步排队写回。
+
+## 本地测试(无需真实 Steam 上架)
+
+Steam SDK 从可执行文件同目录的 `steam_appid.txt` 读 App ID。本地开发放一份
+内容为 `480`(Valve 官方测试 App「Spacewar」)的文件即可,任何装了 Steam
+客户端的机器都能用。还需要 Steamworks SDK 的动态库(`libsteam_api.dylib` /
+`steam_api64.dll` / `libsteam_api.so`,从
+[partner.steamgames.com](https://partner.steamgames.com/) 下载,受 Valve
+SDK 许可、不随本包分发)放在开发二进制同目录;生产打包加进
+`tauri.conf.json` 的 `bundle.resources`。
+
+Rust 侧包一层 `steamworks-rs`:Steamworks 调用非线程安全,插件用一个专属
+OS 线程持有 `Client` 整个生命周期,Tauri 命令通过 channel 转发过去。
+
+## 在 `examples/desktop-tauri` 里的接线
+
+`src-tauri/src/lib.rs` 加 `.plugin(overworld_steam::init())`;
+`capabilities/default.json` 加 `"overworld-steam:default"`;`main.tsx` 启动时
+`createSteamBridge()` → `await ready()` → `bridgeSteamAchievements()`,存档
+后端 `steam.cloudStorage() ?? createTauriFileStorage()`(Tauri)/
+`bridge.storage()`(Web)——同一份代码路径在浏览器/Tauri/Steam 三种环境下
+原样跑通,`ready()` 在非 Steam 环境下静默解析为 `false`。

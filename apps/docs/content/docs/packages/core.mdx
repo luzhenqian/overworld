@@ -1,12 +1,13 @@
 ---
 title: '@overworld-engine/core'
-description: 框架核心:类型化事件总线、条件/效果注册表、持久化辅助、存档槽位与公共类型
+description: 框架核心:类型化事件总线、条件/效果注册表、持久化辅助、存档原语与公共类型
 ---
 
 Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协作全部经由这里提供的机制完成:
 **类型化事件总线**(系统间通信)、**条件/效果注册表**(数据驱动内容与代码解耦)、
-**统一的持久化约定**(`persistOptions` + 存档槽位)。本包零 UI、零渲染依赖,
-可在纯 Node 环境中使用与测试。
+**统一的持久化约定**(`persistOptions` + 存档槽位 + 硬化的原子文件原语)、
+**可注入种子的 RNG**(确定性测试)。本包零 UI、零渲染依赖,可在纯 Node 环境中
+使用与测试。
 
 ## 事件总线(EventBus)
 
@@ -303,6 +304,112 @@ slots.listSlots()                 // [{ slot: 'slot-1', savedAt: 1710000000000 }
   适配器的写回是**异步**的,返回带 `flush(): Promise<void>` 的 `FlushableStorage`:
   `saveTo` / `clearCurrent` 之后若要保证槽位在切后台(`app:paused`)或关窗前抵达
   云端/磁盘,需 `await storage.flush()`(详见 `@overworld-engine/platform` 云存档章节)。
+
+## 存档文件原语(commitSlot / recoverSlot)
+
+`createSaveSlots` 之上的另一条腿:**业务无关**的"原子文件 + 轮换备份"原语,
+面向桌面/Web 的真实文件系统,而不是 zustand 的 key/value 存储。写入流程 =
+写临时文件 → fsync → 读回校验 → 备份轮换 → 原子重命名替换;配合信封校验
+(4 字节 magic + 1 字节格式版本 + 4 字节长度 + 32 字节 SHA-256)抓物理层面的
+截断/损坏。**不含存档头部业务字段**(schema_version、rng_roots 等)——那些
+是调用方自己的存档格式,`core` 只回答"这份文件磁盘上是否完整"。
+
+```ts
+import { commitSlot, recoverSlot, type AtomicFileBackend } from '@overworld-engine/core'
+
+declare const backend: AtomicFileBackend   // 见下方「后端实现」
+
+await commitSlot(backend, 'saves/slot-1', payloadBytes)   // 默认保留 2 份轮换备份
+const outcome = await recoverSlot(backend, 'saves/slot-1', {
+  isValid: (bytes) => yourOwnHeaderChecksumPasses(bytes),  // 可选:叠加业务级校验
+})
+if (outcome.result) {
+  console.log(`从 ${outcome.result.source} 恢复`, outcome.result.bytes)
+} else {
+  console.error('全部代都不可用', outcome.failures)
+}
+```
+
+### `AtomicFileBackend`
+
+六个无业务语义的原子操作,`core` 本身**不提供实现**,只编排协议;真正落地
+交给平台后端:
+
+| 方法 | 语义 |
+| --- | --- |
+| `writeFile(path, bytes)` | 创建或整体覆写;单独调用不保证落盘 |
+| `syncFile(path)` | 确保该路径已写入的内容落盘(fsync) |
+| `renameFile(from, to)` | 原子替换;`to` 已存在也整体替换,不产生半份文件 |
+| `readFile(path)` | 不存在返回 `null`,不抛错 |
+| `deleteFile(path)` | 不存在时是 no-op |
+| `exists(path)` | — |
+
+- **桌面壳**:`@overworld-engine/adapters-savefile` 的
+  `createTauriSaveFileBackend()`——真正调用系统 `fsync`,因为 Tauri 官方
+  `@tauri-apps/plugin-fs` 的 JS API 不暴露这个能力,这个包自带一个 Rust
+  Tauri 插件专门做这件事。
+- **Web**:`@overworld-engine/platform` 的 `createWebSaveFileBackend()`——
+  基于 `localStorage`,`syncFile` 是 no-op(浏览器没有 fsync 等价物)。
+
+### 崩溃安全的核心不变式
+
+`commitSlot(backend, path, bytes, { backupCount? })` 按**从旧到新**的顺序
+轮换备份(`bak(n-1)→bak(n)`,再 `current→bak1`,最后 `tmp→current`)。因为
+`renameFile` 在文件系统层是单一原子操作(要么完全发生要么完全没发生),
+所以无论进程在哪一步被杀,`path` 永远指向"上一个完整代"或"新的完整代"
+之一——不存在半份文件。这个不变式经故障注入测试验证:遍历 `commitSlot`
+内部每一个可能的中断点,断言 `recoverSlot` 总能拿到一份有效数据(等价于
+"连续强制终止写盘 N 次全部可恢复"的验收标准,但确定性、可进 CI)。
+
+### `recoverSlot`
+
+按 `current → backup1 → backup2 → ...` 新到旧扫描,返回第一个通过校验的
+代,连同它之前每一代的失败原因:
+
+| `failures[].reason` | 含义 |
+| --- | --- |
+| `missing` | 该路径不存在 |
+| `envelope-invalid` | 信封校验失败(magic/版本/长度/SHA-256 任一不符) |
+| `validator-rejected` | 物理校验通过,但调用方的 `isValid` 判定业务上不合法 |
+| `read-error` | `readFile` 本身抛错(权限/IO 错误),不是"不存在" |
+
+`RecoverResult.source` 为 `'current'` 或形如 `` `backup${n}` `` 的字符串,
+供 UI 展示"从第几代备份恢复"。
+
+详见 `docs/superpowers/specs/2026-07-24-save-hardening-design.md`。
+
+## 可注入种子的 RNG(createSeededRng)
+
+任何需要"可复现随机性"的构造函数(战斗随机数、掉落表、世界生成……)都
+应该把 RNG 当**可选依赖**接受,而不是内部裸调 `Math.random()`——这样生产
+环境用真随机、测试环境用固定种子求确定性结果,同一套脚本每次跑出同样的
+结果,可以进 CI。
+
+```ts
+import { createSeededRng, type RngSource } from '@overworld-engine/core'
+
+function createLootTable(pool: LootEntry[], options?: { rng?: RngSource }) {
+  return {
+    roll() {
+      if (!options?.rng) throw new Error('missing rng')
+      return pool[Math.floor(options.rng.next() * pool.length)].id
+    },
+  }
+}
+
+createLootTable(POOL, { rng: { next: Math.random } })   // 生产
+createLootTable(POOL, { rng: createSeededRng(1234) })   // 测试:同种子同结果
+```
+
+- `RngSource` — 单方法接口 `{ next(): number }`,返回 `[0, 1)`。
+- `createSeededRng(seed)` — mulberry32,零依赖,不追求密码学强度,只保证
+  同种子同序列。
+
+配合 `@overworld-engine/test-kit` 的事件录制器(`createEventRecorder`)和
+React hook 挂载原语(`renderHook`),可以完全脱离渲染层,对整套 store/
+事件/引擎装配做确定性的 app 层集成测试——这正是内核单测和对拍金测都测不
+到的那一层(它们不经过 app 层的实际装配代码)。见
+[`@overworld-engine/test-kit`](/docs/packages/test-kit)。
 
 ## 公共类型
 

@@ -1,0 +1,91 @@
+---
+title: '@overworld-engine/adapters-savefile'
+description: Tauri 桌面存档适配器:真正调用 fsync 的原子写 + 轮换备份原语
+---
+
+[`core` 包](/docs/packages/core)的 `AtomicFileBackend`(原子文件 + 轮换备份
+原语)在 Tauri 桌面壳上的实现。
+之所以要单独一个包而不是塞进 `platform`:真正的 `fsync` 只能在 Rust 里做——
+Tauri 官方 `@tauri-apps/plugin-fs` 的 JS API 不暴露这个能力,所以本包带一个
+自己的 Rust Tauri 2 插件(`overworld-savefile` crate),而不是像 `platform` 那样
+零 Tauri 依赖、纯 JS 动态 import。
+
+## 安装
+
+两次安装——TS 桥(npm)+ Rust 插件(crates.io):
+
+```bash
+pnpm add @overworld-engine/adapters-savefile @overworld-engine/core
+cd src-tauri && cargo add overworld-savefile
+```
+
+在 Tauri 应用的 `src-tauri/src/lib.rs` 注册插件:
+
+```rust
+tauri::Builder::default()
+    .plugin(overworld_savefile::init())
+    .run(tauri::generate_context!())
+    .expect("error while running tauri application");
+```
+
+在 `src-tauri/capabilities/default.json` 授权其命令:
+
+```diff
+   "permissions": [
+     "core:default",
++    "overworld-savefile:default"
+   ]
+```
+
+> 插件运行时命名空间(`Builder::new("overworld-savefile")`)必须与 Cargo 包名
+> 逐字一致——Tauri 从包名派生 ACL 权限标识符,不一致会让所有命令在运行时
+> 被静默拒绝(`adapters-steam` 踩过这个坑,见 commit `5570047`)。
+
+## 用法
+
+```ts
+import { createTauriSaveFileBackend } from '@overworld-engine/adapters-savefile'
+import { commitSlot, recoverSlot } from '@overworld-engine/core'
+
+const backend = createTauriSaveFileBackend()
+
+await commitSlot(backend, 'saves/slot-1', payloadBytes)
+const outcome = await recoverSlot(backend, 'saves/slot-1', {
+  isValid: (bytes) => yourOwnHeaderChecksumPasses(bytes),
+})
+if (outcome.result) {
+  console.log(`从 ${outcome.result.source} 恢复`)
+}
+```
+
+路径相对应用的 `AppData` 目录,不允许包含 `..` 或绝对路径/Windows 盘符前缀
+(Rust 侧 `resolve_path` 会拒绝并报错)。
+
+## Rust 侧:六个无状态原语
+
+`createTauriSaveFileBackend()` 对应的六个 Tauri 命令(`savefile_write` /
+`savefile_sync` / `savefile_rename` / `savefile_read` / `savefile_delete` /
+`savefile_exists`),都是 `std::fs` 的薄封装,通过 base64 编解码在 IPC 上
+传输字节:
+
+- `savefile_write` — `fs::write`,首次调用前 `fs::create_dir_all` 建父目录。
+- `savefile_sync` — 重新以只读方式打开文件并 `File::sync_all()`——即使
+  写入是另一次 `invoke` 完成的,fsync 依然对同一份磁盘数据生效,这是
+  `commitSlot` 能把"写临时文件"和"刷盘"拆成两次独立 `invoke` 调用的原因。
+- `savefile_rename` — `fs::rename`(单一原子操作),POSIX 下额外
+  fsync 父目录(断电级别的持久性保证);Windows 上跳过(NTFS 元数据落盘
+  机制不同)。
+- `savefile_read` / `savefile_delete` — 文件不存在时分别返回 `None` /
+  静默成功,不是错误。
+- `savefile_exists` — `path.exists()`。
+
+不含存档业务语义(schema_version、备份轮换策略之外的任何东西)——那些都在
+`core` 的 `commitSlot`/`recoverSlot` 里,Rust 侧只负责"这一次磁盘操作有没有
+真正落地"。
+
+## 本地测试
+
+无 Rust 单元测试(纯 `std::fs` 薄封装,逻辑简单到不需要);TS 桥的测试
+mock `@tauri-apps/api/core` 的 `invoke`,断言每个方法调用的命令名与参数
+形状正确。真实的崩溃安全性由 `core` 侧的故障注入测试(`commitSlot.test.ts`
+里"每一个可能的中断点都能恢复"那条测试)覆盖。

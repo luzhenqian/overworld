@@ -19,11 +19,15 @@
     "analytics",
     "net",
     "relay",
+    "ui",
     "platform",
     "adapters-weapp",
+    "adapters-steam",
+    "adapters-savefile",
     "devtools",
     "content",
     "editor",
-    "inspector"
+    "inspector",
+    "test-kit"
   ]
 }

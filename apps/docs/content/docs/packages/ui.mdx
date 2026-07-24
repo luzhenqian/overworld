@@ -1,0 +1,137 @@
+---
+title: '@overworld-engine/ui'
+description: 无头游戏 UI:HUD 原语、引擎绑定组件、四套 CSS 主题皮肤
+---
+
+`@overworld-engine/ui` **对任何 `@overworld-engine/*` 包零运行时 import**
+(CI 用 `pnpm depcruise` 强制)。需要引擎数据的组件(对话框、任务追踪器、
+背包窗口……)不直接依赖 `dialogue`/`quest`/`inventory` 这些真实引擎包,而是
+接受**结构类型**(`DialogueEngineLike`、`QuestEngineLike` 等)——真实引擎
+天然满足这些接口(鸭子类型),组件包与引擎包互不知道对方存在。
+
+## 安装
+
+```bash
+pnpm add @overworld-engine/ui zustand
+# focus 子路径(手柄/方向键导航)需要额外可选 peer:
+pnpm add @noriginmedia/norigin-spatial-navigation
+```
+
+```ts
+import '@overworld-engine/ui/styles.css'         // 基础 --ow-* CSS 变量
+import '@overworld-engine/ui/themes/hextech.css' // 四选一,见下方主题
+```
+
+## 纯展示组件(不依赖任何引擎)
+
+- **`Bar`**(`value, max, variant: 'hp'|'mp'|'xp'|'generic', label?, showValue?`)
+  —— 资源条,CSS 实现掉血/掉蓝的"残影"拖尾效果。
+- **`Panel`** —— 窗口/对话框/HUD 卡片的通用主题化底板。
+- **`Button` / `IconButton`**(`variant: 'primary'|'ghost'|'danger'`)——
+  均支持 `asChild`(见下方 `Slot`)。
+- **`Modal`** 复合组件:`Modal.Root`(`open`/`onDismiss`,自带遮罩 + Tab 循环
+  焦点陷阱 + 关闭后焦点归位)、`Modal.Content`、`Modal.Close`(`asChild`)。
+- **`Slot`**——`asChild` 原语本身,公开导出供自定义组件复用。
+- **`Hotbar`** —— 技能/物品快捷栏容器。
+- **`SlotGrid`**(泛型格子容器)——通用背包风格的按钮格子网格。
+- **`Hud`** 复合组件:`Hud` + `Hud.Anchor`(九宫格定位:`top-left` …
+  `bottom-right`、`center`)——全屏、鼠标穿透覆盖层,设置 `data-ow-theme`。
+- **`Tooltip`** —— 悬停/聚焦锚定提示框。
+- **`GameWindow`** —— 接入 `useUiStore` 层级(z-order)注册表的可关闭/
+  可聚焦窗口。
+- **`CastBar`** —— 纯展示的施法/引导条(计时器由宿主自己管理)。
+- **`BuffBar`** —— 带冷却扫光动画 + 层数徽标的增益/减益图标行。
+- **`TargetFrame`、`Nameplate`、`MinimapFrame`、`Compass`、
+  `WaypointIndicator`** —— 战斗/世界 HUD 装饰,纯 props 驱动,不碰任何
+  store/引擎。
+- **`ToastViewport`**(`store: ToastStateLike`)、**`AlertHost`**
+  (`store: AlertStateLike`)—— 绑定的是结构类型化的通知状态,不是真实的
+  `@overworld-engine/notifications` 包。
+
+## 引擎绑定组件(接受 `*EngineLike` 结构类型)
+
+```tsx
+import { Button, DialogueBox } from '@overworld-engine/ui'
+import { createDialogueEngine } from '@overworld-engine/dialogue'
+
+const dialogue = createDialogueEngine({ dialogues: [], conditions, effects })
+
+<Button onClick={() => dialogue.start('elder')}>与长老对话</Button>
+<DialogueBox engine={dialogue} portrait={() => <span>🧓</span>} />
+```
+
+- **`DialogueBox`**(`engine: DialogueEngineLike, charsPerSecond?=40, portrait?`)
+  —— 打字机对话 + 选项,点击推进/跳过。
+- **`QuestTracker`**(`engine: QuestEngineLike, max?=3`)—— 紧凑型 HUD 任务追踪。
+- **`QuestLogWindow`**(`engine, id?='quest-log'`)—— 完整任务日志窗口。
+- **`InventoryWindow`**(`engine: InventoryEngineLike`)—— 格子网格 + 提示 +
+  使用/丢弃操作栏。
+- **`TutorialOverlay`**(`engine: TutorialEngineLike`)—— 聚光灯高亮环 +
+  下一步/跳过卡片。
+- **`AchievementPopup`**(`engine: AchievementsEngineLike, duration?=4000`)
+  —— 成就解锁弹窗队列。
+
+真实引擎(`createDialogueEngine`/`createQuestEngine`/`createInventory`/
+`createTutorialEngine`/`createAchievements` 等)直接满足对应的 `*EngineLike`
+接口,无需任何适配层。
+
+## 无头逻辑辅助(无 JSX,可单独复用/单测)
+
+- `advanceReveal` / `useTypewriter(text, charsPerSecond)` —— 打字机状态推进。
+- `positionTooltip` + `Rect`/`Size` 类型 —— 提示框锚定定位数学。
+- `trackerRows` —— 任务追踪器行派生逻辑。
+- `slotRows` —— 背包格子行派生逻辑。
+- `newlyUnlocked` —— 成就差异对比(判断"这次新解锁了哪些")。
+- `highlightBox` —— 教程聚光灯矩形数学。
+- `FOCUSABLE_SELECTOR`、`nextTrapIndex` —— `Modal` 焦点陷阱的底层原语。
+- `normalizeAngle`、`compassOffset`、`compassTicks` —— 指南针数学。
+- `edgeAnchor` —— 路径点图标屏幕边缘吸附。
+- `castProgress` —— 施法条进度计算。
+- `buffSweepPct`、`formatBuffTime` —— buff 计时器数学。
+- `useUiStore`(zustand store)+ `selectAnyWindowOpen` —— 窗口开关/层级
+  注册表;同时导出 `zOrder.ts` 的全部内容。
+
+## `/focus` 子路径:方向键/手柄导航
+
+依赖可选 peer `@noriginmedia/norigin-spatial-navigation`,不装就不要 import
+这个子路径(不会被主入口意外拉入)。
+
+```tsx
+import { InventorySlot, SlotGrid } from '@overworld-engine/ui'
+import { Focusable, FocusProvider, useGamepadFocus } from '@overworld-engine/ui/focus'
+
+useGamepadFocus() // 轮询手柄,驱动方向导航 + A 键合成 Enter keydown
+
+<FocusProvider>
+  <SlotGrid columns={5}>
+    <Focusable<HTMLButtonElement> onEnterPress={() => setPicked(icon)}>
+      {({ ref, focused }) => <InventorySlot ref={ref} icon={icon} selected={focused} />}
+    </Focusable>
+  </SlotGrid>
+</FocusProvider>
+```
+
+- `FocusProvider` —— 包装 norigin 的 `FocusContext` 初始化。
+- 透传导出 norigin 原语:`useFocusable`、`FocusContext`、`setFocus`、
+  `navigateByDirection`、`Direction` 类型。
+- `Focusable`(render-prop,暴露 `{ ref, focused }`)。
+- `useSpatialFocus()` → `{ setFocus, navigate, currentFocusKey() }` ——
+  命令式封装。
+- `useGamepadFocus(options?: { deadZone?=0.5, repeatMs?=180, enabled?=true })`
+  —— rAF 轮询手柄,方向轴驱动 `navigateByDirection`,A 键(按钮 0)合成
+  Enter keydown 触发 `onEnterPress`。
+- `axisToDirection` —— 摇杆轴值到方向的映射函数。
+
+## 四套主题
+
+`hextech`、`pixel`、`tactical`、`xianxia`——`src/styles/themes/*.css`,
+导入 `styles.css` 打底后二选一,通过 `data-ow-theme` 属性(`Hud` 组件自动
+设置)切换观感,组件代码本身不用改。
+
+## 示例
+
+`examples/ui-gallery` 有每一类组件的 Storybook 故事文件可参考:
+`Dialogue.stories.tsx`、`Focus.stories.tsx`、`CombatHud.stories.tsx`、
+`Quest.stories.tsx`、`Inventory.stories.tsx`、`Notifications.stories.tsx`、
+`Windows.stories.tsx`、`TutorialAchievements.stories.tsx`、
+`FullHud.stories.tsx`。

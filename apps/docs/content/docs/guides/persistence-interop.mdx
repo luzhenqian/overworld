@@ -87,3 +87,12 @@ window.addEventListener('beforeunload', () => {
 | 教程 / 成就 / 图鉴 | 客户端 | 引擎 `persist: true`(本地)或 RestStorage(跨设备) |
 | UI 偏好(音量/画质) | 客户端 | `persistOptions` + localStorage |
 | 多人 presence | 谁都不存 | net 包,内存态 |
+
+## 另见:本地文件存档的崩溃安全
+
+上面讲的是"权威数据 vs 本地缓存"的组合模式,前提是持久化后端本身可靠
+(localStorage / 你的服务器)。如果你要的是**单机游戏的本地文件存档**在
+强杀进程/断电时不损坏——那是另一个问题,`persistOptions`/`createSaveSlots`
+不解决它。见 [`core` 包](/docs/packages/core)的存档文件原语
+(`commitSlot`/`recoverSlot`,配合 `@overworld-engine/adapters-savefile` 的
+桌面文件后端)。
