@@ -4,6 +4,7 @@ import type { ItemDefinition } from '@overworld-engine/inventory'
 import type { AchievementDefinition } from '@overworld-engine/achievements'
 import type { NPCConfig } from '@overworld-engine/scene'
 import type { Vec3 } from '@overworld-engine/core'
+import type { LootEntry } from './loot'
 
 /**
  * Pure content data. Everything behavioral is a declarative EffectRef /
@@ -108,7 +109,10 @@ export const QUESTS: QuestDefinition[] = [
         trigger: { event: 'item:added', filter: { itemId: 'crystal' }, amountFrom: 'quantity' },
       },
     ],
-    rewards: [{ type: 'gold.add', params: { amount: 200 } }],
+    rewards: [
+      { type: 'gold.add', params: { amount: 200 } },
+      { type: 'loot.random', params: {} },
+    ],
   },
 ]
 
@@ -121,6 +125,20 @@ export const ITEMS: ItemDefinition[] = [
     stackable: true,
     maxStack: 99,
   },
+  {
+    id: 'pebble',
+    name: 'item.pebble.name',
+    description: 'item.pebble.desc',
+    category: 'material',
+    stackable: true,
+    maxStack: 99,
+  },
+]
+
+/** Weighted pool for the "gather-crystals" completion bonus roll. */
+export const LOOT_POOL: LootEntry[] = [
+  { id: 'crystal', weight: 1 },
+  { id: 'pebble', weight: 1 },
 ]
 
 export const ACHIEVEMENTS: AchievementDefinition[] = [
