@@ -95,6 +95,27 @@ createSaveSlots({ storage })
 
 写入按序串行落盘;插件缺失时 Promise 以带安装指引的错误 reject。
 
+## Web 存档原语(`AtomicFileBackend`)
+
+`createWebSaveFileBackend()` 实现 `@overworld-engine/core` 的
+`AtomicFileBackend`(temp write / fsync / rename 六原语接口,配合
+`commitSlot`/`recoverSlot` 使用,详见
+`docs/superpowers/specs/2026-07-24-save-hardening-design.md`),基于
+`localStorage`:
+
+```ts
+import { createWebSaveFileBackend } from '@overworld-engine/platform'
+import { commitSlot, recoverSlot } from '@overworld-engine/core'
+
+const backend = createWebSaveFileBackend()
+await commitSlot(backend, 'saves/slot-1', payloadBytes)
+const outcome = await recoverSlot(backend, 'saves/slot-1')
+```
+
+`syncFile` 是 no-op —— 浏览器没有 fsync 等价物,且 `localStorage.setItem`
+本身是同步落盘,没有额外的"刷盘"步骤可触发。桌面壳的等价实现见
+`@overworld-engine/adapters-savefile`(Tauri 插件,真正调用 `fsync`)。
+
 ## app:* 事件(declaration merging)
 
 本包向 `OverworldEventMap` 合并三个空负载事件,任何总线上完全类型化:
