@@ -4,6 +4,31 @@
 
 ### Minor Changes
 
+- f498069: **Feature:** crash-safe save-file primitives (`saveFiles`) — a
+  business-agnostic "atomic file + rotating backups" layer for game saves:
+  temp write → fsync → read-back verify → backup rotation → atomic rename,
+  guarded by an integrity envelope (magic + length + SHA-256) that catches
+  physical corruption. The layer carries no save-header business fields
+  (schema_version, rng_roots, …) — the save format stays with the caller.
+
+  `AtomicFileBackend` is a six-primitive interface
+  (`writeFile`/`syncFile`/`renameFile`/`readFile`/`deleteFile`/`exists`)
+  that core orchestrates but does not implement: desktop shells use
+  `@overworld-engine/adapters-savefile`'s `createTauriSaveFileBackend()`
+  (real `fsync`), web uses `@overworld-engine/platform`'s
+  `createWebSaveFileBackend()` (`syncFile` is a no-op).
+  `commitSlot(backend, path, bytes, { backupCount? })` keeps the
+  crash-safety invariant that `path` always names a complete generation —
+  `renameFile` is a single atomic operation, so an interrupted commit
+  leaves the previous complete generation in place.
+  `recoverSlot(backend, path, { isValid? })` walks
+  `current → backup1 → backup2 → …` newest-to-oldest and returns the first
+  generation that passes validation (optionally layered with a caller-side
+  `isValid` check) plus the failure reason
+  (`missing`/`envelope-invalid`/`validator-rejected`/`read-error`) for
+  every generation it rejected. Low-level `wrapEnvelope`/`unwrapEnvelope`/
+  `bytesEqual` helpers are exported for custom integrity schemes. See
+  `docs/superpowers/specs/2026-07-24-save-hardening-design.md`.
 - bb73ebf: **Feature:** `createSeededRng`/`RngSource` in `@overworld-engine/core` — a
   small, dependency-free deterministic PRNG (mulberry32) any factory function
   can accept as an injectable randomness source, so production code can pass
@@ -21,17 +46,62 @@
 
 ## 3.1.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: new
+  `@overworld-engine/adapters-steam` package).
+
 ## 3.0.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: `@overworld-engine/ui`
+  3.0 — breaking `Modal` compound-component rewrite and `Slot` →
+  `InventorySlot` rename, new `asChild` primitive).
 
 ## 2.4.1
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` hextech button-shape cleanup).
+
 ## 2.4.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` navigation HUD — MinimapFrame/Compass/
+  WaypointIndicator — plus the opt-in `/focus` spatial-navigation subpath).
 
 ## 2.3.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` combat HUD — CastBar/BuffBar/TargetFrame/
+  Nameplate).
+
 ## 2.2.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: new
+  `@overworld-engine/ui` headless game-UI package).
+
 ## 2.1.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: world-production
+  v2.1 quality pass across `scene`/`environment`/`loading`/`minimap`).
 
 ## 2.0.0
 

@@ -2,21 +2,81 @@
 
 ## 3.2.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: crash-safe
+  save-file primitives in `core` with `platform`/`adapters-savefile`
+  backends, seeded RNG, and the new `@overworld-engine/test-kit` package).
+
 ## 3.1.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: new
+  `@overworld-engine/adapters-steam` package).
 
 ## 3.0.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` 3.0 — breaking `Modal` compound-component
+  rewrite and `Slot` → `InventorySlot` rename, new `asChild` primitive).
+
 ## 2.4.1
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` hextech button-shape cleanup).
 
 ## 2.4.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` navigation HUD — MinimapFrame/Compass/
+  WaypointIndicator — plus the opt-in `/focus` spatial-navigation
+  subpath).
+
 ## 2.3.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline:
+  `@overworld-engine/ui` combat HUD — CastBar/BuffBar/TargetFrame/
+  Nameplate).
 
 ## 2.2.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: new
+  `@overworld-engine/ui` headless game-UI package).
+
 ## 2.1.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: world-production
+  v2.1 quality pass across `scene`/`environment`/`loading`/`minimap`).
+
 ## 2.0.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: world-production
+  v2 — `core` inputLock, audio buses, scene LOD/decorations, environment
+  presets, loading zone streaming, minimap radar selectors).
 
 ## 1.5.0
 

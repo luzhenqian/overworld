@@ -2,6 +2,15 @@
 
 ## 3.2.0
 
+### Minor Changes
+
+- c729f1c: **Feature:** `createWebSaveFileBackend()` — a web implementation of
+  `@overworld-engine/core`'s `AtomicFileBackend` backed by `localStorage`,
+  ready to pass to `commitSlot`/`recoverSlot` for crash-safe save slots in
+  browser games. `syncFile` is a deliberate no-op: browsers expose no fsync
+  equivalent and `localStorage.setItem` is already synchronous. Desktop
+  shells should use `@overworld-engine/adapters-savefile` for a real fsync.
+
 ### Patch Changes
 
 - Updated dependencies [bb73ebf]

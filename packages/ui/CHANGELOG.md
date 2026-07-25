@@ -2,7 +2,20 @@
 
 ## 3.2.0
 
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: crash-safe
+  save-file primitives in `core` with `platform`/`adapters-savefile`
+  backends, seeded RNG, and the new `@overworld-engine/test-kit` package).
+
 ## 3.1.0
+
+### Patch Changes
+
+- No changes in this package — version bumped in lockstep with the
+  `@overworld-engine/*` fixed release group (headline: new
+  `@overworld-engine/adapters-steam` package).
 
 ## 3.0.0
 
