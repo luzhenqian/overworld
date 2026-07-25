@@ -3,7 +3,7 @@
   "version": "0.9.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "next build && node scripts/copy-standalone-assets.mjs",
     "check:content": "node scripts/check-content.mjs",
     "dev": "next dev",
     "start": "next start",
