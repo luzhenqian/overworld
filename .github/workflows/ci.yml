@@ -42,6 +42,48 @@ jobs:
       - name: Test packages
         run: pnpm -r --filter './packages/*' test
 
+  # Gap guard (added 2026-07-25 after the 3.2.0 save-hardening debut shipped
+  # with zero changelog record): any PR touching publishable package code must
+  # carry a changeset, or the release notes silently lose it. Escape hatch for
+  # intentionally-unpublished changes: `pnpm changeset --empty`.
+  changeset-check:
+    name: Require changeset for package changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changeset presence
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          CHANGED="$(git diff --name-only "$BASE"...HEAD)"
+
+          # Publishable surface: package TS source (minus tests) and the Rust
+          # Tauri plugin code. CHANGELOG/package.json/README edits, test-only
+          # changes, and changeset-consumption (release) PRs never trigger this.
+          SRC="$(echo "$CHANGED" | grep -E '^packages/[^/]+/(src|src-tauri)/' | grep -v '__tests__' || true)"
+          if [ -z "$SRC" ]; then
+            echo "No publishable package changes — changeset not required."
+            exit 0
+          fi
+
+          CS="$(echo "$CHANGED" | grep -E '^\.changeset/[^/]+\.md$' | grep -v 'README\.md' || true)"
+          if [ -z "$CS" ]; then
+            echo "::error::This PR changes publishable package code but adds no changeset."
+            echo "::error::Run 'pnpm changeset' and commit the generated file. If the change is"
+            echo "::error::intentionally unpublished (refactor, internal tooling), run"
+            echo "::error::'pnpm changeset --empty' instead — an empty changeset satisfies this check."
+            echo "Changed publishable files:"
+            echo "$SRC"
+            exit 1
+          fi
+
+          echo "Changeset present:"
+          echo "$CS"
+
   examples:
     name: Build & Typecheck example templates
     runs-on: ubuntu-latest
