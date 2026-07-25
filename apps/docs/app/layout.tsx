@@ -5,9 +5,9 @@ import { Inter } from 'next/font/google';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://overworld.web3noah.com'),
-  title: { default: 'Overworld — Web 3D RPG 游戏开发框架', template: '%s | Overworld' },
+  title: { default: 'Overworld — Web 3D RPG 系统包', template: '%s | Overworld' },
   description:
-    '面向生产的模块化 Web 3D RPG 游戏开发框架：27 个可组合的 TypeScript 包，覆盖世界、玩法、AI、联机、UI 与多端交付。',
+    '27 个面向生产、可独立采用的 TypeScript 包，覆盖 Web 3D RPG 的世界、玩法、AI、联机、UI 与多端交付。',
   keywords: [
     'Web 3D',
     'RPG',
@@ -24,22 +24,22 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'zh_CN',
     siteName: 'Overworld',
-    title: 'Overworld — 把游戏内容，留给游戏',
-    description: '27 个可组合的 TypeScript 包，构建面向生产的 Web 3D RPG。',
+    title: 'Overworld — Web 3D RPG 系统包',
+    description: '27 个面向生产、可独立采用的 TypeScript 包。',
     images: [
       {
-        url: '/og.png',
-        width: 1731,
-        height: 909,
-        alt: 'Overworld — 把游戏内容，留给游戏。',
+        url: '/og/home',
+        width: 1200,
+        height: 630,
+        alt: 'Overworld — 27 modular TypeScript packages for Web 3D RPGs.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Overworld — 把游戏内容，留给游戏',
-    description: '27 个可组合的 TypeScript 包，构建面向生产的 Web 3D RPG。',
-    images: ['/og.png'],
+    title: 'Overworld — Web 3D RPG 系统包',
+    description: '27 个面向生产、可独立采用的 TypeScript 包。',
+    images: ['/og/home'],
   },
 };
 

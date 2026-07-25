@@ -60,6 +60,10 @@ html > body[data-scroll-locked] {
   padding: clamp(84px, 11vw, 144px) 0 clamp(88px, 10vw, 128px);
 }
 
+.ow-hero > * {
+  min-width: 0;
+}
+
 .ow-overline {
   display: flex;
   align-items: center;
