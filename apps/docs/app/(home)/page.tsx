@@ -1,4 +1,27 @@
 import Link from 'next/link';
+import { highlight } from 'fumadocs-core/highlight';
+import { HomeMotion } from './motion';
+
+const heroCode = `import {
+  createConditionRegistry,
+  createEffectRegistry,
+  gameEvents,
+} from '@overworld-engine/core'
+import { createQuestEngine } from '@overworld-engine/quest'
+
+const conditions = createConditionRegistry()
+const effects = createEffectRegistry()
+
+effects.register('wallet.addGold', ({ amount }) => {
+  wallet.add(Number(amount))
+})
+
+export const quests = createQuestEngine({
+  quests: QUESTS,
+  conditions,
+  effects,
+  events: gameEvents,
+})`;
 
 const packageLayers = [
   {
@@ -51,16 +74,26 @@ const readingPaths = [
   },
   {
     index: 'D',
-    title: '查公开 API',
-    description: '27 个包的入口、契约和使用边界。',
-    href: '/docs/packages',
-    label: '包参考',
+    title: '交付到目标平台',
+    description: 'Web、桌面、移动、微信与 Telegram。',
+    href: '/docs/guides/platforms',
+    label: '多端支持',
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const highlightedCode = await highlight(heroCode, {
+    lang: 'ts',
+    themes: {
+      light: 'github-dark',
+      dark: 'github-dark',
+    },
+  });
+
   return (
     <main className="ow-home">
+      <HomeMotion />
+
       <section className="ow-hero" aria-labelledby="ow-home-title">
         <div className="ow-hero-copy">
           <div className="ow-overline">
@@ -69,10 +102,15 @@ export default function HomePage() {
             <span>MIT</span>
           </div>
 
-          <h1 id="ow-home-title">一套面向生产的 Web 3D RPG 系统包。</h1>
+          <h1 id="ow-home-title">
+            <span className="ow-nowrap">一套架构，交付</span> Web、桌面、
+            <span className="ow-nowrap">移动端</span>与
+            <span className="ow-nowrap">小游戏</span>。
+          </h1>
           <p className="ow-lede">
-            27 个独立发布的 TypeScript 包，覆盖世界、玩法、AI、联机、UI
-            和多端交付。保留你的内容模型、视觉语言与应用架构，只复用已经解决过的基础设施。
+            27 个独立发布的 TypeScript 包，覆盖世界、玩法、AI、联机与 UI。
+            同一套领域系统运行在浏览器、Tauri、Capacitor、微信小游戏、Telegram Mini App
+            和 Node.js 服务端；平台差异收敛到 bridge 与 adapters。
           </p>
 
           <div className="ow-actions">
@@ -95,7 +133,7 @@ export default function HomePage() {
           </div>
 
           <p className="ow-runtime">
-            React 18 · three.js ≥ 0.160 · React Three Fiber 8 · zustand 5 · ESM
+            Web · Tauri 2 · Capacitor 8 · 微信小游戏 · Telegram Mini App · Node.js
           </p>
         </div>
 
@@ -104,34 +142,16 @@ export default function HomePage() {
             <span>game/engines.ts</span>
             <span>public API</span>
           </div>
-          <pre><code>{`import {
-  createConditionRegistry,
-  createEffectRegistry,
-  gameEvents,
-} from '@overworld-engine/core'
-import { createQuestEngine } from '@overworld-engine/quest'
-
-const conditions = createConditionRegistry()
-const effects = createEffectRegistry()
-
-effects.register('wallet.addGold', ({ amount }) => {
-  wallet.add(Number(amount))
-})
-
-export const quests = createQuestEngine({
-  quests: QUESTS,
-  conditions,
-  effects,
-  events: gameEvents,
-})`}</code></pre>
+          {highlightedCode}
           <div className="ow-code-output">
-            <span>event flow</span>
+            <span><i aria-hidden="true" /> event flow</span>
             <code>player:moved → quest:completed → reward → UI</code>
+            <div className="ow-event-track" aria-hidden="true"><i /></div>
           </div>
         </div>
       </section>
 
-      <section className="ow-principle" aria-labelledby="ow-principle-title">
+      <section className="ow-principle" aria-labelledby="ow-principle-title" data-reveal>
         <div className="ow-section-index">01 / COMPOSITION</div>
         <div>
           <h2 id="ow-principle-title">应用拥有组合权。</h2>
@@ -148,7 +168,7 @@ export const quests = createQuestEngine({
         </div>
       </section>
 
-      <section className="ow-packages" aria-labelledby="ow-packages-title">
+      <section className="ow-packages" aria-labelledby="ow-packages-title" data-reveal>
         <div className="ow-section-heading">
           <div className="ow-section-index">02 / PACKAGE MAP</div>
           <div>
@@ -172,7 +192,7 @@ export const quests = createQuestEngine({
         </div>
       </section>
 
-      <section className="ow-evidence" aria-labelledby="ow-evidence-title">
+      <section className="ow-evidence" aria-labelledby="ow-evidence-title" data-reveal>
         <div>
           <div className="ow-section-index">03 / REPOSITORY</div>
           <h2 id="ow-evidence-title">文档里的能力，在仓库里都有对应证据。</h2>
@@ -184,7 +204,7 @@ export const quests = createQuestEngine({
           </div>
           <div>
             <dt>11</dt>
-            <dd><strong>可运行示例</strong><span>游戏、服务器、场景工具与平台模板</span></dd>
+            <dd><strong>可运行示例</strong><span>Web、桌面、移动、微信、Telegram 与权威服务器</span></dd>
           </div>
           <div>
             <dt>CI</dt>
@@ -197,7 +217,7 @@ export const quests = createQuestEngine({
         </dl>
       </section>
 
-      <section className="ow-reading" aria-labelledby="ow-reading-title">
+      <section className="ow-reading" aria-labelledby="ow-reading-title" data-reveal>
         <div className="ow-section-heading">
           <div className="ow-section-index">04 / DOCUMENTATION</div>
           <div>
@@ -221,14 +241,14 @@ export const quests = createQuestEngine({
         </div>
       </section>
 
-      <section className="ow-closing" aria-labelledby="ow-closing-title">
+      <section className="ow-closing" aria-labelledby="ow-closing-title" data-reveal>
         <div>
           <div className="ow-section-index">GET STARTED</div>
-          <h2 id="ow-closing-title">先跑通 Starter，再替换成你的内容。</h2>
+          <h2 id="ow-closing-title">先跑通 Starter，再接入目标平台。</h2>
         </div>
         <div>
           <p>
-            示例展示真实的世界、任务、对话、AI、联机、编辑器和确定性测试接线。
+            从 Web 原型开始，沿同一套领域架构交付 Tauri、Capacitor、微信小游戏与 Telegram Mini App。
           </p>
           <Link href="/docs/starter">
             打开 Starter 指南 <span aria-hidden="true">→</span>

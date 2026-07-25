@@ -37,6 +37,8 @@ export function GET() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div
             style={{
+              display: 'flex',
+              flexDirection: 'column',
               maxWidth: 980,
               fontSize: 82,
               lineHeight: 1.04,
@@ -44,10 +46,11 @@ export function GET() {
               fontWeight: 650,
             }}
           >
-            Modular systems for Web 3D RPGs.
+            <span>Modular systems for</span>
+            <span>cross-platform 3D RPGs.</span>
           </div>
           <div style={{ color: '#5f6862', fontSize: 28 }}>
-            Keep the composition. Choose the packages.
+            Web · Desktop · Mobile · Mini Apps · Server
           </div>
         </div>
 
@@ -64,7 +67,7 @@ export function GET() {
           <div style={{ display: 'flex', gap: 28, color: '#116b4d', fontWeight: 650 }}>
             <span>27 packages</span>
             <span>TypeScript</span>
-            <span>ESM</span>
+            <span>Multi-runtime</span>
           </div>
           <span style={{ color: '#5f6862' }}>overworld.web3noah.com</span>
         </div>
