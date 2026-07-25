@@ -3,6 +3,60 @@ title: 版本历史
 description: 各版本演进轨迹
 ---
 
+## v3.2 存档加固与测试基建
+
+- **core 崩溃安全存档原语(`saveFiles`)**:业务无关的"原子文件 + 轮换备份"层 —— 临时写入 → fsync → 读回校验 → 备份轮换 → 原子重命名,配合信封校验(magic + 长度 + SHA-256)抓物理损坏;不含存档头部业务字段。`AtomicFileBackend` 六原语接口(`writeFile`/`syncFile`/`renameFile`/`readFile`/`deleteFile`/`exists`)由 core 编排但不实现;`commitSlot` 保证任意时刻中断 `path` 都指向完整的一代,`recoverSlot` 按 current → backup1 → backup2 新到旧扫描,返回首个通过校验的一代及每一代的失败原因
+- **两个后端实现**:新包 `adapters-savefile`(Tauri 桌面壳)—— `createTauriSaveFileBackend()` + 配套 Rust 插件 crate `overworld-savefile`(crates.io 单独发布)提供真正的 `fsync`(Tauri 官方 plugin-fs 的 JS API 不暴露此能力),`resolve_path` 拒绝绝对路径与 Windows 根路径;`platform` 新增 `createWebSaveFileBackend()`(localStorage 实现,`syncFile` 为 no-op —— 浏览器没有 fsync 等价物)
+- **core `createSeededRng`/`RngSource`**:零依赖确定性 PRNG(mulberry32),任何工厂函数都可接受注入的随机源 —— 生产传 `{ next: Math.random }`,测试传固定种子得到字节级可复现结果
+- **新包 `@overworld-engine/test-kit`**:应用层集成测试原语 —— `createEventRecorder`(基于 `EventBus.onAny` 的确定性事件流录制断言)+ `renderHook`(react-test-renderer 挂载单个 hook,无 DOM/Canvas/WebGL,验证 hook→action 接线);非渲染/E2E 框架
+- **流程修复**:CI 新增 changeset 强制检查(PRs 改动 `packages/*/src`/`src-tauri` 必须带 changeset,`pnpm changeset --empty` 可显式豁免);全部 27 包的 CHANGELOG 按 git 发布史回填,npm 已发布版本与 changelog 条目一一对应
+
+## v3.1 Steam 桌面适配(新包 adapters-steam)
+
+- **`createSteamBridge()`**:把 Steamworks 成就、Steam Cloud 存档、Rich Presence 桥接进 Tauri 桌面壳,API 在 Steam 环境之外静默 no-op、优雅降级;`bridgeSteamAchievements()` 将 core 的 `achievement:unlocked` 事件转发给 Steam
+- **配套 Rust 插件 crate `overworld-steam`**(crates.io 单独发布,封装 `steamworks-rs`);不支持 Steam Overlay/好友 UI —— Tauri 基于 WebView2 的渲染拿不到 Overlay 所需钩子,但成就/云存档/Rich Presence 都是纯 API 调用,不受影响
+
+## v3.0 UI 扩展性重构(破坏性)
+
+- **破坏性:`Modal` 改为复合组件** `{ Root, Content, Close }` 替代单组件写法(附迁移 diff)
+- **破坏性:桶导出 `Slot`(背包格子组件)更名 `InventorySlot`** —— `Slot` 这个名字现在属于新的 asChild 原语;类型 `SlotProps` 同步更名 `InventorySlotProps`(旧导入仍能解析、但落到新原语的类型上,表现为类型不匹配而非编译报错,需手动切换)
+- **`Button`/`IconButton` 支持 `asChild`**:把 props/ref 渲染到单个子元素而非自身 `<button>`;背后是新的公共 `Slot` 原语(可用来构建自己的 asChild 组件),`Modal.Close` 同样支持
+- 新增 `packages/ui/README.md`(导出/主题/新 API);CI 起用 dependency-cruiser 强制零跨包导入规则
+
+## v2.4 导航 HUD 与空间焦点
+
+- **导航 HUD 组件**:`MinimapFrame`/`Compass`/`WaypointIndicator` + `normalizeAngle`/`compassOffset`/`compassTicks`/`edgeAnchor` 纯函数;与 `@overworld-engine/minimap` 组合但不产生包依赖(宿主把 `<MiniMap>` 嵌进 `<MinimapFrame>`,给 Compass/WaypointIndicator 喂朝向与离屏方位角)
+- **空间焦点导航(可选子路径 `@overworld-engine/ui/focus`)**:`FocusProvider`/`Focusable`/`useSpatialFocus`/`useGamepadFocus`,基于 `@noriginmedia/norigin-spatial-navigation`(可选 peer 依赖,核心包保持零依赖);`Button`/`IconButton`/`Slot` 改为 forwardRef;`Modal` 获得键盘焦点陷阱(Tab 循环、Esc 关闭、关闭后焦点还原)
+- **v2.4.1 修正**:hextech 主题按钮造型统一为斜切标签族(替换掉让透明 ghost 按钮像浮动括号的侧尖切角);ghost 按钮改为淡半透明填充 + 柔金描边,danger 按钮改为红调填充
+
+## v2.3 战斗 HUD
+
+- **战斗组件**:`CastBar`/`BuffBar`/`TargetFrame`/`Nameplate` + `castProgress`/`buffSweepPct`/`formatBuffTime` 纯函数
+- **稀有度色板扩展到六档**(poor / common / uncommon / rare / epic / legendary);注意 `--ow-color-rarity-common` 由灰(#9aa0b0)改为近白(#f0f0f0) —— 既有 common 品质 Slot 描边的观感会变化
+
+## v2.2 无头游戏 UI(新包 ui)
+
+- **新包 `@overworld-engine/ui`**:无头游戏 UI 库 —— HUD 原语(`Hud`/`Panel`/`GameWindow`/`Bar`/`Slot`/`SlotGrid`/`Hotbar`/`Button`/`Tooltip`/`Modal`);通过鸭子类型接口绑定引擎的组件(`DialogueBox`/`QuestTracker`/`QuestLogWindow`/`InventoryWindow`/`ToastViewport`/`AlertHost`/`TutorialOverlay`/`AchievementPopup`),UI 包不 import 引擎包;行为 hooks、中性基础样式表、四套主题皮肤(仙侠 xianxia / 海克斯 hextech / 战术 tactical / 像素 pixel)
+
+## v2.1 世界生产化质量收口
+
+收口审计反馈差距:
+
+- **scene**:GPU 感知质量检测(软渲染 → 低档);动画 NPC 契约(`animationMap.idle`、默认 idle 播放、`onModelReady`);移动 NPC 经 `animStateRef` 切换 idle↔walk↔run;运行时 LOD 设备档封顶 + 就近优先预载;装饰物按组切换 LOD(逐实例 LOD 析构有意不发 —— 与 drei 共享 GLTF 缓存不兼容)
+- **environment**:曝光与独立月球旋钮;昼夜光色逐帧插值(修掉 0.5 硬切换的跳变);`transitionDuration` 成为可声明的 preset 字段
+- **loading**:跨区域进度聚合;优先级桶区域排序;真正的区域重试(重新拉取失败资产);资产加载失败冒泡到 `failZone`
+- **minimap**:`createHeadingTracker` 由连续位置推断朝向;`RadarEntity` 改为配置形态(结构化,不再 import scene)
+
+## v2.0 世界生产化(world-production v2)
+
+- **core `inputLock`**:无头、框架无关的输入锁(`acquire`/`release`/`isLocked`/`activeLocks`/`subscribe`/`releaseAll`)+ `createInputLock()` 隔离实例 + `input:lock-changed` 总线事件 —— input(键盘层、摇杆)与 scene(Player、交互、FollowCamera 轨道)统一向它查询,一次 `inputLock.acquire('dialogue')` 即全局挂起游戏输入,无需逐源接线
+- **scene(major)**:实例化 `Decorations` 渲染器;运行时 `Lod` + `lods` 配置;`FollowCamera` 轨道相机;ref 驱动的移动 NPC(`SceneShell.npcPositionRefs` 驱动 `BaseNPC` 的视觉/碰撞体/邻近/选中环,`BaseNPC.positionRef`;独立移动 NPC 用 `AgentNPC`);`isInputBlocked` 省略时回退到 `inputLock.isLocked()`
+- **input**:`useKeyboardLayer` 接受 `{ lockInput }` 选项(层存活期持有共享 inputLock;导出 `parseLayerOpts`);`<VirtualJoystick respectInputLock>`(默认 true)持锁时输出清零(纯函数 `resolveJoystickOutput`)
+- **audio**:命名总线(`master`/`music`/`ambience`/`sfx`,`setBusVolume`/`getBusVolume`);基于距离的环境音区(`setAmbientZones`/`updateListener` + 纯函数 `zoneWeight`/`mixBuses`);定位单发 `playCue`;测试/无头环境用 `silentBackend`
+- **environment**:`<WorldEnvironment preset engine quality>` —— 质量感知的天空/雾/地面/光照/星空层,`WORLD_ENV_PRESETS`(`clear-noon`/`overcast`/`foggy-dusk`/`night`)+ 纯函数 `resolvePreset`/`resolveLight`;传入 engine 时环境光/日光随其时间逐帧插值
+- **loading**:场景级加载状态 `useSceneLoadStore`(相位 `idle → module → geometry → texture → first-frame → ready`,`SCENE_PHASES`/`aggregateSceneProgress`);区域流式加载(`useZoneStreaming`/`orderZonesByDistance`,`ZoneManifest`/`ZoneBounds`);`<FirstFramePhase />` Canvas 标记;`installSceneLoadDebugHandle()`(开发构建下 Playwright 友好的 `window.__overworldSceneLoad` 检查句柄)
+- **minimap**:玩家相对 HUD 雷达选择器 —— `selectRadarMarkers`(世界实体 → 旋转/距离钳制的标记)与 `computeOffscreenIndicator`(超程实体的屏幕边缘角),`RadarConfig`/`RadarMarker`/`RadarEntity` 类型
+
 ## v1.5 规模化授权与实时调试
 
 - **编辑器多场景/关卡管理**:命名场景(新建/切换/改名/删除/复制)、`exportProject`/`importProject` 多关卡项目;devtools `sceneProjectSchema` + `validateSceneProject`;scene `pickScene` 按名渲染指定关卡。scene-authoring 示例升级为多关卡授权闭环
