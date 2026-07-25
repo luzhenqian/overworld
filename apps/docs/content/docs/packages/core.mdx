@@ -22,7 +22,7 @@ Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协
 | `scene:changed` | `{ from: string \| null; to: string }` |
 | `proximity:enter` / `proximity:leave` | `{ kind: EntityKind; id: string }` |
 | `entity:interact` | `{ kind: EntityKind; id: string }` |
-| `interact`(**已弃用**,改用 `entity:interact`;过渡期 `scene` 的 `interact()` 双发两者,2.0 移除) | `{ kind: EntityKind; id: string }` |
+| `interact`(**已弃用**,改用 `entity:interact`;`scene.interact()` 在当前 3.2.x 仍双发两者) | `{ kind: EntityKind; id: string }` |
 | `dialogue:started` | `{ npcId: string; dialogueId: string }` |
 | `dialogue:ended` | `{ npcId: string; dialogueId: string; nodeId: string }` |
 | `quest:started` / `quest:completed` | `{ questId: string }` |
@@ -75,6 +75,8 @@ const bus = new EventBus<OverworldEventMap>()
 - 监听器抛出的异常会被捕获并打日志,**不影响**同一事件的其他监听器,更不会中断 emit。
 - emit 过程中订阅/退订不影响本次分发(分发前会拷贝监听器集合)。
 - `gameEvents` 是全局单例;各引擎都接受自定义总线(`events` 配置),**测试时必须自建实例**。
+- 旧注释曾计划在 2.0 移除 `interact`,但 3.2.x 实际源码仍保留它。新代码只订阅
+  `entity:interact`;不要同时订阅两个事件,否则一次交互会处理两次。
 
 ## 条件/效果注册表(Registry)
 
@@ -127,6 +129,37 @@ evaluateConditions(conditions, [{ type: 'minLevel', params: { level: 3 } }], gam
 - `evaluateConditions(registry, refs, ctx)` — **AND 语义**;空数组/省略为 `true`;
   未注册的条件 **fail closed**(返回 `false`);`negate: true` 对单条结果取反;
   处理器抛错视为 `false`。
+
+## 共享输入锁(inputLock)
+
+`inputLock` 是无头、引用计数式的全局输入门。`scene.Player`、交互键、
+`FollowCamera` orbit 与 `input.VirtualJoystick` 默认查询它，因此打开对话或
+模态窗口时不必分别禁用每种输入源：
+
+```ts
+import { inputLock } from '@overworld-engine/core'
+
+const release = inputLock.acquire('pause-menu')
+console.log(inputLock.isLocked()) // true
+console.log(inputLock.activeLocks()) // ['pause-menu']
+
+release()
+```
+
+| API | 说明 |
+| --- | --- |
+| `inputLock` | 与默认 `gameEvents` 绑定的共享单例 |
+| `createInputLock(events?)` | 创建隔离实例，适合测试或多游戏实例 |
+| `acquire(id)` | 持锁并返回幂等 release 函数 |
+| `release(id)` | 按 id 释放一份持有 |
+| `isLocked()` | 是否存在任何活跃锁 |
+| `activeLocks()` | 当前锁 id 列表 |
+| `subscribe(listener)` | 订阅锁状态 |
+| `releaseAll()` | 清空全部锁，主要用于 teardown / 恢复 |
+
+状态变化会在绑定总线上发出 `input:lock-changed`。React 组件通常使用
+`input.useKeyboardLayer(..., { lockInput: true })`，由生命周期自动释放；命令式
+代码必须保留并调用 `acquire()` 返回的 release。
 
 ## 持久化(persistOptions)
 
@@ -375,6 +408,19 @@ if (outcome.result) {
 
 `RecoverResult.source` 为 `'current'` 或形如 `` `backup${n}` `` 的字符串,
 供 UI 展示"从第几代备份恢复"。
+
+### 完整性信封辅助
+
+`commitSlot` 内部使用公开的信封原语；自定义后端或导入工具也可以单独使用：
+
+| API | 语义 |
+| --- | --- |
+| `wrapEnvelope(payload)` | 生成 `OWSF` magic + 格式版本 + 长度 + SHA-256 + payload |
+| `unwrapEnvelope(raw)` | 校验并返回 payload；任何 magic/版本/长度/hash 错误都返回 `null` |
+| `bytesEqual(a, b)` | 字节级比较，用于摘要和写后读回验证 |
+
+信封只检测物理截断或损坏，不包含你的 schema version、角色名或业务 checksum。
+业务合法性仍由 `recoverSlot({ isValid })` 的调用方定义。
 
 详见 `docs/superpowers/specs/2026-07-24-save-hardening-design.md`。
 

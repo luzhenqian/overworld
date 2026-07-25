@@ -3,9 +3,13 @@ title: 包参考
 description: 全部 @overworld-engine/* 包的定位、API 与示例
 ---
 
-Overworld 由 27 个独立发布的包组成,按分层组织:系统包之间零依赖,只允许依赖
-`@overworld-engine/core`,跨系统协作一律走事件总线与注册表(详见[架构说明](/docs/architecture))。
-适配器包(`adapters-*`)是这条规则的例外——适配层的职责就是粘合它所服务的包。
+Overworld 由 27 个独立发布的包组成。大多数领域系统只依赖
+`@overworld-engine/core`,跨系统协作走事件总线、注册表与结构类型。工具与适配器
+会明确组合它所服务的低层包(例如 `content → devtools`、
+`adapters-weapp → input + platform`)。真实依赖图见[架构说明](/docs/architecture)。
+
+第一次使用不必从本页逐个阅读。先按目标查看[包选择指南](/docs/package-selection)，
+再进入需要的参考页。
 
 ## 基础层
 

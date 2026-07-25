@@ -87,6 +87,11 @@ interface AudioHandle {
 - 缺省 `htmlAudioBackend`(已导出):`new Audio(url)`,与历史行为一致;
 - 微信小游戏:`backend: createWeappAudioBackend()`
   (来自 `@overworld-engine/adapters-weapp`,映射 `wx.createInnerAudioContext`)。
+- `silentBackend` 是无 DOM、SSR 与测试环境的静默实现，满足相同契约但不播放声音。
+
+环境音区的纯函数也公开导出：`zoneWeight(zone, listener)` 根据 inner/outer
+radius 返回 0..1 线性权重；`mixBuses(...)` 把 zone、ambience 与 master 音量
+合成为最终 gain。两者无 Web Audio 依赖，可单独测试。
 
 ## 自动播放策略
 

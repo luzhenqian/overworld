@@ -1,45 +1,51 @@
-# docs
+# Overworld documentation
 
-This is a Next.js application generated with
-[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+The public documentation site for Overworld, built with Next.js and Fumadocs.
+Its content is derived from the published package entry points, executable
+examples, tests, and package manifests in this repository.
 
-Run development server:
+## Local development
+
+From the repository root:
 
 ```bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+corepack enable
+pnpm install
+pnpm docs:dev
 ```
 
-Open http://localhost:3000 with your browser to see the result.
+Use the exact local URL printed by Next.js.
 
-## Explore
+## Required checks
 
-In the project, you can see:
+```bash
+pnpm docs:check
+pnpm docs:build
+```
 
-- `lib/source.ts`: Code for content source adapter, [`loader()`](https://fumadocs.dev/docs/headless/source-api) provides the interface to access your content.
-- `lib/layout.shared.tsx`: Shared options for layouts, optional but preferred to keep.
+`docs:check` validates TypeScript/MDX and runs the content consistency guard.
+The guard verifies that:
 
-| Route                     | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `app/(home)`              | The route group for your landing page and other pages. |
-| `app/docs`                | The documentation layout and pages.                    |
-| `app/api/search/route.ts` | The Route Handler for search.                          |
+- every package under `packages/*` has a reference page;
+- every public runtime export from `packages/*/src/index.ts` is discoverable on
+  its package page; and
+- internal `/docs/*` links resolve to a content route.
 
-### Fumadocs MDX
+The documentation CI job is required, not advisory.
 
-A `source.config.ts` config file has been included, you can customise different options like frontmatter schema.
+## Content map
 
-Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
+| Path | Purpose |
+| --- | --- |
+| `content/docs/index.mdx` | Quick start |
+| `content/docs/architecture.mdx` | Package boundaries and runtime model |
+| `content/docs/packages/*.mdx` | Public package references |
+| `content/docs/guides/*.mdx` | Task-oriented production guides |
+| `content/docs/compatibility.mdx` | Peer and platform support matrix |
+| `content/docs/migration.mdx` | Major-version migration notes |
+| `content/docs/troubleshooting.mdx` | Symptom-driven diagnostics |
+| `content/docs/contributing.mdx` | Contributor workflow |
 
-## Learn More
-
-To learn more about Next.js and Fumadocs, take a look at the following
-resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [Fumadocs](https://fumadocs.dev) - learn about Fumadocs
+When a public API changes, update its package README, its site reference page,
+the relevant guide or migration page, and the changeset where applicable.
+Examples must import only from public package entry points.

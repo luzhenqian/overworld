@@ -24,8 +24,11 @@ Overworld 从生产环境的 3D RPG 实践中提取通用能力沉淀而成:可�
 | `@overworld-engine/content` | 内容包:校验门控后把对话/任务/物品/成就热更新注入引擎 |
 | `@overworld-engine/net` | 多人同步抽象:Transport 接口(内存/BroadcastChannel/WebSocket)、presence 复制/插值、事件中继、输入预测对账 |
 | `@overworld-engine/relay` | net 的参考 WebSocket 中继服务器(房间广播、心跳剔除、优雅关闭) |
+| `@overworld-engine/ui` | 可换肤游戏 HUD:展示原语、引擎绑定组件、战斗/导航组件、空间焦点 |
 | `@overworld-engine/platform` | 平台检测与能力桥(web/telegram/tauri/capacitor/weapp),app:* 生命周期事件 |
 | `@overworld-engine/adapters-weapp` | 微信适配层:存储/socket/音频/R3F canvas root/指针拾取/触摸摇杆 |
+| `@overworld-engine/adapters-steam` | Tauri 桌面壳的 Steamworks 成就、云存档与 Rich Presence 桥 |
+| `@overworld-engine/adapters-savefile` | Tauri 崩溃安全存档后端:原子写、fsync 与轮换备份 |
 | `@overworld-engine/dialogue` | 无头对话树引擎(条件门控选项、效果、好感度) |
 | `@overworld-engine/quest` | 无头任务状态机(声明式目标触发器、前置条件、奖励、任务链) |
 | `@overworld-engine/inventory` | 无头背包/物品引擎(堆叠、容量、使用效果) |
@@ -35,6 +38,7 @@ Overworld 从生产环境的 3D RPG 实践中提取通用能力沉淀而成:可�
 | `@overworld-engine/notifications` | Toast / Alert / Confirm 无头通知队列 |
 | `@overworld-engine/loading` | 资源加载进度聚合、场景预加载、资产清单(manifest)约定 |
 | `@overworld-engine/analytics` | 可插拔埋点(GA4 / Clarity / console) |
+| `@overworld-engine/test-kit` | 应用层集成测试:确定性事件录制与 React hook 接线检查 |
 
 “无头”(headless)= 只提供状态与逻辑,不带 UI;游戏用自己的视觉风格渲染。
 
@@ -76,7 +80,12 @@ telegram-mini-app、desktop-tauri、mobile-capacitor、weapp-game 四个端模�
 ## 文档
 
 **文档站**(Fumadocs):`pnpm docs:dev` 本地启动 —— 快速开始、架构(含 Mermaid 依赖图)、
-指南、23 个包的参考页、中文全文搜索、`llms.txt`。源码在 [`apps/docs`](apps/docs)。
+指南、27 个包的参考页、中文全文搜索、`llms.txt`。源码在 [`apps/docs`](apps/docs)。
+
+建议从文档站的[快速开始](https://overworld.web3noah.com/docs)进入，再按目标查看
+[包选择指南](https://overworld.web3noah.com/docs/package-selection)、
+[兼容性矩阵](https://overworld.web3noah.com/docs/compatibility)与
+[排障手册](https://overworld.web3noah.com/docs/troubleshooting)。
 
 仓库内 Markdown 原文:
 
@@ -84,6 +93,8 @@ telegram-mini-app、desktop-tauri、mobile-capacitor、weapp-game 四个端模�
 - [设计文档](docs/specs/2026-07-16-overworld-framework-design.md)
 - 指南:[多端支持](docs/guides/platforms.md) · [i18n 内容组织](docs/guides/i18n.md) · [资产组织与预加载](docs/guides/assets.md) · [测试指南](docs/guides/testing.md) · [持久化互操作](docs/guides/persistence-interop.md) · [内容热重载](docs/guides/content-hmr.md) · [内容包](docs/guides/content-packs.md) · [权威多人](docs/guides/authoritative-multiplayer.md) · [发布流程](docs/guides/releasing.md) · [签名与上架](docs/guides/signing-and-store.md) · [密集世界](docs/guides/dense-world.md)
 - 各包 `README.md`
+
+贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 技术栈与要求
 

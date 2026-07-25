@@ -1,0 +1,280 @@
+---
+title: 构建密集世界
+description: 用实例化装饰、LOD、移动 NPC、区域加载、环境音与雷达组合生产级场景
+---
+
+内容量变大后，场景很容易散落成多份互相漂移的“胶水”：一份坐标渲染装饰，
+另一份坐标维护碰撞；NPC 模型、名牌和碰撞分别更新；加载条猜首帧；小地图和雷达
+复制两套投影数学。Overworld 2.x 之后的世界 API 用共享数据与结构接口收拢这些
+问题。
+
+## 替换地图
+
+| 常见自维护代码 | 对应框架能力 |
+| --- | --- |
+| 手写天空、雾、光照与时间 if/else | `environment` 的 `WorldEnvironment` + presets |
+| 渲染和碰撞各维护一份装饰坐标 | `scene.Decorations` 从同一份 sets 派生 |
+| 每个远景模型手写距离判断 | `scene.Lod` |
+| 手推 NPC 模型但漏掉碰撞/名牌 | `SceneShell.npcPositionRefs` 或 `AgentNPC` |
+| 只有一个不可信的百分比加载条 | `loading.useSceneLoadStore` 的阶段模型 |
+| 玩家走到哪才临时拉资源 | `loading.useZoneStreaming` |
+| 手写瀑布/风声距离衰减 | `audio.setAmbientZones` |
+| 复制一份玩家朝向雷达算法 | `minimap.selectRadarMarkers` |
+| 对话打开时逐个禁用键盘、摇杆、相机 | `core.inputLock` |
+
+这些包仍不直接依赖彼此。应用通过 refs、结构配置和共享事件把它们组合起来。
+
+## 1. 环境预设与昼夜引擎
+
+```tsx
+import {
+  createEnvironment,
+  EnvironmentTick,
+  WorldEnvironment,
+} from '@overworld-engine/environment'
+
+const environment = createEnvironment({
+  dayLengthMs: 10 * 60 * 1000,
+})
+
+function EnvironmentLayer() {
+  return (
+    <>
+      <EnvironmentTick engine={environment} />
+      <WorldEnvironment
+        preset="clear-noon"
+        engine={environment}
+        quality="high"
+      />
+    </>
+  )
+}
+```
+
+不传 `engine` 时，`WorldEnvironment` 是静态预设；传入后会根据时间平滑求值
+光照与曝光。自定义视觉应新增 preset 配置，而不是 fork 组件。
+
+## 2. 一份装饰数据同时驱动渲染和碰撞
+
+```tsx
+import {
+  Decorations,
+  type DecorationSet,
+} from '@overworld-engine/scene'
+
+const lampSet: DecorationSet = {
+  id: 'village-lamps',
+  modelPath: '/models/lamp.glb',
+  instances: [
+    { position: [4, 0, 2] },
+    { position: [4, 0, 8], rotation: [0, Math.PI / 2, 0] },
+    { position: [-6, 0, 2] },
+  ],
+  collision: { radius: 0.4 },
+}
+
+<Decorations sets={[lampSet]} />
+```
+
+`Decorations` 使用 InstancedMesh 降低 draw calls，`collidersForSets` 从同一份
+instances 计算碰撞。不要另外手抄碰撞表。
+
+大型建筑或树木按距离切换模型：
+
+```tsx
+import { Lod } from '@overworld-engine/scene'
+
+<Lod
+  position={[30, 0, 30]}
+  levels={[
+    { distance: 0, modelPath: '/models/tower-high.glb' },
+    { distance: 60, modelPath: '/models/tower-low.glb' },
+  ]}
+  render={(modelPath) => <Model url={modelPath} />}
+/>
+```
+
+LOD 有滞回以减少边界抖动，并受运行时质量档位上限约束。
+
+## 3. 让 AI 驱动 NPC，但由 SceneShell 保持视觉一致
+
+```tsx
+import { useFrame } from '@react-three/fiber'
+import { createAgent } from '@overworld-engine/ai'
+import { SceneShell, type NPCConfig } from '@overworld-engine/scene'
+
+const guard = createAgent({ position: [0, -10], speed: 1.5 })
+guard.patrol(
+  [[0, -10], [10, -10], [10, 0]],
+  { pauseMs: 800 },
+)
+
+const guardPosition = {
+  current: [0, 0, -10] as [number, number, number],
+}
+
+const guardNpc: NPCConfig = {
+  id: 'guard',
+  name: '守卫',
+  modelPath: '/models/guard.glb',
+  position: guardPosition.current,
+}
+
+function GuardDriver() {
+  useFrame((_, delta) => {
+    guard.update(delta * 1000)
+    const [x, z] = guard.position
+    guardPosition.current = [x, 0, z]
+  })
+  return null
+}
+
+<SceneShell
+  npcs={[guardNpc]}
+  buildings={[]}
+  npcPositionRefs={{ guard: guardPosition }}
+>
+  <GuardDriver />
+</SceneShell>
+```
+
+两个条件缺一不可：
+
+1. 同一个 id 必须存在于 `npcs`，以注册模型、碰撞、邻近检测与选择环。
+2. 同一个 id 必须存在于 `npcPositionRefs`，并持续更新同一个 ref 容器。
+
+场景不使用 `SceneShell.npcs`，或需要完全自定义可视层时，改用 `AgentNPC`。
+不要为同一个 id 同时启用两种路径，否则会出现重叠模型与碰撞。
+
+## 4. 用阶段和区域表达加载状态
+
+```tsx
+import {
+  FirstFramePhase,
+  useSceneLoadStore,
+  useZoneStreaming,
+  type ZoneManifest,
+} from '@overworld-engine/loading'
+
+const zones: ZoneManifest[] = [
+  {
+    id: 'plaza',
+    priority: 1,
+    manifest: { models: ['/models/well.glb'] },
+    bounds: { minX: -20, maxX: 20, minZ: -20, maxZ: 20 },
+  },
+  {
+    id: 'market',
+    priority: 0,
+    manifest: { models: ['/models/stall.glb'] },
+    bounds: { minX: 20, maxX: 60, minZ: -20, maxZ: 20 },
+  },
+]
+
+function WorldLoading({ playerPosition }) {
+  useZoneStreaming(zones, playerPosition)
+  const progress = useSceneLoadStore((state) => state.progress)
+
+  return (
+    <>
+      <FirstFramePhase />
+      <LoadingHud progress={progress} />
+    </>
+  )
+}
+```
+
+场景阶段是 `idle → module → geometry → texture → first-frame → ready`。
+`FirstFramePhase` 必须挂在 Canvas 内。区域加载失败时读取 store 的错误信息并
+调用真实重试，不要只把 UI 百分比重置为零。
+
+## 5. 声明环境音区
+
+```ts
+import { createAudioManager } from '@overworld-engine/audio'
+
+const audio = createAudioManager({
+  tracks: {
+    village: '/audio/village.mp3',
+    waterfall: '/audio/waterfall-loop.mp3',
+  },
+  sceneTracks: { village: 'village' },
+})
+
+audio.setAmbientZones([
+  {
+    id: 'waterfall',
+    trackId: 'waterfall',
+    center: [10, 0, -20],
+    innerRadius: 5,
+    outerRadius: 25,
+  },
+])
+
+// 在玩家位置更新时调用
+audio.updateListener(playerPosition)
+```
+
+内部用 `zoneWeight` 计算线性距离权重，再与 `ambience` 总线音量混合。浏览器
+自动播放限制仍然存在，首次播放应由用户手势解锁。
+
+## 6. 从世界实体派生玩家朝向雷达
+
+```ts
+import { selectRadarMarkers } from '@overworld-engine/minimap'
+
+const radar = selectRadarMarkers(
+  {
+    worldBounds: {
+      minX: -60,
+      maxX: 60,
+      minZ: -60,
+      maxZ: 60,
+    },
+    range: 30,
+    npcs: [
+      { id: 'guard', position: guardPosition.current },
+    ],
+  },
+  playerPosition,
+  playerHeading,
+)
+```
+
+返回的 marker 已按玩家朝向旋转，并带距离钳制、`offScreen` 与 `angle` 信息。
+它是纯数据选择器，可用于 DOM、Canvas 或自定义 WebGL HUD。
+
+## 7. 一把锁挂起所有游戏输入
+
+```tsx
+import { KEYBOARD_PRIORITY, useKeyboardLayer } from '@overworld-engine/input'
+
+function DialogueOverlay() {
+  useKeyboardLayer(
+    'dialogue',
+    KEYBOARD_PRIORITY.NPC_DIALOGUE,
+    { lockInput: true },
+  )
+
+  return <div role="dialog">…</div>
+}
+```
+
+`Player`、交互键、`FollowCamera` orbit 与默认的 `VirtualJoystick` 都查询共享
+`inputLock`。组件卸载后 hook 自动释放。命令式场景使用
+`const release = inputLock.acquire(id)` 并确保调用 `release()`。
+
+## 生产检查清单
+
+- 装饰渲染与碰撞来自同一份 instances。
+- 每个移动 NPC 只有一个可视/碰撞所有者。
+- LOD 资源有明确内存预算，运行时质量档位可降级。
+- 加载 UI 展示真实阶段与错误，不伪造线性百分比。
+- 区域预载按距离和 priority 排序，失败可重试。
+- 音频在用户手势后解锁，页面隐藏时行为明确。
+- UI 模态层只持有一把共享输入锁，并在卸载时释放。
+- 开发构建挂载 inspector，生产构建不无条件打包编辑器和调试面板。
+
+各 API 的完整字段见 [`scene`](/docs/packages/scene)、
+[`loading`](/docs/packages/loading)、[`environment`](/docs/packages/environment)、
+[`audio`](/docs/packages/audio) 与 [`minimap`](/docs/packages/minimap) 参考页。

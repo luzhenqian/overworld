@@ -125,7 +125,12 @@ function Game() {
   `{ x, z, magnitude }`(死区 + 单位圆钳制)。
 - `shouldRun(magnitude, runThreshold?)` — 是否达到奔跑阈值。
 - `computeThumbOffset(dx, dy, maxDistance)` — 摇杆头显示位置钳制。
+- `resolveJoystickOutput(vector, respectInputLock, locked)` — 输入锁存在时决定是否
+  输出零向量，供默认组件和平台适配器共享语义。
 - 常量 `DEFAULT_DEAD_ZONE`(0.15)/ `DEFAULT_RUN_THRESHOLD`(0.85)。
+
+`parseLayerOpts` 是 `useKeyboardLayer` 的公开规范化辅助，把旧的 blockedKeys
+数组与 `{ blockedKeys, lockInput }` 选项统一成内部形状。新代码优先使用对象形式。
 
 ## 注意事项
 

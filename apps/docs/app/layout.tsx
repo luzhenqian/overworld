@@ -4,9 +4,43 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://overworld.web3noah.com'),
   title: { default: 'Overworld — Web 3D RPG 游戏开发框架', template: '%s | Overworld' },
   description:
-    '模块化 Web 3D RPG 游戏开发框架:React + three.js + zustand,18 个可组合的 @overworld-engine/* 包。',
+    '面向生产的模块化 Web 3D RPG 游戏开发框架：27 个可组合的 TypeScript 包，覆盖世界、玩法、AI、联机、UI 与多端交付。',
+  keywords: [
+    'Web 3D',
+    'RPG',
+    'game engine',
+    'React',
+    'three.js',
+    'TypeScript',
+    'zustand',
+    'Overworld',
+  ],
+  authors: [{ name: 'Overworld contributors' }],
+  creator: 'Overworld contributors',
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    siteName: 'Overworld',
+    title: 'Overworld — 把游戏内容，留给游戏',
+    description: '27 个可组合的 TypeScript 包，构建面向生产的 Web 3D RPG。',
+    images: [
+      {
+        url: '/og.png',
+        width: 1731,
+        height: 909,
+        alt: 'Overworld — 把游戏内容，留给游戏。',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Overworld — 把游戏内容，留给游戏',
+    description: '27 个可组合的 TypeScript 包，构建面向生产的 Web 3D RPG。',
+    images: ['/og.png'],
+  },
 };
 
 const inter = Inter({

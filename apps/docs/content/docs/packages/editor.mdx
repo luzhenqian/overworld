@@ -188,6 +188,11 @@ const json = store.exportScene()   // 纯函数,也可直接用 exportEntities(e
 store.importScene(json)            // 逆操作(尽力解析,跳过坏条目;根不是对象时抛错)
 ```
 
+同一能力的无 store 导出包括 `importEntities` 与
+`sceneConfigToEditorEntities`。公开常量 `DEFAULT_COLLISION_RADIUS`、
+`DEFAULT_SNAP`、`HISTORY_LIMIT`、`SCENE_PROJECT_VERSION` 让外部面板、导入器
+和测试与内置编辑器保持同一默认值。
+
 导出形状:
 
 ```jsonc
@@ -322,6 +327,9 @@ configureEditorLabels({
 `useEditorLabels()` 订阅当前字典。编辑器是**唯一**内置用户可见文案的
 Overworld 包 —— 其余自渲染 UI(摇杆、小地图)无文字,系统包(通知/对话/
 任务等)文案全部来自游戏内容。
+
+需要直接接入 zustand selector 时可使用公开的 `useEditorLabelsStore`；
+一般组件优先使用语义更窄的 `useEditorLabels()`。
 
 ## 与 @overworld-engine/scene 的关系
 

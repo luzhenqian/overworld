@@ -1,12 +1,13 @@
 {
   "title": "指南",
   "pages": [
+    "dense-world",
+    "assets",
     "platforms",
     "i18n",
     "testing",
     "persistence-interop",
     "authoritative-multiplayer",
-    "assets",
     "content-hmr",
     "content-packs",
     "releasing",

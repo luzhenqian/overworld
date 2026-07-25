@@ -156,9 +156,8 @@ jobs:
           pnpm --filter content-packs typecheck
 
   docs:
-    name: Build docs (optional)
+    name: Check and build docs
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -177,6 +176,9 @@ jobs:
 
       - name: Build packages
         run: pnpm -r --filter './packages/*' build
+
+      - name: Check docs content and types
+        run: pnpm docs:check
 
       - name: Build docs
         run: pnpm docs:build

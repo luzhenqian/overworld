@@ -93,6 +93,45 @@ preloadManifest(VILLAGE_ASSETS, { categories: ['models'] }) // 只预热部分�
 真实的模型加载进度由 three.js 加载管理器产生,在场景挂载后经
 `useSceneLoadProgress` 桥接进 store——清单负责"尽早开始",进度显示交给那个 Hook。
 
+`ASSET_CATEGORIES` 公开合法分类：`models`、`audio`、`images`、`fonts`，适合
+校验器或自定义工具复用。
+
+## 场景阶段与区域流式加载
+
+`useSceneLoadStore` 把“场景可玩”拆成明确阶段：
+
+```ts
+SCENE_PHASES
+// ['idle', 'module', 'geometry', 'texture', 'first-frame', 'ready']
+```
+
+| 导出 | 说明 |
+| --- | --- |
+| `useSceneLoadStore` | 阶段、进度、错误与区域失败状态 |
+| `aggregateSceneProgress` | 按阶段状态求场景总进度 |
+| `aggregateZoneProgress` | 对区域进度求加权平均 |
+| `FirstFramePhase` | 挂在 Canvas 内，geometry 完成后的首帧标记 |
+| `installSceneLoadDebugHandle` | dev 环境把 store 镜像到 `window.__overworldSceneLoad`，返回清理函数 |
+
+区域清单声明 bounds、priority 和资产 manifest：
+
+```tsx
+const streaming = useZoneStreaming(zones, playerPositionRef)
+
+streaming.pending
+streaming.loaded
+streaming.failed
+streaming.progress
+streaming.retry('market')
+```
+
+`orderZones` 先按高 priority 分桶，再在桶内按玩家距离排序；
+`orderZonesByDistance` 只按距离排序。`useZoneStreaming` 在 zone 集合变化时粗粒度
+读取一次位置并启动预载，不是逐帧卸载/加载系统。`retry(id)` 会清除 started
+标记和错误并重新执行真实 preload。
+
+完整使用方式见[密集世界指南](/docs/guides/dense-world)。
+
 ## 依赖
 
 peerDependencies:`react`、`zustand`、`@react-three/drei`。

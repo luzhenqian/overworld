@@ -1,10 +1,15 @@
 {
   "pages": [
     "index",
+    "package-selection",
+    "compatibility",
     "architecture",
     "starter",
     "guides",
     "packages",
+    "migration",
+    "troubleshooting",
+    "contributing",
     "changelog"
   ]
 }

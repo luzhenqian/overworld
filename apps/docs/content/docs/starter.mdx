@@ -1,17 +1,26 @@
 ---
-title: 示例:Starter
-description: 最小可玩示例——所有包的端到端组合演示
+title: Starter 示例
+description: 可运行的垂直切片：世界、内容、AI、联机、编辑器与确定性测试的真实装配
 ---
 
-最小可玩示例,验证并演示 `@overworld-engine/*` 全家桶的端到端组合方式。无需任何美术资产
-(玩家与 NPC 均为几何体回退)。
+`examples/starter` 不是伪代码或脚手架截图，而是 CI 持续构建和测试的可玩垂直
+切片。它组合了 15 个 Overworld 包，演示内容、引擎、3D 世界、AI、联机、
+编辑器与应用层测试如何在同一个组合根汇合。
+
+示例不要求下载美术资源：仓库没有附带的模型路径会触发 `scene` 的几何回退，
+因此克隆后即可运行。
 
 ```bash
-pnpm install && pnpm build   # 仓库根目录
+corepack enable
+pnpm install
+pnpm build
 pnpm --filter starter dev
 ```
 
-## 玩法(约 2 分钟)
+浏览器打开终端输出的本地地址。首次阅读建议先完整玩一遍，再沿下面的文件顺序
+看代码。
+
+## 验收路线（约 3 分钟）
 
 1. WASD/方向键移动(或拖左下角**虚拟摇杆**,触摸/鼠标均可),Shift 跑 —— 推进任务
    「初来乍到」的行走目标,10 米解锁成就。右上角**小地图**实时显示 NPC(黄点)与
@@ -27,15 +36,62 @@ pnpm --filter starter dev
 10. 右下角「编辑器 OFF」按钮打开**场景编辑器**:放置/拖拽实体、编辑属性、撤销/重做(Ctrl+Z / Ctrl+Shift+Z)、复制(Ctrl+D)、导出场景 JSON。
 11. **多开几个标签页**:各标签页的玩家以半透明幽灵胶囊互相可见、实时同步移动,右上角 👥 显示在线数(BroadcastChannel 传输;换 WebSocket transport 即为真联机)。
 
-## 代码结构(读这几个文件就够了)
+## 推荐阅读顺序
 
 | 文件 | 演示内容 |
 |---|---|
 | `src/game/content.ts` | 纯内容数据:NPC/对话树/任务/物品/成就,行为全部是声明式引用 |
-| `src/game/engines.ts` | 装配点:创建注册表与引擎、注册效果/条件、事件总线接线 |
+| `src/game/engines.ts` | `createEngines()` 测试工厂 + 生产装配点：注册表、引擎、AI、presence 与事件接线 |
 | `src/game/gold.ts` | 游戏专属系统如何通过效果注册表被内容引用 |
+| `src/game/loot.ts` | 游戏专属随机玩法如何接受 `RngSource` 注入 |
 | `src/World.tsx` | SceneShell + Player(键盘+摇杆双输入)+ 昼夜灯光 + 小地图标记 + 逐帧拾取 |
-| `src/ui/*` | 无头引擎的 UI 渲染:任务追踪、对话框、Toast、背包、小地图、虚拟摇杆 |
+| `src/ui/HUD.tsx` | 无头引擎状态如何渲染成任务、Toast、背包、小地图与虚拟摇杆 |
+| `src/__tests__/*` | 事件录制、hook 接线、固定 RNG 与 store 快照的应用层测试 |
 
-开发模式下 `window.__game` 暴露了引擎句柄与 `advance()`(后台标签页 RAF 暂停时手动驱动帧),
-供调试与自动化测试使用。
+## 关键架构点
+
+### 生产单例与测试工厂分开
+
+`createEngines({ events, rng })` 每次返回隔离的事件总线、注册表、任务、背包和
+loot table。生产实例显式传入 `gameEvents`；测试传入 `createSeededRng(seed)`。
+这样测试不共享监听器，也不会依赖 `Math.random()`。
+
+示例为了展示接线边界，只有 `loot.random` 在工厂内注册；生产专用的金币、任务
+启动与关系效果在模块级注册。测试直接调用工厂时，应为测试场景注册其余需要的
+条件/效果。源码注释明确记录了这个边界。
+
+### 内容不引用实现
+
+`content.ts` 里的 `wallet.add`、`quest.start`、`loot.random` 和
+`quest.completed` 都只是字符串引用。真实 store 和函数只在 `engines.ts`
+出现，因此同一份内容可以被校验、热更或在无 UI 环境中测试。
+
+### 3D 世界不是状态总仓库
+
+`World.tsx` 负责玩家、NPC、灯光与拾取检测；任务进度、背包、成就和通知各自
+留在自己的无头 store。它们通过 `gameEvents` 协作。
+
+### 开发工具不会无条件进入生产
+
+`devtools` 和编辑器初始化通过动态 import 或开发环境分支接入。真实项目还应由
+构建产物分析确认开发工具没有进入玩家下载路径。
+
+## 运行测试
+
+```bash
+pnpm --filter starter test
+pnpm --filter starter typecheck
+pnpm --filter starter build
+```
+
+测试覆盖三类容易被纯引擎单测漏掉的问题：
+
+- `createEngines()` 是否把事件总线和随机源传到正确位置。
+- `useInteractKey` 是否在真实 React 生命周期中绑定按键并发出事件。
+- 固定 seed 的 loot 是否可复现。
+
+开发模式下 `window.__game` 还会暴露引擎句柄与 `advance()`，供调试与自动化
+验收；它不是生产 API。
+
+继续扩展时，先阅读[包选择指南](/docs/package-selection)，避免把 Starter
+使用的全部依赖机械复制进每个项目。

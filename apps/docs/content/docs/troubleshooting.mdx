@@ -1,0 +1,193 @@
+---
+title: 排障手册
+description: 按症状定位安装、输入、内容、存档、场景、音频和联机问题
+---
+
+排障时先判断问题属于哪一层：**安装与依赖、内容与装配、运行时状态、渲染、
+平台适配或外部服务**。不要在 UI 症状出现时直接修改引擎状态。
+
+## 安装或构建失败
+
+### Invalid hook call / React context 为空
+
+最常见原因是应用中存在两份 React，或 `react-test-renderer` 与 React 版本不同：
+
+```bash
+pnpm why react react-dom react-test-renderer
+```
+
+让 workspace 只解析一份 React。使用 `test-kit.renderHook` 时，
+`react-test-renderer` 必须与 React 18 的具体版本一致。
+
+### R3F 对象异常、loader 或材质不是预期实例
+
+检查 `three` 与 `@react-three/fiber` 是否重复：
+
+```bash
+pnpm why three @react-three/fiber @react-three/drei
+```
+
+不要在 monorepo 的多个层级各自固定不兼容的 three.js。所有 R3F 相关包应共享
+同一实例。
+
+### 找不到模块或导出
+
+- 只从包入口导入，不要使用 `dist/*` 深层路径。
+- 确认所有 Overworld 包在同一版本线。
+- `@overworld-engine/ui/focus` 需要额外安装可选 peer。
+- 样式文件使用公开子路径：`ui/styles.css` 与 `ui/themes/<name>.css`。
+
+## 内容没有生效
+
+### 任务不推进
+
+逐项检查：
+
+1. 事件名与 `trigger.event` 完全一致。
+2. 任务已经开始，或定义了 `autoStart: true`。
+3. 引擎与事件发出方使用同一个 `EventBus` 实例。
+4. `filter` 字段与事件载荷中的字段一致。
+5. `amountFrom` 指向数值字段；省略时每次事件增加 1。
+
+用事件录制器确认事实链：
+
+```ts
+import { createEventRecorder } from '@overworld-engine/test-kit'
+
+const recorder = createEventRecorder(events)
+// 复现一次操作
+console.table(recorder.events)
+recorder.stop()
+```
+
+### 奖励、条件或物品效果不执行
+
+未知效果会警告并跳过；未知条件会返回 `false`。在创建引擎后、玩家进入游戏前
+运行：
+
+```ts
+assertValidContent(content, {
+  effectTypes: effects.types(),
+  conditionTypes: conditions.types(),
+})
+```
+
+确认注册表和引擎来自同一个装配工厂。测试中新建了引擎但沿用生产全局注册表，
+或反过来，是常见原因。
+
+### 一次交互触发两次
+
+`scene.interact()` 在当前 `3.2.x` 同时发出 `entity:interact` 和已弃用的
+`interact`。只订阅前者，不要同时监听两个名字。
+
+## 输入无法恢复或 UI 打开时角色仍移动
+
+共享输入锁是引用计数式的持有/释放契约：
+
+```ts
+const release = inputLock.acquire('dialogue')
+// ...
+release()
+```
+
+- 每次 `acquire` 都保存并调用对应的 release；不要自己猜锁计数。
+- React 组件优先使用 `useKeyboardLayer(..., { lockInput: true })`，卸载时自动释放。
+- 调试时查看 `inputLock.activeLocks()`。
+- `VirtualJoystick` 的 `respectInputLock` 默认为 `true`；若显式关闭，需要应用自己清零输出。
+- 自定义 `isInputBlocked` 返回值会参与 scene 交互判断，检查闭包是否读到最新状态。
+
+## 3D 模型或场景异常
+
+### 模型一直显示几何回退
+
+`scene` 在加载中和加载失败时都会显示占位几何。检查浏览器网络面板与控制台：
+
+- URL 是否区分大小写并可直接访问。
+- GLB 内部纹理是否正确打包或使用可访问 URL。
+- 服务器 MIME、CORS 与缓存头是否正确。
+- 模型是否被错误的 Draco/KTX2 压缩流程处理但应用没有配置解码器。
+
+先用一个已知可用的小 GLB 验证加载链，再定位资产本身。
+
+### 移动 NPC 的模型、碰撞或名牌不同步
+
+使用 `SceneShell.npcPositionRefs` 时：
+
+- NPC id 必须同时存在于 `npcs` 和 `npcPositionRefs`。
+- 每帧更新同一个 ref 对象的 `current`，不要替换传入的 ref 容器。
+- 不要为同一 id 同时渲染 `BaseNPC` 跟随和独立 `AgentNPC`。
+
+### 场景加载进度不进入 ready
+
+检查 `useSceneLoadStore` 的各阶段和错误字段，并确认 `<FirstFramePhase />`
+确实挂在 Canvas 内。区域资产失败时应调用真实重试流程，而不是只重置 UI 状态。
+
+## 存档问题
+
+### 刷新后没有状态
+
+引擎的 `persist` **省略或 `false` 表示关闭**。显式传 `true` 或配置对象，并确认：
+
+- storage 在当前环境可用。
+- 多个 store 的 `name` 不冲突。
+- 异步 storage 完成水合后再渲染依赖状态的 UI。
+- 页面进入后台前，对 `FlushableStorage` 调用了 `flush()`。
+
+### 桌面存档损坏或恢复到旧代
+
+`recoverSlot` 按 current → backup1 → backup2 扫描，返回每一代失败原因。记录
+`RecoverOutcome.failures`，区分读取失败、信封校验失败和业务 `isValid` 失败。
+
+Tauri 后端还需要：
+
+- 注册 `overworld-savefile` Rust 插件。
+- 在 capability JSON 中加入 `overworld-savefile:default`。
+- 使用相对 AppData 的路径；绝对路径、`..` 和 Windows 盘符会被拒绝。
+
+Web `createWebSaveFileBackend` 使用 localStorage，`syncFile` 是 no-op，不能期待
+与 Tauri 相同的断电保证。
+
+## 联机问题
+
+### 本地多标签页看不到其他玩家
+
+- 必须是同源页面，并使用相同 BroadcastChannel 名。
+- 检查 `isBroadcastChannelAvailable()`。
+- 每个实例的 peer id 必须唯一。
+- 启动 `presence.start()`，并在 pagehide / 卸载时 `stop()`。
+
+### WebSocket 连接后没有房间消息
+
+- 客户端 URL、房间和协议字段必须与服务器一致。
+- `relay` 只做房间内逐字广播，不会补发历史状态。
+- 心跳超时会清理连接；后台页计时被节流时观察重连策略。
+- 浏览器 HTTPS 页面必须使用 `wss://`，否则会被 mixed content 策略拦截。
+
+### 预测后持续抖动
+
+权威服务器必须使用相同输入序号和确定性 step 规则。确认服务器回传最后已确认
+序号，客户端先回滚到权威状态，再只重放未确认输入。不要把 presence 插值和本地
+玩家预测混为同一条路径。
+
+## 音频没有声音
+
+浏览器通常要求用户手势后才能播放。先在点击/触摸处理器中调用音频管理器的解锁
+或播放入口。再检查：
+
+- master / music / ambience / sfx 总线是否被静音或音量为 0。
+- 页面隐藏策略是否暂停了音频。
+- 环境音区的 trackId 存在，listener 位置持续更新。
+- 测试或 SSR 是否意外使用了 `silentBackend`。
+
+## 仍然无法定位
+
+准备一个最小复现，包含：
+
+- Overworld、React、three、fiber、zustand 版本。
+- 目标平台与浏览器/壳版本。
+- 最小内容定义和装配代码。
+- 预期事件与实际录制事件。
+- 可公开的错误堆栈。
+
+然后在 [GitHub Issues](https://github.com/luzhenqian/overworld/issues) 搜索已有问题，
+或按[贡献指南](/docs/contributing)提交新 issue。

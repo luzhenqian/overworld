@@ -21,7 +21,7 @@ import 本包即可响应玩家移动、场景切换与交互。
 | `scene:changed` | `useSceneStore.setScene(id)` 切换场景时 |
 | `proximity:enter` / `proximity:leave` | 玩家进入 / 离开 NPC 或建筑的交互半径时 |
 | `entity:interact` | 附近有实体且按下交互键(`useInteractKey` / `interact()`)时 |
-| `interact`(**已弃用**) | 与 `entity:interact` 同载荷双发,仅为过渡期兼容,2.0 移除 |
+| `interact`(**已弃用**) | 与 `entity:interact` 同载荷双发;当前 3.2.x 仍保留,新代码不要订阅 |
 
 ## 核心组件 / API
 
@@ -63,8 +63,8 @@ import 本包即可响应玩家移动、场景切换与交互。
   加载中与加载失败都显示主题化占位体,失败只打一条 `console.error`。
   `preloadSceneModels` 因此只是性能优化(缓存命中时同步解析),不再是正确性前提。
 - **`interact()` / `useInteractKey(key = 'e', { isInputBlocked })`** —
-  把"按 E 交互"翻译成总线上的 `entity:interact` 事件(过渡期同载荷双发已弃用的
-  `interact`,2.0 移除)。
+  把"按 E 交互"翻译成总线上的 `entity:interact` 事件(当前 3.2.x 同载荷双发
+  已弃用的 `interact`;新代码只订阅前者)。
 - **`defaultSceneTheme` / `createSceneTheme(partial)`** — 中性默认主题与深合并辅助。
 
 ## 最小使用示例
@@ -149,6 +149,10 @@ return level ? <SceneFromJson json={level} player={null} /> : <Fallback />
 `theme`……)原样透传;`SceneJson` 与编辑器 `exportScene()` 的 `EditorSceneJSON`
 结构等价,可直接互通。
 
+同一转换也以纯函数公开：`sceneJsonToShellProps(json)` 只做 JSON → SceneShell
+内容映射；`sceneConfigToSceneJson(config)` 把结构兼容的场景配置规范化为
+`SceneJson`。工具链和测试不需要挂载 React 组件即可验证往返。
+
 ## 性能预设
 
 面向移动端 / 低端设备的渲染质量分档:一个 zustand 单例存当前
@@ -196,6 +200,77 @@ function World() {
   )
 }
 ```
+
+## 生产世界 API
+
+### 移动 NPC
+
+`SceneShell.npcPositionRefs` 是首选路径：同一个 ref 同步 `BaseNPC` 的模型、名牌、
+动画、碰撞、邻近检测与选择环。`AgentNPC` 则把结构类型 agent 接到 R3F frame
+loop，适合自定义可视层：
+
+```tsx
+<AgentNPC
+  npcId="guard"
+  agent={guardAgent}
+  positionRef={guardPositionRef}
+  animStateRef={guardAnimStateRef}
+>
+  <GuardModel />
+</AgentNPC>
+```
+
+如果该 id 同时由 `BaseNPC` 跟随 ref，不要再用 `AgentNPC` 渲染第二份可视对象。
+完全脱离 SceneShell 时，如需碰撞/邻近，应由应用显式注册 collider。
+
+### LOD 与实例化装饰
+
+`Lod` 根据 `playerPositionRef` 到目标的距离选择 modelPath，只在 level 改变时
+重新渲染，并预载相邻两档：
+
+```tsx
+<Lod
+  position={[30, 0, 30]}
+  levels={[
+    { distance: 0, modelPath: '/tower-high.glb' },
+    { distance: 60, modelPath: '/tower-low.glb' },
+  ]}
+  deviceCap={qualityToLodCap(useQualityStore.getState().preset)}
+  render={(url) => <Model url={url} />}
+/>
+```
+
+`selectLodLevel` 是带 hysteresis/deviceCap 的纯选择器，`orderPreload` 返回当前档
+附近的预载顺序。
+
+`Decorations` 用 `DecorationSet[]` 渲染 InstancedMesh，并可从同一份 instances
+注册碰撞。公开辅助如下：
+
+| 导出 | 说明 |
+| --- | --- |
+| `instanceMatrix` | 单个实例配置转 THREE.Matrix4 |
+| `decorationColliders` / `collidersForSets` | 从相同装饰数据派生 collider |
+| `setCentroid` | 求装饰组中心 |
+| `selectDecorationModel` | 按距离与 LOD 配置选 modelPath |
+| `useDecorationCollision` | 只复用碰撞注册，不使用默认渲染 |
+
+详见[密集世界指南](/docs/guides/dense-world)。
+
+### 动画、相机、输入与质量辅助
+
+| 导出 | 说明 |
+| --- | --- |
+| `useModelClips` | 从模型取得 animation clips |
+| `resolveClip` / `pickNpcClipName` / `deriveNpcAnimState` | 解析 idle/walk/run clip |
+| `applyOrbitDelta` / `orbitToOffset` | FollowCamera 轨道相机纯数学 |
+| `useInputLocked` | React 订阅共享 `inputLock` |
+| `resolveInputBlocked` | 显式回调优先，否则查询共享输入锁 |
+| `readWebglRenderer` / `isSoftwareRenderer` | 安全读取并识别软件 WebGL renderer |
+| `qualityToLodCap` | 将 high / medium / low 映射到 LOD 细节上限 |
+
+`getPlayerPosition()` 返回当前玩家位置快照；`teleportPlayer()` 写入传送请求，
+`consumePlayerTeleport()` 由 Player 内部消费并清除。`DEFAULT_NPC_SCALE` 与
+`DEFAULT_BUILDING_SCALE` 供自定义可视布局保持和内置组件一致。
 
 ## 注意事项
 

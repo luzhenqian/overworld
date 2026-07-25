@@ -1,0 +1,157 @@
+---
+title: 迁移指南
+description: 升级到 3.x 的破坏性变化、检查步骤与存档迁移策略
+---
+
+Overworld 的 27 个包使用 fixed version group。升级时先把所有
+`@overworld-engine/*` 包提升到同一版本，再处理编译错误和存档迁移。不要在
+同一个应用中长期混用不同 major。
+
+## 通用升级流程
+
+1. 阅读起始版本到目标版本之间的[版本历史](/docs/changelog)。
+2. 在独立分支一次升级全部 `@overworld-engine/*`。
+3. 删除锁文件不是第一选择；先让包管理器正常重解并检查 peer 冲突。
+4. 运行类型检查、单元测试和生产构建。
+5. 用真实旧存档执行水合与迁移测试。
+6. 验证输入锁、对话交互、网络重连和场景加载等跨系统链路。
+
+```bash
+pnpm up '@overworld-engine/*@3.2.0'
+pnpm why react three zustand
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+## 2.x → 3.x
+
+3.0 的破坏性变化集中在 `@overworld-engine/ui`。
+
+### `Modal` 攑为复合组件
+
+以前：
+
+```tsx
+<Modal open={open} onDismiss={() => setOpen(false)}>
+  <Panel>设置</Panel>
+</Modal>
+```
+
+现在：
+
+```tsx
+<Modal.Root open={open} onDismiss={() => setOpen(false)}>
+  <Modal.Content>
+    <Panel>
+      设置
+      <Modal.Close asChild>
+        <Button>关闭</Button>
+      </Modal.Close>
+    </Panel>
+  </Modal.Content>
+</Modal.Root>
+```
+
+新的结构把遮罩、内容与关闭触发器分开，并保留焦点陷阱与关闭后焦点恢复。
+
+### 背包 `Slot` 更名为 `InventorySlot`
+
+3.x 的 `Slot` 是支持 `asChild` 的通用原语。旧背包格子改名为
+`InventorySlot`：
+
+```diff
+- import { Slot } from '@overworld-engine/ui'
++ import { InventorySlot } from '@overworld-engine/ui'
+
+- <Slot icon={item.icon} quantity={item.quantity} />
++ <InventorySlot icon={item.icon} quantity={item.quantity} />
+```
+
+类型也从旧的 `SlotProps` 改为 `InventorySlotProps`。由于 `Slot` 仍然是有效
+导出，错误导入不一定表现为“找不到符号”，而可能表现为 props 类型不匹配；应
+全局检查 `Slot` 的语义。
+
+### `asChild`
+
+`Button`、`IconButton` 与 `Modal.Close` 现在可以把 props/ref 合并到唯一子
+元素：
+
+```tsx
+<Button asChild>
+  <a href="/docs">文档</a>
+</Button>
+```
+
+子元素必须是可接收 ref 的单个 React 元素。
+
+## 1.x → 2.x
+
+2.0 引入统一 `inputLock`、生产化世界能力、场景加载阶段、环境音总线与雷达
+选择器。大部分是增量 API，但输入行为有一个重要变化：
+
+- `Player`、交互键、`FollowCamera` orbit 与 `VirtualJoystick` 默认查询共享
+  `inputLock`。
+- `useKeyboardLayer(id, priority, { lockInput: true })` 会在层存在期间持锁。
+- 如果应用过去手动分别禁用每个输入源，应删掉重复接线，避免释放顺序不一致。
+
+### 关于旧 `interact` 事件
+
+旧文档曾写“2.0 移除”，但 `3.2.x` 源码仍保留并双发。迁移时：
+
+```diff
+- gameEvents.on('interact', handleInteract)
++ gameEvents.on('entity:interact', handleInteract)
+```
+
+不要同时订阅两个名字，否则一次按键会处理两次。旧事件何时真正移除应以未来
+release notes 和实际导出为准。
+
+## 存档结构迁移
+
+包升级不会自动理解你的业务存档。重命名任务 id、目标 id、物品字段或自定义
+store 形状时，用 `defineMigrations` 显式升级：
+
+```ts
+import { defineMigrations, persistOptions } from '@overworld-engine/core'
+
+const migrate = defineMigrations({
+  1: (state) => ({
+    ...state,
+    gold: Number(state.coins ?? 0),
+  }),
+  2: (state) => ({
+    ...state,
+    completedQuestIds: state.completed ?? [],
+  }),
+})
+
+persistOptions({
+  name: 'profile',
+  version: 2,
+  migrate,
+})
+```
+
+每个 key 表示该步骤产出的目标版本。测试至少覆盖：
+
+- 从每一个仍在支持的旧版本升级。
+- 已是当前版本时不重复迁移。
+- 缺失、额外和类型错误字段的处理策略。
+- 迁移失败时是否允许回退到备份或新建存档。
+
+桌面文件损坏恢复使用 `commitSlot` / `recoverSlot`；它解决物理写坏，不替代
+业务 schema 迁移。两层需要分别测试。
+
+## 升级完成检查
+
+- 所有 Overworld 包版本一致。
+- 无深层导入。
+- React、three、fiber 与 zustand 没有重复实例。
+- UI 的 `Modal` 与 `Slot` 已迁移。
+- 新代码只订阅 `entity:interact`。
+- 开发构建的内容校验为零错误。
+- 旧存档样本通过迁移与恢复测试。
+- 生产构建、至少一个真实浏览器和目标原生壳通过冒烟测试。
+
+如果错误不属于版本变化，使用[排障手册](/docs/troubleshooting)定位到对应层。

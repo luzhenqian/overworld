@@ -1,89 +1,222 @@
 ---
 title: 快速开始
-description: Overworld —— 模块化 Web 3D RPG 游戏开发框架
+description: 从安装到第一个可运行的任务闭环，理解 Overworld 的装配方式
 ---
 
-Overworld 是一个模块化的 **Web 3D RPG 游戏开发框架**,基于 React 18 + three.js
-(@react-three/fiber)+ zustand,从实际上线的 3D RPG 项目中提取通用能力沉淀而成。
+Overworld 是一个面向生产的 **Web 3D RPG TypeScript 框架**。它把世界渲染、
+玩家控制、无头玩法引擎、AI、联机、UI 和多端适配拆成 27 个独立包。你只安装
+需要的能力，并在应用层决定它们如何协作。
 
-开发一款新的同类游戏时,你只需要编写**游戏内容数据**(NPC/对话树/任务表/成就表)和
-**玩法专属系统**,其余交给框架:可探索 3D 世界、玩家控制、NPC 对话、任务、物品、成就、
-教程、寻路 AI、昼夜天气、小地图、音频、通知、加载、联机 presence、场景编辑器。
+这篇指南会完成一个最小闭环：**玩家移动 → 任务累计 → 完成任务 → 执行奖励 → UI
+收到事件**。整个过程不要求任务包依赖场景、背包或 UI。
 
-## 设计哲学
+## 前置要求
 
-1. **系统之间零依赖** —— 所有系统包只依赖 `@overworld-engine/core`,跨系统通信一律走类型化事件总线
-2. **数据驱动 + 注册表** —— 内容里只写声明式引用,游戏启动时注册处理函数,框架永不 import 游戏代码
-3. **内容注入,而非内容内置** —— 引擎都是工厂函数,框架包内零游戏内容
-4. **事件表可扩展** —— declaration merging 把玩法事件并入 `OverworldEventMap`,同样类型安全
+| 项目 | 当前支持范围 |
+| --- | --- |
+| JavaScript 运行时 | 现代浏览器；仓库 CI 使用 Node.js 22 |
+| 模块 | ESM |
+| TypeScript | strict 项目；仓库使用 TypeScript 5.6 |
+| React 3D 栈 | React 18、three.js ≥ 0.160、React Three Fiber 8、drei 9 |
+| 状态 | zustand 5 |
 
-## 五分钟上手
+发布包不依赖 pnpm。npm、yarn 与 pnpm 都可以使用；本文命令默认采用 pnpm。
+完整的 peer 依赖矩阵与多包管理器命令见[兼容性与支持范围](/docs/compatibility)。
+
+## 1. 安装最小组合
+
+先安装 `core` 和需要的系统。下面的闭环使用 `quest`；加入 `scene` 才需要
+React 3D peer：
 
 ```bash
-pnpm add @overworld-engine/core @overworld-engine/scene @overworld-engine/quest @overworld-engine/dialogue
+pnpm add @overworld-engine/core @overworld-engine/quest zustand
 ```
 
-npm / yarn 同样开箱即用:发布产物为标准 ESM + `.d.ts`,peer 依赖仅一层
-(react / three / fiber / drei / zustand,npm v7+ 自动安装),无 pnpm 特有要求。
+如果要渲染 3D 世界：
 
-定义内容(纯数据,零代码):
+```bash
+pnpm add @overworld-engine/scene react react-dom three \
+  @react-three/fiber @react-three/drei zustand
+```
 
-```ts
-const QUESTS: QuestDefinition[] = [
+Overworld 没有“全家桶”入口。显式安装所需包能让依赖、包体和系统边界保持清楚。
+不知道如何选择时，先看[包选择指南](/docs/package-selection)。
+
+## 2. 定义纯内容
+
+任务标题、目标、触发事件和奖励都是可序列化数据。`type` 字符串只是对应用代码
+中处理器的引用，不会把业务逻辑塞进内容：
+
+```ts title="game/content.ts"
+import type { QuestDefinition } from '@overworld-engine/quest'
+
+export const QUESTS: QuestDefinition[] = [
   {
-    id: 'welcome',
-    title: 'quest.welcome.title', // 不透明字符串:字面量或 i18n key 均可
+    id: 'first-steps',
+    title: '迈出第一步',
+    description: '在村庄里走 20 米。',
     autoStart: true,
     objectives: [
-      // 声明式触发器:玩家每移动一步,distance 自动累计
-      { id: 'walk', target: 20, trigger: { event: 'player:moved', amountFrom: 'distance' } },
+      {
+        id: 'walk',
+        description: '探索村庄',
+        target: 20,
+        trigger: {
+          event: 'player:moved',
+          amountFrom: 'distance',
+        },
+      },
     ],
-    rewards: [{ type: 'gold.add', params: { amount: 50 } }],
+    rewards: [
+      { type: 'wallet.addGold', params: { amount: 50 } },
+    ],
   },
 ]
 ```
 
-装配引擎(唯一让内容、注册表与引擎相遇的地方):
+在真实项目里，`title`、`description` 通常保存 i18n key；参考
+[i18n 内容组织](/docs/guides/i18n)。
 
-```ts
-import { createConditionRegistry, createEffectRegistry } from '@overworld-engine/core'
+## 3. 在一个装配点创建引擎
+
+注册表是声明式内容与游戏代码唯一需要相遇的地方。任务引擎只认识
+`wallet.addGold` 这个名字，不认识你的钱包 store：
+
+```ts title="game/engines.ts"
+import {
+  createConditionRegistry,
+  createEffectRegistry,
+  gameEvents,
+} from '@overworld-engine/core'
 import { createQuestEngine } from '@overworld-engine/quest'
+import { QUESTS } from './content'
+import { wallet } from './wallet'
 
-const conditions = createConditionRegistry()
-const effects = createEffectRegistry()
-effects.register('gold.add', (params) => wallet.add(Number(params.amount)))
+export const conditions = createConditionRegistry()
+export const effects = createEffectRegistry()
 
-export const quests = createQuestEngine({ quests: QUESTS, conditions, effects })
+effects.register('wallet.addGold', (params) => {
+  wallet.add(Number(params.amount))
+})
+
+export const quests = createQuestEngine({
+  quests: QUESTS,
+  conditions,
+  effects,
+  events: gameEvents,
+  persist: false,
+})
 ```
 
-渲染世界(数据驱动场景):
+`persist: false` 适合第一个原型。准备保存进度时显式改成 `true` 或传入带
+`name`、`version`、`migrate` 与 `storage` 的配置；见
+[持久化互操作](/docs/guides/persistence-interop)。
+
+## 4. 发出领域事件
+
+任何系统或游戏代码都可以发出类型安全的框架事件：
+
+```ts
+import { gameEvents } from '@overworld-engine/core'
+
+gameEvents.emit('player:moved', {
+  position: [2, 0, 4],
+  distance: 1.25,
+})
+```
+
+`quest` 订阅了内容中声明的 `player:moved`，会按 `amountFrom: 'distance'`
+累计目标。达到 20 后，它按顺序执行奖励，并发出 `quest:objective-completed`
+与 `quest:completed`。
+
+渲染世界时，`scene` 的 `<Player>` 会替你发出真实移动事件：
 
 ```tsx
 import { Canvas } from '@react-three/fiber'
-import { SceneShell, Player } from '@overworld-engine/scene'
+import { Player, SceneShell } from '@overworld-engine/scene'
 
-<Canvas shadows>
-  <SceneShell npcs={NPCS} player={<Player bounds={BOUNDS} />}>
-    {/* 灯光、地面等场景专属内容 */}
-  </SceneShell>
-</Canvas>
+export function World() {
+  return (
+    <Canvas shadows>
+      <ambientLight intensity={1.2} />
+      <SceneShell
+        npcs={[]}
+        buildings={[]}
+        player={<Player />}
+      />
+    </Canvas>
+  )
+}
 ```
 
-`Player` 移动时发出 `player:moved` 事件 → 任务引擎自动推进"行走"目标 → 达标后经效果注册表
-发放奖励 → `quest:completed` 事件供 UI 弹 Toast。四个环节零相互引用。
+## 5. 让 UI 响应，而不是反向耦合
 
-完整可运行示例见[示例:Starter](/docs/starter),深入设计见[架构说明](/docs/architecture)。
+UI 可以订阅事件，也可以直接订阅引擎的 zustand store。这里先用事件显示一次性
+反馈：
 
-## 包一览
+```ts
+import { gameEvents } from '@overworld-engine/core'
 
-| 分层 | 包 |
-|---|---|
-| 基础 | `core`(事件总线/注册表/持久化/存档槽位) |
-| 3D 世界 | `scene` `environment`(昼夜/天气) `minimap` |
-| 无头引擎 | `dialogue` `quest` `inventory` `achievements` `tutorial` |
-| AI | `ai`(A*/HPA* 寻路、行为、行为树、日程、动态避障) |
-| 基础设施 | `input` `audio` `notifications` `loading` `analytics` `net`(联机) `relay`(中继服务器) |
-| 多端 | `platform`(检测/桥/生命周期) `adapters-weapp`(微信小游戏 3D) |
-| 工具 | `devtools`(内容校验/JSON Schema) `editor`(场景编辑器) `inspector`(事件/store 面板) `content`(内容包热更新) |
+export const stopQuestNotifications = gameEvents.on(
+  'quest:completed',
+  ({ questId }) => {
+    console.log(`任务完成：${questId}`)
+  },
+)
+```
 
-共 23 个包,各包详情见左侧「包参考」。
+如果使用 `@overworld-engine/ui`，引擎绑定组件通过结构类型接入真实引擎，不会
+让 UI 包反向依赖任务包：
+
+```tsx
+import '@overworld-engine/ui/styles.css'
+import '@overworld-engine/ui/themes/hextech.css'
+import { QuestTracker } from '@overworld-engine/ui'
+import { quests } from './game/engines'
+
+<QuestTracker engine={quests} />
+```
+
+## 6. 验证内容和接线
+
+开发构建中，让 `devtools` 在内容进入运行时前检查引用、循环与未注册的条件/效果：
+
+```ts
+if (import.meta.env.DEV) {
+  const { assertValidContent } = await import('@overworld-engine/devtools')
+
+  assertValidContent(
+    { quests: QUESTS },
+    {
+      effectTypes: effects.types(),
+      conditionTypes: conditions.types(),
+    },
+  )
+}
+```
+
+应用层测试可用 `@overworld-engine/test-kit` 录制真实事件流，证明装配没有漏接：
+
+```ts
+import { createEventRecorder } from '@overworld-engine/test-kit'
+
+const recorder = createEventRecorder(gameEvents)
+// 驱动真实 action 或事件……
+expect(recorder.events.at(-1)?.event).toBe('quest:completed')
+recorder.stop()
+```
+
+## 下一步
+
+| 如果你要…… | 接下来阅读 |
+| --- | --- |
+| 跑一个完整可玩项目 | [Starter 示例](/docs/starter) |
+| 理解包边界与事件协作 | [架构说明](/docs/architecture) |
+| 选择第一批依赖 | [包选择指南](/docs/package-selection) |
+| 构建密集 3D 世界 | [密集世界指南](/docs/guides/dense-world) |
+| 接入 WebSocket / 权威服 | [权威多人](/docs/guides/authoritative-multiplayer) |
+| 面向 Web、桌面、移动端或微信交付 | [多端支持](/docs/guides/platforms) |
+| 遇到安装、存档、输入或联机问题 | [排障手册](/docs/troubleshooting) |
+
+也可以直接阅读[全部 27 个包的参考文档](/docs/packages)。每个参考页都以当前
+`packages/*/src/index.ts` 的公开导出为边界。

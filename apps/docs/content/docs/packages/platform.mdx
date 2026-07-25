@@ -75,6 +75,10 @@ bridge.quit?.()                             // 桌面壳可用
 | `tauri` | localStorage(可升级文件存档) | `visibilitychange` + `beforeunload`(关窗)→ `app:paused` | 外链走 shell/opener 插件;`quit()` 关窗 |
 | `capacitor` | localStorage | App 插件 `pause/resume/backButton` → 总线(插件缺席回退 `visibilitychange`) | safe-area 读 CSS `env()`;Haptics 震动 |
 
+四个构造函数 `createWebBridge`、`createTelegramBridge`、`createTauriBridge`、
+`createCapacitorBridge` 都是公开导出。`createBridge(kind)` 是按平台选择实现的
+便利入口；需要显式测试某个 bridge 时可以直接调用具体构造函数。
+
 `weapp` 桥不内置:由 `@overworld-engine/adapters-weapp` 的 `registerWeappBridge()`
 通过注册机制注入,platform 不反向依赖它。未注册的 kind(如 `node`)回退
 web 桥并 `console.warn`。

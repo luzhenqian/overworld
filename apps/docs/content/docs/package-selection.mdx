@@ -1,0 +1,140 @@
+---
+title: 包选择指南
+description: 按游戏目标选择第一批依赖，避免从安装全部 27 个包开始
+---
+
+Overworld 没有必须整体安装的全家桶。先从一个可交付的垂直切片出发，再按需要
+增加系统。所有包采用同一版本线，应用中应让 `@overworld-engine/*` 保持相同
+major 与 minor。
+
+## 常见起点
+
+### 内容驱动的任务原型
+
+```bash
+pnpm add @overworld-engine/core @overworld-engine/quest \
+  @overworld-engine/dialogue @overworld-engine/inventory zustand react
+```
+
+适合先验证对话、接任务、收集物品、领奖励的闭环。引擎都是无头的，可以先用
+普通 DOM UI，不必立刻引入 three.js。
+
+### 可探索的 3D 场景
+
+```bash
+pnpm add @overworld-engine/core @overworld-engine/scene \
+  @overworld-engine/input react react-dom zustand three \
+  @react-three/fiber @react-three/drei
+```
+
+得到数据驱动场景、玩家控制、碰撞、邻近检测、交互与输入层。再按需求加入：
+
+- `environment`：昼夜、天气与世界环境预设。
+- `loading`：资源清单、场景阶段进度与区域流式加载。
+- `minimap`：北向小地图或玩家朝向雷达数据。
+- `ai`：寻路、NPC steering、行为树与日程。
+
+### 带完整 HUD 的 RPG
+
+```bash
+pnpm add @overworld-engine/ui @overworld-engine/notifications react zustand
+```
+
+`ui` 提供两类能力：
+
+- 纯展示 HUD 原语：资源条、窗口、快捷栏、战斗与导航组件。
+- 通过结构类型绑定引擎的组件：对话、任务、背包、教程、通知、成就。
+
+基础样式与主题必须显式导入：
+
+```ts
+import '@overworld-engine/ui/styles.css'
+import '@overworld-engine/ui/themes/hextech.css'
+```
+
+只有需要方向键/手柄空间导航时才安装可选 peer 并导入子路径：
+
+```bash
+pnpm add @noriginmedia/norigin-spatial-navigation
+```
+
+```ts
+import { FocusProvider, Focusable } from '@overworld-engine/ui/focus'
+```
+
+### 多人原型
+
+```bash
+pnpm add @overworld-engine/net
+```
+
+开发顺序建议：
+
+1. `createLocalTransportHub`：同一进程内测协议。
+2. `createBroadcastChannelTransport`：同源多标签页验证 presence。
+3. `createWebSocketTransport` + `@overworld-engine/relay`：真实 socket 房间广播。
+4. `createPredictedState` / `createInputChannel`：输入预测与服务器对账。
+5. 自建权威服务器：校验输入、推进确定性规则并广播权威快照。
+
+`relay` 是逐字节房间广播参考实现，不是反作弊服务器。需要权威逻辑时阅读
+[权威多人指南](/docs/guides/authoritative-multiplayer)。
+
+### 多端交付
+
+先安装 `platform` 获取检测、能力快照、生命周期和 bridge：
+
+```bash
+pnpm add @overworld-engine/platform
+```
+
+再按目标加入适配器：
+
+| 目标 | 包 / 模板 |
+| --- | --- |
+| Telegram Mini App | `platform` + `examples/telegram-mini-app` |
+| Tauri 桌面 | `platform` + `examples/desktop-tauri` |
+| Capacitor 移动端 | `platform` + `examples/mobile-capacitor` |
+| 微信小游戏 | `adapters-weapp` + `examples/weapp-game` |
+| Steam 成就/云存档/Rich Presence | `adapters-steam` |
+| Tauri 崩溃安全本地存档 | `adapters-savefile` + Rust crate `overworld-savefile` |
+
+### 内容团队与开发工具
+
+这些包通常只进入开发环境或编辑模式：
+
+| 包 | 何时加入 |
+| --- | --- |
+| `devtools` | 内容进入引擎前校验引用、循环与 JSON Schema |
+| `editor` | 需要游戏内场景/多关卡编辑与 JSON 往返 |
+| `inspector` | 需要实时查看事件流和 zustand store |
+| `content` | 需要验证后热应用版本化内容包 |
+| `test-kit` | 需要证明 app 层事件和 React hook 接线 |
+
+## 能力到包的速查表
+
+| 我需要…… | 安装 |
+| --- | --- |
+| 类型化事件、注册表、存档、输入锁、种子 RNG | `core` |
+| 任务 / 对话 / 物品 / 成就 / 教程 | 对应的同名包 |
+| 玩家、NPC、碰撞、相机、场景 JSON、LOD | `scene` |
+| 键盘优先级、热键、虚拟摇杆 | `input` |
+| 昼夜、天气、R3F 环境视觉 | `environment` |
+| A* / HPA*、行为树、NPC 行为 | `ai` |
+| BGM、音效、环境音区 | `audio` |
+| Toast、Alert、Confirm 状态 | `notifications` |
+| DOM 小地图与雷达选择器 | `minimap` |
+| 资产预加载与区域流式加载 | `loading` |
+| 埋点 provider 与事件总线绑定 | `analytics` |
+| presence、插值、事件中继、预测对账 | `net` |
+| 参考 WebSocket 广播服务器 | `relay` |
+| 可换肤的游戏 HUD | `ui` |
+
+## 不建议的做法
+
+- 不要预先安装全部 27 个包“以后再说”。这会隐藏真实系统边界。
+- 不要从 `dist/*` 或源码内部路径深层导入；只有包入口与公开子路径是兼容性契约。
+- 不要让多个 `react`、`three` 或 `zustand` 实例进入同一个应用。
+- 不要让内容文件直接 import store 或执行函数；行为应通过条件/效果引用装配。
+- 不要把 `relay` 当权威服务器，也不要把 `localStorage` 当断电安全文件系统。
+
+完成选择后回到[快速开始](/docs)，或直接打开对应的[包参考](/docs/packages)。

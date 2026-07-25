@@ -92,3 +92,46 @@ gameEvents.on('environment:phase-changed', ({ phase }) => { /* 完全类型化 *
 
 `derivePhase` / `getDaylightFactor` / `wrapTimeOfDay` / `validatePhaseBoundaries` /
 `DEFAULT_PHASES` / `DEFAULT_WEATHERS` / `DEFAULT_WEATHER_MIN_DURATION_MS`。
+
+## 生产世界环境(`WorldEnvironment`)
+
+`WorldEnvironment` 是质量感知的 R3F 世界层，从一个命名或自定义 preset 渲染
+光照、雾、地面、天空与星空。传入无头 `engine` 后，光色与曝光会随 time-of-day
+平滑求值：
+
+```tsx
+import {
+  EnvironmentTick,
+  WorldEnvironment,
+  createEnvironment,
+} from '@overworld-engine/environment'
+
+const environment = createEnvironment({ dayLengthMs: 600_000 })
+
+<>
+  <EnvironmentTick engine={environment} />
+  <WorldEnvironment
+    preset="foggy-dusk"
+    engine={environment}
+    quality={{
+      shadows: true,
+      shadowMapSize: 1024,
+      particleMultiplier: 0.6,
+    }}
+  />
+</>
+```
+
+内置 `WORLD_ENV_PRESETS`：`clear-noon`、`overcast`、`foggy-dusk`、`night`。
+也可以传 `WorldEnvironmentPreset` 对象覆盖 sky、fog、ground、lighting、
+stars、exposure 与 transitionDuration。
+
+| 纯函数 | 用途 |
+| --- | --- |
+| `resolvePreset` | 把命名 preset 解析为配置 |
+| `resolveLight` | 按 daylight factor 求 ambient / sun（含 moon 回退） |
+| `resolveExposure` | 求 tone-mapping exposure，默认 1 |
+| `lerpColor` | 在两个 `#rrggbb` 颜色间插值 |
+
+`WorldEnvironment` 会写入 scene fog 与 renderer toneMappingExposure；同一场景不要
+挂载多个竞争的环境所有者。更完整的组合见[密集世界指南](/docs/guides/dense-world)。

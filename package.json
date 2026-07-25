@@ -10,6 +10,7 @@
     "clean": "pnpm -r clean",
     "depcruise": "depcruise packages --config .dependency-cruiser.cjs",
     "docs:dev": "pnpm --filter docs dev",
+    "docs:check": "pnpm --filter docs check:content && pnpm --filter docs types:check",
     "docs:build": "pnpm --filter docs build",
     "docs:start": "pnpm --filter docs start",
     "changeset": "changeset",

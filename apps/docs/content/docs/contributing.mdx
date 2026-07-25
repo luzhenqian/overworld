@@ -1,0 +1,133 @@
+---
+title: 贡献指南
+description: 本地开发、包边界、测试、文档与 Changesets 的贡献流程
+---
+
+感谢你改进 Overworld。高质量贡献不一定是新功能：复现清晰的 issue、测试覆盖、
+文档纠错、平台兼容性验证和小而明确的修复都很有价值。
+
+## 开始之前
+
+- 安全漏洞不要先公开披露；使用仓库的私下安全报告渠道（若界面可用），或联系
+  维护者确认安全披露方式。
+- 功能较大或会改变公开 API 时，先开 issue 说明使用场景、边界和替代方案。
+- 修复明确 bug、改文档或补测试可以直接提交小型 PR。
+
+仓库：[github.com/luzhenqian/overworld](https://github.com/luzhenqian/overworld)
+
+## 本地环境
+
+仓库使用 Node.js 22、pnpm 9、TypeScript strict 与 ESM：
+
+```bash
+git clone https://github.com/luzhenqian/overworld.git
+cd overworld
+corepack enable
+pnpm install
+```
+
+常用检查：
+
+```bash
+pnpm build
+pnpm typecheck
+pnpm test
+pnpm depcruise
+pnpm docs:build
+```
+
+开发某个包时优先缩小范围：
+
+```bash
+pnpm --filter @overworld-engine/quest test
+pnpm --filter @overworld-engine/quest typecheck
+```
+
+运行完整示例：
+
+```bash
+pnpm build
+pnpm --filter starter dev
+```
+
+## 仓库结构
+
+| 路径 | 内容 |
+| --- | --- |
+| `packages/*` | 27 个发布包 |
+| `examples/*` | 可运行游戏、服务器与平台模板 |
+| `apps/docs` | Fumadocs 文档站 |
+| `docs/guides` | 与站点对应的仓库内指南源 |
+| `benchmarks` | 性能基准与回归守护 |
+| `.changeset` | 发布说明与 fixed version group 配置 |
+
+## 架构规则
+
+1. 领域系统不能直接导入兄弟系统；跨系统事实走 `EventBus`。
+2. 内容行为使用条件/效果注册表，不在定义中嵌入游戏代码。
+3. 公共依赖从应用提供 peer，避免在包内打进第二份 React、three 或 zustand。
+4. 平台 SDK 留在适配器或示例壳中。
+5. 新的非确定性来源必须可注入（时钟、调度器、随机源、网络、存储）。
+6. `src/index.ts` 是公共 API 边界；新导出需要类型、测试与文档。
+
+`pnpm depcruise` 会检查包边界。适配器和工具允许的组合关系必须是明确、最小且
+在架构文档中可解释的。
+
+## 测试期望
+
+| 变化 | 最低验证 |
+| --- | --- |
+| 纯函数或状态机 | 同包 Vitest 单元测试 |
+| bug 修复 | 先加入会失败的回归测试 |
+| React hook 接线 | `test-kit.renderHook` 或等价最小生命周期测试 |
+| 跨系统事件链 | 独立 EventBus + 事件录制断言 |
+| 3D / 平台模板 | 对应示例 typecheck 与生产 build |
+| 性能敏感路径 | benchmark 或可计数的回归守护 |
+| 文档 | `pnpm docs:build`，并核对链接与代码符号 |
+
+测试应注入独立事件总线、内存 storage、固定时钟和种子 RNG，避免依赖测试顺序或
+真实时间。
+
+## 文档标准
+
+公共 API 变化必须同步：
+
+- 包内 `README.md`。
+- `apps/docs/content/docs/packages/<package>.mdx`。
+- 需要时更新快速开始、架构、兼容性、迁移或指南。
+- 面向用户的变化写入 changeset。
+
+代码示例只使用公开入口，写出必要的 imports、清理函数和平台限制。不要把计划中
+的行为写成已实现事实；以 `package.json`、`src/index.ts`、测试和示例为证据。
+
+## Changesets
+
+修改 `packages/*/src` 或 Rust 适配器实现的 PR 必须带 changeset：
+
+```bash
+pnpm changeset
+```
+
+选择受影响包和 semver 级别，并写面向使用者的说明。所有发布包处于 fixed group，
+最终会一起保持相同版本。
+
+不需要发布的内部重构也要显式记录空 changeset，以满足 CI：
+
+```bash
+pnpm changeset --empty
+```
+
+只改文档、测试、README、changelog 或示例通常不需要发布 changeset。
+
+## 提交 PR 前
+
+- 变化范围小而清楚，没有顺手格式化无关文件。
+- 新 API 有类型、测试、README 和站点文档。
+- 没有深层导入或新的跨包耦合。
+- 所有新资源有明确许可。
+- build、typecheck、test 与 depcruise 通过。
+- 发布代码变化带 changeset。
+- PR 描述包含动机、行为变化、验证方式和兼容性影响。
+
+维护者会重点审查 API 是否真的需要公开、默认行为是否安全、资源是否会泄漏、
+错误是否可诊断，以及该能力能否在没有具体游戏内容的情况下复用。

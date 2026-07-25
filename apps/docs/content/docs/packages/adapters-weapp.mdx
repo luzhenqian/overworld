@@ -52,6 +52,8 @@ render(<Game externalInput={movement} />) // SceneShell(labelMode="sprite")等
   包装类,与 net 的 `WebSocketConstructor` 结构兼容(本包不依赖 net):
   一行注入即可沿用 net 的 `{ from, data }` 信封、连接期缓冲、限次重连与
   `close()` 语义。服务器域名需加入小游戏 socket 白名单。
+  `WS_CONNECTING` / `WS_OPEN` / `WS_CLOSING` / `WS_CLOSED` 是与浏览器
+  WebSocket readyState 数值一致的公开常量。
 - **`createWeappAudioBackend(): AudioBackend`** — `wx.createInnerAudioContext`
   映射为 audio 的后端契约(接口结构一致,契约测试对 weapp 与 HTMLAudio
   两个后端跑同一套断言)。配合 `pauseOnHide: true` 与平台桥,切后台自动静音恢复。
@@ -62,6 +64,7 @@ render(<Game externalInput={movement} />) // SceneShell(labelMode="sprite")等
   返回 `{ root, canvas, size, store, render, dispose }`;`store` 在首次
   `render()` 后可用,供指针桥接入。缺省不接线 R3F 指针事件(`events: undefined`,
   与 v1.1 逐字节一致);要用 `onClick` / 射线拾取见下一条。
+  `computeCanvasRootSize` 公开同一套尺寸计算，`MAX_CANVAS_DPR` 为 2。
 - **`createWeappTouchJoystick(target, { region?, size?, deadZone?, runThreshold? })`**
   — 无 DOM 浮动摇杆:消费 `wx` 全局触摸事件,锚定在触点落点,复用 input 包的
   纯函数摇杆数学,写入 `MovementInputRef`;返回 `{ dispose }`。

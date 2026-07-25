@@ -35,6 +35,10 @@ stream.clear()   // 清空缓冲与计数(seq 计数器仍单调递增)
 stream.stop()    // 取消订阅(幂等),返回 unsubscribe 函数
 ```
 
+`DEFAULT_EVENT_STREAM_MAX` 是默认环形缓冲容量。DOM 自动化可使用
+`DEFAULT_INSPECTOR_TESTID` 与 `DEFAULT_STORE_INSPECTOR_TESTID`，避免在测试中
+复制内置 data-testid 字符串。
+
 | 成员 | 说明 |
 | --- | --- |
 | `entries()` | 环形缓冲内的条目(最旧在前,返回副本) |

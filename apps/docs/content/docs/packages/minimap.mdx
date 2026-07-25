@@ -71,6 +71,37 @@ projectionScale({ worldBounds, size })         // → 每世界单位像素数
 非正方形世界按等比缩放并居中(letterbox,不拉伸);越界坐标钳制在 `[0, size]`
 (钉在地图边缘);退化边界(零面积)投影到画布中心。
 
+## 玩家朝向雷达
+
+`MiniMap` 是北向上的完整 DOM 组件；雷达 API 则返回玩家中心、玩家朝向朝上的
+纯数据，可由任意 HUD 技术渲染：
+
+```ts
+const markers = selectRadarMarkers(
+  {
+    worldBounds,
+    range: 40,
+    npcs,
+    buildings,
+  },
+  playerPosition,
+  playerHeading,
+)
+```
+
+`RadarEntity` 只要求 `id + position`，因此 `scene` 的 NPC/Building 配置在结构
+上可直接传入，不产生包依赖。
+
+| 导出 | 说明 |
+| --- | --- |
+| `selectRadarMarkers` | 生成归一化 x/y、kind、offScreen、angle 与 color |
+| `computeOffscreenIndicator` | 求单个世界点是否超程及边缘方向 |
+| `inferHeading` | 从前后位置推断朝向，小于 deadZone 时保留旧值 |
+| `createHeadingTracker` | 有状态封装，持续喂位置并读取最近朝向 |
+
+超出 range 的 marker 会被钳到雷达边缘，并只在超程时提供 `angle`。范围是世界
+单位，不是像素。
+
 ## 依赖
 
 依赖 `@overworld-engine/core`(仅类型);peer:`react`、`zustand`。不依赖 three.js。

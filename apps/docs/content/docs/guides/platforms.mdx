@@ -5,7 +5,8 @@ description: 一套代码覆盖 Web/Telegram/桌面/移动/微信的策略与接
 
 Overworld 的多端策略:**一套 Web 代码,三类交付**。所有端差异收敛到
 `@overworld-engine/platform`(检测/能力/桥)与 `@overworld-engine/adapters-weapp`
-(微信适配器),壳 SDK 只存在于端模板中,框架 23 个包零硬依赖。
+(微信适配器),壳 SDK 只存在于端模板或对应适配器中。当前 27 个发布包按需组合，
+领域系统本身不硬编码具体壳 SDK。
 
 ## 平台矩阵
 

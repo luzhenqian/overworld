@@ -1,99 +1,249 @@
 ---
 title: 架构说明
-description: 分层规则、三种解耦机制,与当前 23 个包的能力地图
+description: 27 个包的真实依赖边界、运行时协作模型与扩展契约
 ---
 
-## 分层与依赖方向
+Overworld 的目标不是把所有游戏能力塞进一个引擎对象，而是让不同生命周期、
+不同渲染方式、不同平台需求的系统可以独立采用。当前 `3.2.x` 发布线包含 27 个
+包；本页的边界以各包 `package.json` 与 `src/index.ts` 为准。
 
-一条铁律:**系统包之间禁止 import,只能通过 `core` 的事件总线与注册表间接协作**;
-所有系统包只允许依赖 `@overworld-engine/core`。这条规则针对一个常见的耦合陷阱:一旦任务
-store 直接 import 各玩法 store,任务系统就和具体游戏焊死、无法脱离该游戏复用。
+## 依赖方向
+
+大多数领域系统只依赖 `@overworld-engine/core`，不会直接导入另一个领域系统。
+少量**工具与适配器**会明确组合它所服务的低层包：
 
 ```mermaid
 flowchart TD
-  App["你的游戏 (app)<br/>内容数据(NPC/对话/任务/成就) · 玩法系统 · UI 皮肤"]
+  App["游戏应用<br/>内容 · 专属玩法 · UI · 最终装配"]
 
-  subgraph SYS["系统包 —— 互相之间零依赖,只允许依赖 core"]
-    direction TB
-    World["3D 世界<br/>scene · environment · minimap"]
-    Engines["无头引擎<br/>dialogue · quest · inventory · achievements · tutorial"]
-    AI["AI<br/>ai(A*/HPA* 寻路 · 行为树 · 日程 · 动态避障)"]
-    Infra["基础设施<br/>input · audio · notifications · loading · analytics · net · relay"]
-    Platform["多端<br/>platform · adapters-weapp"]
-    Tools["开发工具<br/>devtools · editor · inspector · content"]
+  subgraph Domain["领域与运行时系统"]
+    World["scene · environment · minimap · loading"]
+    Gameplay["dialogue · quest · inventory<br/>achievements · tutorial"]
+    Infra["ai · input · audio · analytics · net · platform"]
   end
 
-  Core["@overworld-engine/core<br/>EventBus · Registry(effects/conditions) · persistOptions · defineMigrations · 公共类型"]
+  subgraph Independent["无内部包依赖"]
+    UI["ui"]
+    Notify["notifications"]
+    Relay["relay"]
+  end
 
-  App -->|"依赖(按需组合)"| SYS
-  SYS -->|"只允许依赖 core"| Core
+  subgraph Tooling["工具与适配器（允许显式粘合）"]
+    Devtools["devtools"]
+    Content["content → devtools"]
+    Inspector["inspector → devtools"]
+    Editor["editor"]
+    TestKit["test-kit"]
+    Weapp["adapters-weapp → input + platform"]
+    Steam["adapters-steam"]
+    Savefile["adapters-savefile"]
+  end
+
+  Core["core<br/>EventBus · Registry · inputLock<br/>Persistence · Save files · RNG"]
+
+  App --> Domain
+  App --> Independent
+  App --> Tooling
+  Domain --> Core
+  Devtools --> Core
+  Content --> Core
+  Inspector --> Core
+  Editor --> Core
+  TestKit --> Core
+  Weapp --> Core
+  Steam --> Core
+  Savefile --> Core
 ```
 
-全部 23 个包按上图分层。逐包 API 见「包参考」,完整版本演进见[版本历史](/docs/changelog)。
+上图省略了 React、three.js、zustand、`ws` 与 Tauri 等外部依赖，只展示
+`@overworld-engine/*` 内部方向。完整 peer 矩阵见
+[兼容性与支持范围](/docs/compatibility)。
 
-## 三种解耦机制
+### 这条边界解决什么
 
-### 1. 类型化事件总线(EventBus)
+- 任务状态机不会因为项目换了背包、钱包或 UI 而重写。
+- UI 通过 `*EngineLike` 结构类型接入引擎，不需要 import 真实引擎包。
+- `scene` 不知道对话框是否打开，只查询共享 `inputLock`。
+- 微信、Steam、Tauri 存档等适配器留在平台边缘，不污染领域模型。
+- 测试可以给每个引擎注入独立事件总线、存储、时钟、调度器与随机源。
 
-`@overworld-engine/core` 导出全局单例 `gameEvents`(测试时自建 `EventBus` 实例注入)。
-框架事件表 `OverworldEventMap` 覆盖玩家移动、场景、对话、任务、物品、成就、教程、
-生命周期(`app:*`)等;游戏用 declaration merging 扩展自己的玩法事件,享受同样的类型安全。
+仓库用 dependency-cruiser 在 CI 中检查包边界。适配器和工具的例外是有意设计，
+不是隐式耦合。
 
-典型链路——四个系统零相互引用,全靠总线串起来:
+## 运行时的三种协作机制
+
+### 1. 事件总线：描述“发生了什么”
+
+`@overworld-engine/core` 导出类型化 `EventBus` 与默认单例 `gameEvents`。
+玩家移动、任务完成、物品变化等跨系统事实通过事件传播：
 
 ```mermaid
 flowchart LR
-  P["Player 移动"] -->|"emit player:moved"| Bus((事件总线<br/>gameEvents))
-  Bus -->|"quest 订阅 trigger"| Q["任务引擎<br/>按 amountFrom 累计距离"]
-  Q -->|"emit quest:objective-completed"| Bus
-  Bus -->|"achievement 订阅"| A["成就引擎<br/>计数 +1"]
-  A -->|"emit achievement:unlocked"| Bus
-  Bus -->|"UI 订阅"| T["Toast 弹窗"]
+  Player["Player"] -->|"player:moved"| Bus(("EventBus"))
+  Bus --> Quest["Quest engine"]
+  Quest -->|"quest:completed"| Bus
+  Bus --> Achievement["Achievements"]
+  Bus --> UI["App UI / analytics"]
 ```
 
-### 2. 条件/效果注册表(Registry)
+事件适合一对多通知与历史事实，不适合请求响应或长期状态读取。长期状态应从对应
+引擎的 store 读取。
 
-内容数据里的行为全是声明式引用,不写代码:
+游戏可以通过 declaration merging 扩展同一张事件表：
 
 ```ts
-// 任务奖励(纯数据)
-rewards: [{ type: 'wallet.addGold', params: { amount: 100 } }]
-// 游戏启动时(代码)
-effects.register('wallet.addGold', (params) => wallet.add(params.amount as number))
+declare module '@overworld-engine/core' {
+  interface OverworldEventMap {
+    'combat:damage': {
+      sourceId: string
+      targetId: string
+      amount: number
+    }
+  }
+}
 ```
 
-`runEffects` 按序执行、未注册的 type 打 warning 跳过(内容错误不崩游戏);
-`evaluateConditions` AND 语义、空数组为 true、未注册条件 fail closed。
-任务引擎因此永远不 import 玩法代码。
+生产应用通常共享 `gameEvents`；测试、服务器房间或多实例沙盒应创建独立
+`EventBus<OverworldEventMap>` 并通过各引擎的 `events` 配置注入。
 
-### 3. 内容注入(工厂函数)
+> 当前源码仍保留已弃用的无前缀 `interact` 事件，并由 `scene.interact()` 与
+> `entity:interact` 双发。虽然旧注释曾计划在 2.0 移除，但 `3.2.x` 的实际公开
+> API 仍包含它。新代码只订阅 `entity:interact`，不要依赖旧事件。
 
-每个引擎是 `createXxx(config)` 工厂,内容(任务表、对话树、成就表)从 config 注入,
-支持运行期增量注册(`registerQuests` 等)。存档统一走 `persistOptions`
-(key 前缀 `overworld:`、版本化迁移、存储后端可替换);`defineMigrations` 辅助演进存档结构;
-内容包(`@overworld-engine/content` 的 `applyContentPack`)可校验门控后热更新注入。
+### 2. 条件与效果注册表：描述“如何判断、如何执行”
 
-## 能力地图(截至 v1.5)
+内容只保存可序列化引用：
 
-| 能力 | 包 / API |
-|---|---|
-| 数据驱动 3D 场景 | scene:`SceneShell` · `Player` · 碰撞/邻近 · `SceneFromJson`(从编辑器 JSON 出图) |
-| 无头引擎 | dialogue · quest · inventory · achievements · tutorial(纯状态+逻辑,UI 由游戏决定) |
-| AI 与寻路 | ai:A*/HPA* · 巡逻/游荡/跟随/goTo · 行为树 · 昼夜日程 · 动态避障 |
-| 联机 | net:Transport(内存/BroadcastChannel/WebSocket)· presence 插值 · 输入预测对账;relay 中继服务器 |
-| 多端 | platform:检测/桥/`app:*` 生命周期;adapters-weapp:微信小游戏 3D(R3F canvas root · 指针拾取 · useGLTF) |
-| 存档 | core:`persistOptions` · `createSaveSlots` · `createRestStorage` · `defineMigrations`;platform:Tauri 文件 / Telegram CloudStorage |
-| 开发工具 | devtools:内容校验 · JSON Schema · 事件剖析;editor:场景/多关卡编辑器;inspector:事件总线/store 实时面板;content:内容包热更新 |
-| 确定性 | 全家桶可注入 `clock`/`scheduler`/`random`/`events`,同 seed 重放全等(防作弊/自动化测试) |
+```ts
+rewards: [
+  { type: 'wallet.addGold', params: { amount: 100 } },
+]
+```
 
-## 存档与多端策略
+应用装配点把名字映射到真实代码：
 
-存档全框架统一约定:`persist` 省略/`false` = 关闭,`true` = 默认,传对象 = 自定义。
-多存档位用 `createSaveSlots`;云存档/文件存档换 `StateStorage` 适配器即可。
-多端为「一套 Web 代码 + 平台桥 + 微信适配层」,壳 SDK 只存在于端模板,框架包零硬依赖——
-详见[多端支持](/docs/guides/platforms)。
+```ts
+effects.register('wallet.addGold', (params) => {
+  wallet.add(Number(params.amount))
+})
+```
 
-## 测试策略
+条件是 AND 语义；空条件为 `true`；未知条件 fail closed。效果按顺序执行；
+未知效果会警告并跳过。开发构建应使用 `devtools` 在运行前检查所有引用，避免把
+警告留到玩家触发内容时才发现。
 
-无头引擎在纯 Node 环境单测(注入独立 EventBus 与 memory storage);3D/联机/编辑器靠示例的
-Playwright E2E 作为集成验收。store 驱动断言是官方推荐路径,详见[测试指南](/docs/guides/testing)。
+### 3. 结构类型与注入：描述“我需要什么能力”
+
+包之间需要同步调用时，优先接受最小结构接口，而不是导入具体实现。例如 UI
+组件只要求 `QuestEngineLike`，微信音频适配器只实现 `AudioBackend` 形状。
+TypeScript 的结构类型让真实实现无需额外 wrapper 即可接入。
+
+所有需要确定性或外部资源的系统都应从应用边缘注入：
+
+| 变化来源 | 注入点示例 |
+| --- | --- |
+| 事件隔离 | `events: new EventBus()` |
+| 随机性 | `rng: createSeededRng(seed)` 或 `{ next: Math.random }` |
+| 时间 | `clock` |
+| 延迟任务 | `scheduler` |
+| 存储 | zustand `StateStorage` / `AtomicFileBackend` |
+| 网络 | `Transport` |
+| 音频 | `AudioBackend` |
+| 平台 | `PlatformBridge` |
+
+## 应用层是组合根
+
+推荐把内容、注册表与引擎的相遇集中在一个 `game/engines.ts` 或工厂函数中：
+
+```ts
+export function createGameRuntime(deps: {
+  events: EventBus<OverworldEventMap>
+  rng: RngSource
+}) {
+  const conditions = createConditionRegistry()
+  const effects = createEffectRegistry()
+
+  const quests = createQuestEngine({
+    quests: QUESTS,
+    conditions,
+    effects,
+    events: deps.events,
+    persist: false,
+  })
+
+  return { conditions, effects, quests }
+}
+```
+
+组件文件负责渲染，内容文件只放定义，组合根负责：
+
+1. 创建共享基础设施。
+2. 创建引擎并注入内容。
+3. 注册游戏专属条件与效果。
+4. 连接必须的事件副作用。
+5. 在开发环境执行内容校验。
+6. 暴露明确的销毁函数，清理订阅、计时器和网络连接。
+
+这种工厂形态也让测试可以每次创建全新的运行时，不泄漏全局 store 或监听器。
+
+## 状态、事件与存档的边界
+
+| 问题 | 应放在哪里 |
+| --- | --- |
+| “任务现在进行到多少？” | quest store |
+| “任务刚刚完成了” | `quest:completed` 事件 |
+| “完成时给 100 金币” | 内容中的效果引用 + 应用效果处理器 |
+| “刷新后仍保留任务进度” | 引擎 `persist` 配置 |
+| “存档格式从 v1 升到 v2” | `defineMigrations` |
+| “桌面端断电也不能写坏存档” | `commitSlot` / `recoverSlot` + Tauri backend |
+
+不要把事件总线当数据库，也不要在内容里嵌入闭包。前者会失去可查询状态，后者会
+破坏序列化、热更和校验能力。
+
+## 3D 世界的数据流
+
+`scene` 负责渲染和玩家交互，但不拥有游戏全部真相：
+
+```mermaid
+flowchart LR
+  Config["NPC / building / decoration config"] --> Scene["SceneShell"]
+  Input["keyboard / joystick"] --> Player["Player"]
+  Player -->|"player:moved"| Bus(("EventBus"))
+  Agent["AI agent"] --> Ref["npcPositionRefs"]
+  Ref --> Scene
+  Scene --> Collision["collision + proximity"]
+  Collision -->|"proximity:* / entity:interact"| Bus
+```
+
+移动 NPC 的位置可由 AI agent 更新到共享 ref，`SceneShell` 同步模型、碰撞体、
+名牌与邻近检测。密集装饰物用一份实例数据同时派生渲染与碰撞，避免两套坐标漂移。
+完整组合见[密集世界指南](/docs/guides/dense-world)。
+
+## 公开 API 与兼容性
+
+每个包的 `src/index.ts`（以及 `ui` 的公开子路径）是唯一支持的导入边界：
+
+```ts
+// 支持
+import { createQuestEngine } from '@overworld-engine/quest'
+
+// 不支持：dist/src 内部路径不是公共契约
+import { createQuestEngine } from '@overworld-engine/quest/dist/engine'
+```
+
+27 个包采用 fixed version group，一次发布保持同一版本号。升级前阅读
+[版本历史](/docs/changelog)；跨 major 升级参考[迁移指南](/docs/migration)。
+
+## 能力地图（v3.2）
+
+| 领域 | 主要包 / 能力 |
+| --- | --- |
+| 世界 | `scene`：SceneShell、Player、相机、碰撞、LOD、实例化装饰、编辑器 JSON 往返 |
+| 环境与加载 | `environment`：昼夜天气；`loading`：阶段进度、区域流式加载 |
+| 玩法 | `dialogue`、`quest`、`inventory`、`achievements`、`tutorial` |
+| AI | A* / HPA*、steering、行为树、日程、动态避障 |
+| 联机 | Transport、presence 插值、事件中继、输入预测对账、参考 relay |
+| UI | HUD 原语、引擎绑定组件、战斗/导航组件、四套主题、空间焦点 |
+| 平台 | Web、Telegram、Tauri、Capacitor、微信小游戏；Steam 与硬化存档适配 |
+| 工具 | 内容校验、编辑器、事件/store inspector、内容包、应用层 test-kit |
+| 确定性 | 独立 EventBus、可注入时钟/调度器/随机源、内存存储、事件录制 |

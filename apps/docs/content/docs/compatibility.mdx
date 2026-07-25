@@ -1,0 +1,121 @@
+---
+title: 兼容性与支持范围
+description: 运行时、peer 依赖、包管理器、平台边界与版本策略
+---
+
+本页记录 `3.2.x` 当前源码和包清单实际表达的支持范围。它不是对未来版本的承诺；
+升级时同时阅读[版本历史](/docs/changelog)与[迁移指南](/docs/migration)。
+
+## 核心矩阵
+
+| 依赖 | 当前包声明 / 仓库基线 |
+| --- | --- |
+| React | 运行时包 peer 为 `^18.0.0`；仓库示例使用 18.3 |
+| React DOM | 由 Web 应用提供；微信小游戏的 R3F root 不依赖 react-dom |
+| three.js | 需要 3D 的包声明 `>=0.160.0`；仓库使用 0.170 |
+| `@react-three/fiber` | `^8.0.0`；仓库使用 8.17 |
+| `@react-three/drei` | `scene` / `loading` 为 `^9.0.0`；仓库使用 9.117 |
+| zustand | `^5.0.0` |
+| TypeScript | 仓库使用 5.6 strict；发布物包含 `.d.ts` |
+| Node.js | CI、发布和文档构建使用 Node.js 22 |
+| 模块格式 | ESM |
+
+文档站自身使用 React 19 和 Next.js 16；这不代表游戏运行时包已经声明支持
+React 19。消费 `@overworld-engine/*` 时以各包 peerDependencies 为准。
+
+## 按包的 peer 依赖
+
+| 包组 | 必需 peer |
+| --- | --- |
+| `core`、`achievements`、`audio`、`inventory`、`tutorial`、`notifications` | `zustand` |
+| `dialogue`、`quest`、`input` | `react`、`zustand` |
+| `scene`、`loading` | `react`、`zustand`、`three`、fiber、drei |
+| `environment`、`editor`、`net`、`adapters-weapp` | `react`、`zustand`、`three`、fiber |
+| `ai` | `react`、`three`、fiber |
+| `minimap`、`inspector`、`ui` | `react`、`zustand` |
+| `analytics`、`platform` | `react` |
+| `adapters-steam`、`adapters-savefile` | `@tauri-apps/api` 2 |
+| `test-kit` | `react`、同版本 `react-test-renderer` |
+| `devtools`、`content`、`relay` | 无 peer |
+
+`ui` 的 `@noriginmedia/norigin-spatial-navigation` 是可选 peer：只有导入
+`@overworld-engine/ui/focus` 时才需要。
+
+## 包管理器
+
+发布物是标准 npm 包，没有 pnpm 专属安装钩子。以下命令等价：
+
+```bash
+# pnpm
+pnpm add @overworld-engine/core @overworld-engine/quest zustand
+
+# npm
+npm install @overworld-engine/core @overworld-engine/quest zustand
+
+# yarn
+yarn add @overworld-engine/core @overworld-engine/quest zustand
+```
+
+npm 7+ 会自动解析 peer 依赖，但应用仍应显式声明自己直接使用的 React、three、
+fiber、drei 与 zustand。显式声明能让升级和去重更可控。
+
+### 必须保持单实例的依赖
+
+同一应用运行时只保留一份：
+
+- `react` / `react-dom`
+- `three`
+- `@react-three/fiber`
+- `zustand`
+
+出现 hook invalid call、R3F 对象不在同一 THREE namespace、store 订阅异常时，
+先执行包管理器的依赖树命令检查重复实例：
+
+```bash
+pnpm why react three zustand
+```
+
+## 平台范围
+
+| 平台 | 支持方式 | 重要边界 |
+| --- | --- | --- |
+| 现代 Web | 默认运行时 | WebGL、Web Audio、Storage 等能力按浏览器实际可用性 |
+| Telegram Mini App | `platform` bridge | CloudStorage 键会透明编码；写入是异步的 |
+| Tauri 2 | `platform` + 可选适配器 | 文件存档与 Steam 能力需要 Rust 插件和 ACL |
+| Capacitor | `platform` bridge | 原生签名、权限和商店流程由应用模板负责 |
+| 微信小游戏 | `adapters-weapp` | 非 DOM Canvas；基础库最低 2.19；需 vendor 网络 polyfill 加载 GLB |
+| Node.js 服务器 | 无头包、`net`、`relay` | 不挂载 React/R3F 组件；避免浏览器全局 |
+
+检测到平台不等于能力一定存在。使用 `getCapabilities()` 或 bridge 的结构能力
+判断，不要只靠 user agent。
+
+## 版本策略
+
+全部 `@overworld-engine/*` 包属于 Changesets fixed group，发布时版本保持一致。
+推荐在一个应用中使用同一精确版本或同一 minor：
+
+```json
+{
+  "dependencies": {
+    "@overworld-engine/core": "3.2.0",
+    "@overworld-engine/quest": "3.2.0",
+    "@overworld-engine/scene": "3.2.0"
+  }
+}
+```
+
+- patch：兼容修复与文档改进。
+- minor：向后兼容的新能力。
+- major：可能需要迁移的公开 API 变化。
+
+不要深层导入包内部文件。只有 `package.json` 的 `exports` 暴露的入口属于公开
+契约；当前额外公开子路径是 `@overworld-engine/ui/focus`、`styles.css` 与
+`themes/*`。
+
+## 明确不保证
+
+- React 19 游戏运行时兼容性目前未在 peer 声明与示例矩阵中承诺。
+- `relay` 不验证游戏输入，不提供认证、持久房间或反作弊。
+- Web `localStorage` 后端没有 `fsync` 等价物，不能提供桌面文件系统级断电保证。
+- 编辑器和 inspector 是开发工具，不应无条件进入生产包。
+- 模型、纹理、音频的许可、压缩和 CDN 策略由游戏项目负责。
