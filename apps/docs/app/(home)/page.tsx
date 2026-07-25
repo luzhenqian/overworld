@@ -1,216 +1,239 @@
 import Link from 'next/link';
-import {
-  ArrowRight,
-  Blocks,
-  BookOpen,
-  Box,
-  Check,
-  Code2,
-  Gamepad2,
-  GitFork,
-  Network,
-  PackageCheck,
-  ShieldCheck,
-  Sparkles,
-  TestTube2,
-  Waypoints,
-} from 'lucide-react';
 
-const capabilityGroups = [
+const packageLayers = [
   {
-    icon: Box,
-    title: '构建世界',
-    description: '数据驱动场景、角色控制、碰撞、昼夜天气、LOD、流式加载与小地图。',
-    packages: 'scene · environment · loading · minimap',
+    number: '01',
+    title: '基础与世界',
+    packages: 'core · content · scene · environment · loading · minimap',
+    description: '事件、注册表、内容清单、玩家相机、环境模拟与区域加载。',
   },
   {
-    icon: Sparkles,
-    title: '组织玩法',
-    description: '对话、任务、物品、成就与教程都是可测试、可换 UI 的无头状态机。',
-    packages: 'dialogue · quest · inventory · achievements',
+    number: '02',
+    title: '玩法状态机',
+    packages: 'dialogue · quest · inventory · achievements · tutorial · ai',
+    description: '与视觉实现无关的内容引擎、进度系统、寻路与角色行为。',
   },
   {
-    icon: Waypoints,
-    title: '驱动角色',
-    description: 'A* / HPA*、巡逻、游荡、跟随、行为树、日程与动态避障。',
-    packages: 'ai · input · audio',
+    number: '03',
+    title: '运行与交付',
+    packages: 'input · audio · net · relay · analytics · platform · notifications',
+    description: '输入仲裁、音频总线、多人同步、遥测、平台生命周期与反馈。',
   },
   {
-    icon: Network,
-    title: '连接玩家',
-    description: '从同页测试到 BroadcastChannel、WebSocket，再到输入预测与权威服务器。',
-    packages: 'net · relay · platform',
-  },
-  {
-    icon: Gamepad2,
-    title: '交付体验',
-    description: 'HUD 原语、引擎绑定组件、键鼠与手柄焦点，以及四套可换肤主题。',
-    packages: 'ui · notifications',
-  },
-  {
-    icon: TestTube2,
-    title: '安全迭代',
-    description: '内容校验、事件观测、场景编辑、内容热更与应用层接线测试。',
-    packages: 'devtools · inspector · editor · test-kit',
+    number: '04',
+    title: '界面、工具与适配',
+    packages: 'ui · devtools · editor · inspector · test-kit · adapters-savefile · adapters-steam · adapters-weapp',
+    description: '游戏 HUD、内容校验、场景编辑、测试，以及存档、Steam 和微信适配。',
   },
 ];
 
-const principles = [
+const readingPaths = [
   {
-    icon: Blocks,
-    title: '按需组合',
-    text: '27 个独立 ESM 包。先装 core，再只选择当前游戏需要的系统。',
+    index: 'A',
+    title: '第一次装配',
+    description: '从安装到“移动—任务—奖励—UI”闭环。',
+    href: '/docs',
+    label: '快速开始',
   },
   {
-    icon: ShieldCheck,
-    title: '边界可验证',
-    text: '系统包不相互导入；依赖方向由 CI 检查，跨系统协作走事件和注册表。',
+    index: 'B',
+    title: '理解边界',
+    description: '公开依赖方向、事件总线与组合根。',
+    href: '/docs/architecture',
+    label: '架构说明',
   },
   {
-    icon: PackageCheck,
-    title: '面向生产',
-    text: '版本化存档、崩溃恢复、多端适配、确定性注入和真实示例都在仓库中。',
+    index: 'C',
+    title: '按目标选包',
+    description: '只安装当前垂直切片真正需要的能力。',
+    href: '/docs/package-selection',
+    label: '包选择指南',
+  },
+  {
+    index: 'D',
+    title: '查公开 API',
+    description: '27 个包的入口、契约和使用边界。',
+    href: '/docs/packages',
+    label: '包参考',
   },
 ];
 
 export default function HomePage() {
   return (
     <main className="ow-home">
-      <section className="ow-hero">
-        <div className="ow-hero-grid" aria-hidden="true" />
-        <div className="ow-hero-inner">
-          <a
-            className="ow-release-pill"
-            href="https://github.com/luzhenqian/overworld/releases"
-            target="_blank"
-            rel="noreferrer"
-          >
+      <section className="ow-hero" aria-labelledby="ow-home-title">
+        <div className="ow-hero-copy">
+          <div className="ow-overline">
+            <span>Overworld</span>
             <span>v3.2</span>
-            崩溃安全存档与确定性测试基建
-            <ArrowRight size={14} aria-hidden="true" />
-          </a>
+            <span>MIT</span>
+          </div>
 
-          <p className="ow-eyebrow">OPEN-SOURCE WEB 3D RPG FRAMEWORK</p>
-          <h1>把游戏内容，留给游戏。</h1>
-          <p className="ow-hero-copy">
-            Overworld 把 Web 3D RPG 的世界、玩法、AI、联机、UI 与多端交付拆成
-            27 个可组合的 TypeScript 包。你定义内容和独特机制，框架负责可复用的工程底座。
+          <h1 id="ow-home-title">一套面向生产的 Web 3D RPG 系统包。</h1>
+          <p className="ow-lede">
+            27 个独立发布的 TypeScript 包，覆盖世界、玩法、AI、联机、UI
+            和多端交付。保留你的内容模型、视觉语言与应用架构，只复用已经解决过的基础设施。
           </p>
 
-          <div className="ow-hero-actions">
-            <Link className="ow-button ow-button-primary" href="/docs">
-              <BookOpen size={17} aria-hidden="true" />
-              开始构建
-              <ArrowRight size={16} aria-hidden="true" />
+          <div className="ow-actions">
+            <Link className="ow-action-primary" href="/docs">
+              开始使用 <span aria-hidden="true">→</span>
             </Link>
             <a
-              className="ow-button ow-button-secondary"
+              className="ow-action-secondary"
               href="https://github.com/luzhenqian/overworld"
               target="_blank"
               rel="noreferrer"
             >
-              <GitFork size={17} aria-hidden="true" />
-              查看源码
+              GitHub <span aria-hidden="true">↗</span>
             </a>
           </div>
 
-          <div className="ow-proof" aria-label="项目概览">
-            <div><strong>27</strong><span>个发布包</span></div>
-            <div><strong>3.2</strong><span>当前版本线</span></div>
-            <div><strong>MIT</strong><span>开源许可</span></div>
-            <div><strong>TypeScript</strong><span>strict · ESM</span></div>
+          <div className="ow-install" aria-label="安装示例">
+            <span aria-hidden="true">$</span>
+            <code>pnpm add @overworld-engine/core @overworld-engine/quest</code>
           </div>
-        </div>
-      </section>
 
-      <section className="ow-section">
-        <div className="ow-section-heading">
-          <p className="ow-kicker">从一个闭环开始</p>
-          <h2>内容是数据，行为在注册表，系统靠事件协作。</h2>
-          <p>
-            任务不需要导入背包，UI 不需要绑定具体引擎，游戏代码保留最后的装配权。
+          <p className="ow-runtime">
+            React 18 · three.js ≥ 0.160 · React Three Fiber 8 · zustand 5 · ESM
           </p>
         </div>
 
-        <div className="ow-code-card">
-          <div className="ow-code-topbar">
-            <span><i />content.ts</span>
-            <span><i />engines.ts</span>
-            <span><i />events.ts</span>
+        <div className="ow-code" aria-label="Overworld 装配示例">
+          <div className="ow-code-header">
+            <span>game/engines.ts</span>
+            <span>public API</span>
           </div>
-          <pre aria-label="Overworld 任务装配示例"><code>{`const quest = {
-  id: 'first-steps',
-  objectives: [{
-    id: 'walk',
-    target: 20,
-    trigger: { event: 'player:moved', amountFrom: 'distance' },
-  }],
-  rewards: [{ type: 'wallet.addGold', params: { amount: 50 } }],
-}
+          <pre><code>{`import {
+  createConditionRegistry,
+  createEffectRegistry,
+  gameEvents,
+} from '@overworld-engine/core'
+import { createQuestEngine } from '@overworld-engine/quest'
 
-effects.register('wallet.addGold', ({ amount }) => wallet.add(Number(amount)))
-const quests = createQuestEngine({ quests: [quest], conditions, effects })
+const conditions = createConditionRegistry()
+const effects = createEffectRegistry()
 
-gameEvents.on('quest:completed', ({ questId }) => {
-  toast.success(questId)
+effects.register('wallet.addGold', ({ amount }) => {
+  wallet.add(Number(amount))
+})
+
+export const quests = createQuestEngine({
+  quests: QUESTS,
+  conditions,
+  effects,
+  events: gameEvents,
 })`}</code></pre>
-          <div className="ow-code-result">
-            <Check size={15} aria-hidden="true" />
-            玩家移动 → 任务自动累计 → 奖励执行 → UI 响应；四个环节零相互引用
+          <div className="ow-code-output">
+            <span>event flow</span>
+            <code>player:moved → quest:completed → reward → UI</code>
           </div>
         </div>
       </section>
 
-      <section className="ow-section ow-section-wide">
-        <div className="ow-section-heading">
-          <p className="ow-kicker">能力地图</p>
-          <h2>从原型到交付，不换一套架构。</h2>
-          <p>每一层都可独立采用，也有真实示例展示它们如何在应用中汇合。</p>
+      <section className="ow-principle" aria-labelledby="ow-principle-title">
+        <div className="ow-section-index">01 / COMPOSITION</div>
+        <div>
+          <h2 id="ow-principle-title">应用拥有组合权。</h2>
+          <p>
+            Overworld 不提供一个接管全局的 Engine 单例。内容是可序列化数据，行为在注册表，
+            跨系统事实走类型化事件；你的应用是唯一的组合根。
+          </p>
         </div>
-        <div className="ow-capability-grid">
-          {capabilityGroups.map(({ icon: Icon, title, description, packages }) => (
-            <article className="ow-capability-card" key={title}>
-              <div className="ow-card-icon"><Icon size={19} aria-hidden="true" /></div>
-              <h3>{title}</h3>
-              <p>{description}</p>
-              <code>{packages}</code>
+        <div className="ow-flow" aria-label="系统协作顺序">
+          <div><span>01</span><strong>Content</strong><small>任务、对话、物品定义</small></div>
+          <div><span>02</span><strong>Registry</strong><small>条件与效果实现</small></div>
+          <div><span>03</span><strong>Engine</strong><small>独立状态机与 store</small></div>
+          <div><span>04</span><strong>EventBus</strong><small>跨系统事实传播</small></div>
+        </div>
+      </section>
+
+      <section className="ow-packages" aria-labelledby="ow-packages-title">
+        <div className="ow-section-heading">
+          <div className="ow-section-index">02 / PACKAGE MAP</div>
+          <div>
+            <h2 id="ow-packages-title">从一个系统开始，而不是从全家桶开始。</h2>
+            <p>
+              每个包都有明确的公开入口和 peer 边界。大多数领域包只依赖
+              <code>@overworld-engine/core</code>。
+            </p>
+          </div>
+        </div>
+
+        <div className="ow-package-list">
+          {packageLayers.map((layer) => (
+            <article className="ow-package-row" key={layer.number}>
+              <span className="ow-row-number">{layer.number}</span>
+              <h3>{layer.title}</h3>
+              <code>{layer.packages}</code>
+              <p>{layer.description}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="ow-section">
-        <div className="ow-principles">
-          <div className="ow-principles-copy">
-            <p className="ow-kicker">为长期项目设计</p>
-            <h2>架构约束不是口号，而是可检查的契约。</h2>
-            <p>
-              默认 API 适合快速开始，同时保留事件总线、时钟、调度器、随机源、存储和传输层的注入点。
-            </p>
-            <Link className="ow-text-link" href="/docs/architecture">
-              阅读架构说明 <ArrowRight size={15} aria-hidden="true" />
-            </Link>
+      <section className="ow-evidence" aria-labelledby="ow-evidence-title">
+        <div>
+          <div className="ow-section-index">03 / REPOSITORY</div>
+          <h2 id="ow-evidence-title">文档里的能力，在仓库里都有对应证据。</h2>
+        </div>
+        <dl>
+          <div>
+            <dt>27</dt>
+            <dd><strong>独立发布包</strong><span>固定版本组，标准 ESM 与类型声明</span></dd>
           </div>
-          <div className="ow-principle-list">
-            {principles.map(({ icon: Icon, title, text }) => (
-              <div className="ow-principle" key={title}>
-                <Icon size={20} aria-hidden="true" />
-                <div><h3>{title}</h3><p>{text}</p></div>
+          <div>
+            <dt>11</dt>
+            <dd><strong>可运行示例</strong><span>游戏、服务器、场景工具与平台模板</span></dd>
+          </div>
+          <div>
+            <dt>CI</dt>
+            <dd><strong>边界与文档检查</strong><span>构建、类型、测试、依赖方向和公开 API 可发现性</span></dd>
+          </div>
+          <div>
+            <dt>0</dt>
+            <dd><strong>内容内置</strong><span>框架提供机制；游戏保留自己的世界观与规则</span></dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="ow-reading" aria-labelledby="ow-reading-title">
+        <div className="ow-section-heading">
+          <div className="ow-section-index">04 / DOCUMENTATION</div>
+          <div>
+            <h2 id="ow-reading-title">从你现在的问题进入。</h2>
+            <p>先完成一条可运行路径，再深入对应的参考文档。</p>
+          </div>
+        </div>
+
+        <div className="ow-reading-list">
+          {readingPaths.map((item) => (
+            <Link href={item.href} className="ow-reading-row" key={item.index}>
+              <span>{item.index}</span>
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
               </div>
-            ))}
-          </div>
+              <strong>{item.label}</strong>
+              <i aria-hidden="true">→</i>
+            </Link>
+          ))}
         </div>
       </section>
 
-      <section className="ow-cta">
-        <Code2 size={24} aria-hidden="true" />
+      <section className="ow-closing" aria-labelledby="ow-closing-title">
         <div>
-          <h2>先跑通 Starter，再替换成你的内容。</h2>
-          <p>安装、装配、验证和下一步路径都在快速开始中。</p>
+          <div className="ow-section-index">GET STARTED</div>
+          <h2 id="ow-closing-title">先跑通 Starter，再替换成你的内容。</h2>
         </div>
-        <Link className="ow-button ow-button-primary" href="/docs">
-          阅读快速开始 <ArrowRight size={16} aria-hidden="true" />
-        </Link>
+        <div>
+          <p>
+            示例展示真实的世界、任务、对话、AI、联机、编辑器和确定性测试接线。
+          </p>
+          <Link href="/docs/starter">
+            打开 Starter 指南 <span aria-hidden="true">→</span>
+          </Link>
+        </div>
       </section>
     </main>
   );
