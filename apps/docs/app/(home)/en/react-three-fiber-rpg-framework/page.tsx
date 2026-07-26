@@ -103,8 +103,8 @@ export default function ReactThreeFiberRpgGuide() {
 function Chest({ id }: { id: string }) {
   return (
     <mesh onClick={() => gameEvents.emit('entity:interact', {
-      entityId: id,
-      action: 'open',
+      kind: 'building',
+      id,
     })}>
       {/* geometry and material */}
     </mesh>
@@ -144,6 +144,12 @@ const activeQuests = useStore(quests.store, (state) => state.active)`}</code></p
             <p>
               For multiplayer games, the server can run steps 2–4 without R3F. The client keeps the
               renderer and interpolation while the protocol carries commands, snapshots, or events.
+            </p>
+            <p>
+              For the concrete store, ref, selector, and event boundaries, read the{' '}
+              <Link href="/en/react-three-fiber-game-state-management">
+                React Three Fiber game state management guide
+              </Link>.
             </p>
           </div>
         </section>

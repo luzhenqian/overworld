@@ -233,6 +233,10 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
                 <h3>Game save architecture</h3>
                 <p>Versioned migrations, named slots, atomic files, recovery, and cloud authority.</p>
               </Link>
+              <Link className="ow-en-card" href="/en/react-three-fiber-game-state-management">
+                <h3>R3F game state management</h3>
+                <p>Zustand stores, frame-local refs, typed events, selectors, saves, and authority.</p>
+              </Link>
             </div>
           </div>
         </section>

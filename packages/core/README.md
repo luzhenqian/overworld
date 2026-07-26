@@ -1,6 +1,7 @@
 # @overworld-engine/core
 
-**English guide:** [TypeScript game save system architecture](https://overworldengine.com/en/typescript-game-save-system)
+**English guides:** [TypeScript game save system architecture](https://overworldengine.com/en/typescript-game-save-system) ·
+[React Three Fiber game state management](https://overworldengine.com/en/react-three-fiber-game-state-management)
 
 Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协作全部经由这里提供的
 机制完成:**类型化事件总线**(系统间通信)、**条件/效果注册表**(数据驱动内容与

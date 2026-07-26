@@ -19,6 +19,7 @@ const routes = [
   '/en/typescript-rpg-framework-comparison',
   '/en/typescript-game-ai-navigation-system',
   '/en/typescript-game-save-system',
+  '/en/react-three-fiber-game-state-management',
 ];
 
 const failures = [];
