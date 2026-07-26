@@ -2,44 +2,79 @@ import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { siteConfig } from '@/lib/site';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://overworld.web3noah.com'),
-  title: { default: 'Overworld — 跨平台 3D RPG 系统框架', template: '%s | Overworld' },
-  description:
-    '27 个面向生产、可独立采用的 TypeScript 包，以同一套架构交付 Web、桌面、移动端、小游戏与 Node.js 服务端。',
+  metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
+  title: {
+    default: 'Overworld Engine — 跨平台 TypeScript 3D RPG 框架',
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  alternates: {
+    canonical: '/',
+  },
   keywords: [
-    'Web 3D',
-    'RPG',
-    'game engine',
+    'Overworld Engine',
+    '跨平台游戏框架',
+    'TypeScript RPG framework',
+    '3D RPG framework',
+    'Three.js game framework',
+    'React Three Fiber',
     'React',
     'three.js',
     'TypeScript',
     'zustand',
-    'Overworld',
   ],
-  authors: [{ name: 'Overworld contributors' }],
-  creator: 'Overworld contributors',
+  authors: [
+    {
+      name: 'Overworld Engine contributors',
+      url: siteConfig.repositoryUrl,
+    },
+  ],
+  creator: 'Overworld Engine contributors',
+  publisher: 'Overworld Engine contributors',
+  category: 'developer tools',
+  referrer: 'origin-when-cross-origin',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   openGraph: {
     type: 'website',
-    locale: 'zh_CN',
-    siteName: 'Overworld',
-    title: 'Overworld — 跨平台 3D RPG 系统框架',
-    description: '同一套 TypeScript 架构，交付 Web、桌面、移动端、小游戏与服务端。',
+    locale: siteConfig.locale,
+    siteName: siteConfig.name,
+    url: '/',
+    title: 'Overworld Engine — 跨平台 TypeScript 3D RPG 框架',
+    description: siteConfig.description,
     images: [
       {
         url: '/og/home',
         width: 1200,
         height: 630,
-        alt: 'Overworld — modular systems for cross-platform 3D RPGs.',
+        alt: 'Overworld Engine — modular systems for cross-platform 3D RPGs.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Overworld — 跨平台 3D RPG 系统框架',
-    description: '同一套 TypeScript 架构，交付 Web、桌面、移动端、小游戏与服务端。',
+    title: 'Overworld Engine — 跨平台 TypeScript 3D RPG 框架',
+    description: siteConfig.description,
     images: ['/og/home'],
+  },
+  other: {
+    'theme-color': '#0f1210',
   },
 };
 

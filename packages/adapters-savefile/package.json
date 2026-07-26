@@ -35,17 +35,22 @@
     "access": "public"
   },
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
     "savegame",
     "tauri"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/adapters-savefile",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/adapters-savefile"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

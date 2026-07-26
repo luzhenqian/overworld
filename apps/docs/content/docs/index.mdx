@@ -1,14 +1,39 @@
 ---
 title: 快速开始
-description: 从安装到第一个可运行的任务闭环，理解 Overworld 的装配方式
+description: 从安装到第一个可运行的任务闭环，理解 Overworld Engine 的跨平台装配方式
 ---
 
-Overworld 是一个面向生产的 **Web 3D RPG TypeScript 框架**。它把世界渲染、
-玩家控制、无头玩法引擎、AI、联机、UI 和多端适配拆成 27 个独立包。你只安装
-需要的能力，并在应用层决定它们如何协作。
+Overworld Engine 是一个面向生产的**跨平台 3D RPG TypeScript 框架**。它把世界
+渲染、玩家控制、无头玩法引擎、AI、联机、UI 和多端适配拆成 27 个独立包。你只
+安装需要的能力，并在应用层决定它们如何协作；同一套领域系统可以运行在 Web、
+桌面、移动端、小游戏与 Node.js 服务端。
 
-这篇指南会完成一个最小闭环：**玩家移动 → 任务累计 → 完成任务 → 执行奖励 → UI
-收到事件**。整个过程不要求任务包依赖场景、背包或 UI。
+这篇指南有两条路径：
+
+| 你的目标 | 从哪里开始 |
+| --- | --- |
+| 先确认框架实际能做什么 | 运行仓库里的 Starter，约 3 分钟看到完整垂直切片 |
+| 接入已有 TypeScript 应用 | 完成一个最小闭环：移动 → 任务 → 奖励 → UI 事件 |
+
+下面的接入示例不要求 three.js，也不要求任务包依赖场景、背包或 UI。完成后你会
+得到一个可以用日志直接验收的运行时闭环。
+
+## 0. 先体验完整 Starter（推荐）
+
+如果你还没决定是否采用 Overworld，先运行真实示例，不必先理解所有包：
+
+```bash
+git clone https://github.com/luzhenqian/overworld.git
+cd overworld
+corepack enable
+pnpm install
+pnpm build
+pnpm --filter starter dev
+```
+
+打开终端显示的地址，按 [Starter 验收路线](/docs/starter#验收路线约-3-分钟)
+依次体验移动、对话、任务、背包、AI、联机与编辑器。准备接入自己的应用时，再从
+下一节开始。
 
 ## 前置要求
 
@@ -29,7 +54,7 @@ Overworld 是一个面向生产的 **Web 3D RPG TypeScript 框架**。它把世�
 React 3D peer：
 
 ```bash
-pnpm add @overworld-engine/core @overworld-engine/quest zustand
+pnpm add @overworld-engine/core @overworld-engine/quest react zustand
 ```
 
 如果要渲染 3D 世界：
@@ -90,13 +115,14 @@ import {
 } from '@overworld-engine/core'
 import { createQuestEngine } from '@overworld-engine/quest'
 import { QUESTS } from './content'
-import { wallet } from './wallet'
 
 export const conditions = createConditionRegistry()
 export const effects = createEffectRegistry()
 
+let gold = 0
+
 effects.register('wallet.addGold', (params) => {
-  wallet.add(Number(params.amount))
+  gold += Number(params.amount)
 })
 
 export const quests = createQuestEngine({
@@ -106,6 +132,10 @@ export const quests = createQuestEngine({
   events: gameEvents,
   persist: false,
 })
+
+export function getGold() {
+  return gold
+}
 ```
 
 `persist: false` 适合第一个原型。准备保存进度时显式改成 `true` 或传入带
@@ -114,20 +144,31 @@ export const quests = createQuestEngine({
 
 ## 4. 发出领域事件
 
-任何系统或游戏代码都可以发出类型安全的框架事件：
+先订阅任务完成事件，再让移动系统发出类型安全的领域事件：
 
 ```ts
 import { gameEvents } from '@overworld-engine/core'
+import { getGold, quests } from './game/engines'
+
+const stop = gameEvents.on('quest:completed', ({ questId }) => {
+  console.log(`任务完成：${questId}，当前金币：${getGold()}`)
+})
 
 gameEvents.emit('player:moved', {
-  position: [2, 0, 4],
-  distance: 1.25,
+  position: [20, 0, 0],
+  distance: 20,
 })
+
+// 控制台：任务完成：first-steps，当前金币：50
+
+stop()
+quests.dispose()
 ```
 
 `quest` 订阅了内容中声明的 `player:moved`，会按 `amountFrom: 'distance'`
 累计目标。达到 20 后，它按顺序执行奖励，并发出 `quest:objective-completed`
-与 `quest:completed`。
+与 `quest:completed`。这里显式清理监听器和引擎；在 React 应用中应在所属
+runtime 或组件卸载时做同样的清理。
 
 渲染世界时，`scene` 的 `<Player>` 会替你发出真实移动事件：
 
@@ -151,19 +192,9 @@ export function World() {
 
 ## 5. 让 UI 响应，而不是反向耦合
 
-UI 可以订阅事件，也可以直接订阅引擎的 zustand store。这里先用事件显示一次性
-反馈：
-
-```ts
-import { gameEvents } from '@overworld-engine/core'
-
-export const stopQuestNotifications = gameEvents.on(
-  'quest:completed',
-  ({ questId }) => {
-    console.log(`任务完成：${questId}`)
-  },
-)
-```
+UI 可以订阅事件，也可以直接订阅引擎的 zustand store：一次性反馈（Toast、
+音效、埋点）适合事件，长期状态（任务列表、当前进度）适合 store。不要靠重放
+历史事件恢复页面状态。
 
 如果使用 `@overworld-engine/ui`，引擎绑定组件通过结构类型接入真实引擎，不会
 让 UI 包反向依赖任务包：
@@ -180,6 +211,10 @@ import { quests } from './game/engines'
 ## 6. 验证内容和接线
 
 开发构建中，让 `devtools` 在内容进入运行时前检查引用、循环与未注册的条件/效果：
+
+```bash
+pnpm add -D @overworld-engine/devtools @overworld-engine/test-kit
+```
 
 ```ts
 if (import.meta.env.DEV) {
@@ -206,11 +241,24 @@ expect(recorder.events.at(-1)?.event).toBe('quest:completed')
 recorder.stop()
 ```
 
+## 完成标准
+
+继续叠加系统前，先确认这个最小运行时满足：
+
+- 触发一次 20 米移动后，控制台只出现一次任务完成日志。
+- 日志中的金币为 50，说明效果先于 `quest:completed` 事件执行。
+- 调用 `dispose()` 后继续发移动事件，不再改变任务状态。
+- 内容文件没有 import wallet、UI 或 React 组件。
+- 开发构建的内容校验没有未知条件、未知效果或悬空引用。
+
+如果任一项不成立，先看[排障手册](/docs/troubleshooting)，不要继续接入更多包。
+
 ## 下一步
 
 | 如果你要…… | 接下来阅读 |
 | --- | --- |
 | 跑一个完整可玩项目 | [Starter 示例](/docs/starter) |
+| 建立 EventBus、store、注册表的心智模型 | [核心概念](/docs/concepts) |
 | 理解包边界与事件协作 | [架构说明](/docs/architecture) |
 | 选择第一批依赖 | [包选择指南](/docs/package-selection) |
 | 构建密集 3D 世界 | [密集世界指南](/docs/guides/dense-world) |

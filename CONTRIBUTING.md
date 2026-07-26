@@ -5,7 +5,7 @@
 
 完整流程、架构边界、测试要求和 Changesets 规则请阅读：
 
-- [在线贡献指南](https://overworld.web3noah.com/docs/contributing)
+- [在线贡献指南](https://overworldengine.com/docs/contributing)
 - [仓库内文档源](apps/docs/content/docs/contributing.mdx)
 
 ## Quick start

@@ -5,6 +5,7 @@
   "scripts": {
     "build": "next build && node scripts/copy-standalone-assets.mjs",
     "check:content": "node scripts/check-content.mjs",
+    "check:seo": "node scripts/check-seo.mjs",
     "dev": "next dev",
     "start": "next start",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",

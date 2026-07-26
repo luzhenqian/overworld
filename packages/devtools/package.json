@@ -3,13 +3,15 @@
   "version": "3.2.0",
   "description": "Dev-time content validation (dialogues/quests) and event-bus logging for Overworld games",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
     "devtools",
     "validation"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/devtools",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -40,5 +42,8 @@
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/devtools"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

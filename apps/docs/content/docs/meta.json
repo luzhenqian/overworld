@@ -1,6 +1,7 @@
 {
   "pages": [
     "index",
+    "concepts",
     "package-selection",
     "compatibility",
     "architecture",

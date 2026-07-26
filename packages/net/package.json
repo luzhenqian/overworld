@@ -3,6 +3,8 @@
   "version": "3.2.0",
   "description": "Transport-agnostic multiplayer sync abstractions for Overworld games: presence replication, event relay",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
@@ -10,7 +12,7 @@
     "multiplayer",
     "netcode"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/net",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -51,5 +53,8 @@
   "devDependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

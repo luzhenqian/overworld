@@ -3,13 +3,15 @@
   "version": "3.2.0",
   "description": "Headless achievement engine driven by the event bus",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
     "gamedev",
     "achievements"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/achievements",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -43,5 +45,8 @@
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/achievements"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

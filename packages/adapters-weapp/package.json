@@ -39,15 +39,20 @@
     "access": "public"
   },
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/adapters-weapp",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/adapters-weapp"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

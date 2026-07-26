@@ -3,6 +3,8 @@
   "version": "3.2.0",
   "description": "Asset loading progress and scene preloading",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
@@ -10,7 +12,7 @@
     "loading",
     "preload"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/loading",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -52,5 +54,8 @@
   "devDependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import type { SceneId } from './demo-lab';
+import type { SceneId } from './scenes';
 
 type InputKey = 'forward' | 'backward' | 'left' | 'right';
 

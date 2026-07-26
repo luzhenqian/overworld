@@ -69,7 +69,7 @@ export function GET() {
             <span>TypeScript</span>
             <span>Multi-runtime</span>
           </div>
-          <span style={{ color: '#5f6862' }}>overworld.web3noah.com</span>
+          <span style={{ color: '#5f6862' }}>overworldengine.com</span>
         </div>
       </div>
     ),

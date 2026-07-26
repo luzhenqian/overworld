@@ -3,13 +3,15 @@
   "version": "3.2.0",
   "description": "Headless event-driven quest state machine",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
     "quest",
     "quest-system"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/quest",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -44,5 +46,8 @@
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/quest"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

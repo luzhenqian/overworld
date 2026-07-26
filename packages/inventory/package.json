@@ -3,13 +3,15 @@
   "version": "3.2.0",
   "description": "Headless inventory/item engine",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
     "inventory",
     "items"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/inventory",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -43,5 +45,8 @@
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/inventory"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

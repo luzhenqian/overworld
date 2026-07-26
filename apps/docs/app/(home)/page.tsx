@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { highlight } from 'fumadocs-core/highlight';
+import { InstallCommand } from './install-command';
 import { HomeMotion } from './motion';
+import { JsonLd } from '@/components/json-ld';
+import { absoluteUrl, siteConfig } from '@/lib/site';
+
+const installCommand = 'pnpm add @overworld-engine/core @overworld-engine/quest';
 
 const heroCode = `import {
   createConditionRegistry,
@@ -81,6 +86,53 @@ const readingPaths = [
   },
 ];
 
+const homeStructuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': absoluteUrl('/#organization'),
+      name: siteConfig.name,
+      alternateName: siteConfig.shortName,
+      url: siteConfig.url,
+      logo: absoluteUrl('/icon.svg'),
+      sameAs: [siteConfig.repositoryUrl, siteConfig.npmUrl],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': absoluteUrl('/#website'),
+      url: siteConfig.url,
+      name: siteConfig.name,
+      alternateName: siteConfig.shortName,
+      description: siteConfig.description,
+      inLanguage: siteConfig.language,
+      publisher: { '@id': absoluteUrl('/#organization') },
+    },
+    {
+      '@type': 'SoftwareSourceCode',
+      '@id': absoluteUrl('/#software'),
+      name: siteConfig.name,
+      alternateName: siteConfig.shortName,
+      description: siteConfig.description,
+      url: siteConfig.url,
+      codeRepository: siteConfig.repositoryUrl,
+      programmingLanguage: 'TypeScript',
+      runtimePlatform: [
+        'Web',
+        'Node.js',
+        'Tauri',
+        'Capacitor',
+        'WeChat Mini Game',
+        'Telegram Mini App',
+      ],
+      license: siteConfig.licenseUrl,
+      version: siteConfig.version,
+      isAccessibleForFree: true,
+      creator: { '@id': absoluteUrl('/#organization') },
+    },
+  ],
+};
+
 export default async function HomePage() {
   const highlightedCode = await highlight(heroCode, {
     lang: 'ts',
@@ -92,20 +144,20 @@ export default async function HomePage() {
 
   return (
     <main className="ow-home">
+      <JsonLd data={homeStructuredData} />
       <HomeMotion />
 
       <section className="ow-hero" aria-labelledby="ow-home-title">
         <div className="ow-hero-copy">
           <div className="ow-overline">
-            <span>Overworld</span>
+            <span>Overworld Engine</span>
             <span>v3.2</span>
             <span>MIT</span>
           </div>
 
           <h1 id="ow-home-title">
-            <span className="ow-nowrap">一套架构，交付</span> Web、桌面、
-            <span className="ow-nowrap">移动端</span>与
-            <span className="ow-nowrap">小游戏</span>。
+            <span className="ow-nowrap">一套 TypeScript 架构，</span>
+            <span className="ow-nowrap">交付跨平台 3D RPG。</span>
           </h1>
           <p className="ow-lede">
             27 个独立发布的 TypeScript 包，覆盖世界、玩法、AI、联机与 UI。
@@ -125,10 +177,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="ow-install" aria-label="安装示例">
-            <span aria-hidden="true">$</span>
-            <code>pnpm add @overworld-engine/core @overworld-engine/quest</code>
-          </div>
+          <InstallCommand command={installCommand} />
 
           <p className="ow-runtime">
             Web · Tauri 2 · Capacitor 8 · 微信小游戏 · Telegram Mini App · Node.js

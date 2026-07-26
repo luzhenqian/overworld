@@ -103,7 +103,7 @@ SceneShell 负责碰撞注册、NPC/建筑渲染(GLTF 加载失败回退几何�
   断言是官方推荐路径,详见测试指南。
 
 > 下面是逐版本的落地记录(v0.2 → v1.5),保留作演进历史;各版本节点为当时快照,
-> 最新能力地图以文档站[架构说明](https://overworld.web3noah.com/docs/architecture)为准。
+> 最新能力地图以文档站[架构说明](https://overworldengine.com/docs/architecture)为准。
 
 ## v0.2 已落地
 
@@ -217,7 +217,7 @@ SceneShell 负责碰撞注册、NPC/建筑渲染(GLTF 加载失败回退几何�
 
 ## 1.0 已发布(2026-07-16)
 
-npm `@overworld-engine/*` 1.0.0(18 包)、文档站 overworld.web3noah.com、
+npm `@overworld-engine/*` 1.0.0(18 包)、文档站 overworldengine.com、
 GitHub luzhenqian/overworld。
 
 ## v1.1 已落地:多端支持

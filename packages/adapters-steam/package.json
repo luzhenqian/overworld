@@ -35,6 +35,8 @@
     "access": "public"
   },
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
@@ -42,11 +44,14 @@
     "steamworks",
     "tauri"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/adapters-steam",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/adapters-steam"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

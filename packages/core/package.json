@@ -3,6 +3,8 @@
   "version": "3.2.0",
   "description": "Overworld framework core: typed event bus, condition/effect registries, persistence helpers, shared types",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
@@ -10,7 +12,7 @@
     "framework",
     "event-bus"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/core",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -41,5 +43,8 @@
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

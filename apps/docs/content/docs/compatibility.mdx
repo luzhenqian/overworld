@@ -1,6 +1,6 @@
 ---
 title: 兼容性与支持范围
-description: 运行时、peer 依赖、包管理器、平台边界与版本策略
+description: 核对 Overworld Engine 支持的运行时、peer 依赖、包管理器、目标平台与版本策略
 ---
 
 本页记录 `3.2.x` 当前源码和包清单实际表达的支持范围。它不是对未来版本的承诺；
@@ -47,13 +47,13 @@ React 19。消费 `@overworld-engine/*` 时以各包 peerDependencies 为准。
 
 ```bash
 # pnpm
-pnpm add @overworld-engine/core @overworld-engine/quest zustand
+pnpm add @overworld-engine/core @overworld-engine/quest react zustand
 
 # npm
-npm install @overworld-engine/core @overworld-engine/quest zustand
+npm install @overworld-engine/core @overworld-engine/quest react zustand
 
 # yarn
-yarn add @overworld-engine/core @overworld-engine/quest zustand
+yarn add @overworld-engine/core @overworld-engine/quest react zustand
 ```
 
 npm 7+ 会自动解析 peer 依赖，但应用仍应显式声明自己直接使用的 React、three、

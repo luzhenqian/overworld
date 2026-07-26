@@ -34,17 +34,22 @@
     "access": "public"
   },
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "multiplayer",
     "websocket",
     "relay"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/relay",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/relay"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

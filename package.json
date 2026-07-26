@@ -2,7 +2,23 @@
   "name": "overworld",
   "version": "0.9.0",
   "private": true,
-  "description": "Overworld — a modular web 3D RPG game development framework (React + three.js + zustand)",
+  "description": "Overworld Engine — a modular, cross-platform 3D RPG systems framework for TypeScript",
+  "keywords": [
+    "typescript",
+    "threejs",
+    "react-three-fiber",
+    "rpg",
+    "game-framework",
+    "cross-platform"
+  ],
+  "homepage": "https://overworldengine.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luzhenqian/overworld.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
+  },
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
@@ -12,6 +28,7 @@
     "docs:dev": "pnpm --filter docs dev",
     "docs:check": "pnpm --filter docs check:content && pnpm --filter docs types:check",
     "docs:build": "pnpm --filter docs build",
+    "docs:seo": "pnpm --filter docs check:seo",
     "docs:start": "pnpm --filter docs start",
     "changeset": "changeset",
     "version-packages": "changeset version",

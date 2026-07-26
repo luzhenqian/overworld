@@ -182,3 +182,6 @@ jobs:
 
       - name: Build docs
         run: pnpm docs:build
+
+      - name: Check generated SEO output
+        run: pnpm docs:seo

@@ -3,6 +3,8 @@
   "version": "3.2.0",
   "description": "Grid A* pathfinding and NPC steering behaviors (patrol/wander/follow) for Overworld games",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
@@ -11,7 +13,7 @@
     "astar",
     "npc"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/ai",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -51,5 +53,8 @@
   "devDependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

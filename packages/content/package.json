@@ -30,15 +30,20 @@
     "access": "public"
   },
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/content",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/luzhenqian/overworld.git",
     "directory": "packages/content"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }

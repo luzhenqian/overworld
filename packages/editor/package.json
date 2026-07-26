@@ -3,6 +3,8 @@
   "version": "3.2.0",
   "description": "In-game scene editor overlay for Overworld games: place/move entities, export scene JSON",
   "keywords": [
+    "overworld-engine",
+    "typescript",
     "overworld",
     "game",
     "rpg",
@@ -10,7 +12,7 @@
     "editor",
     "scene-editor"
   ],
-  "homepage": "https://github.com/luzhenqian/overworld#readme",
+  "homepage": "https://overworldengine.com/docs/packages/editor",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -51,5 +53,8 @@
   "devDependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "bugs": {
+    "url": "https://github.com/luzhenqian/overworld/issues"
   }
 }
