@@ -1,5 +1,10 @@
 # @overworld-engine/dialogue
 
+Headless TypeScript dialogue trees with conditional choices, declarative effects,
+localization-friendly content, persistence, and renderer-independent state. Read the
+[English dialogue-system guide](https://overworldengine.com/en/typescript-dialogue-system)
+or the [API reference](https://overworldengine.com/docs/packages/dialogue).
+
 无头(headless)对话树引擎。只负责对话状态机:开始对话、按条件过滤选项、执行效果、
 沿节点跳转、结束对话。不含任何 UI、不含任何游戏内容 —— 对话树以数据形式注入,
 所有"条件"和"效果"都是指向 `@overworld-engine/core` 注册表的声明式引用。

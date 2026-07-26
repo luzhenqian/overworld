@@ -1,5 +1,10 @@
 # Overworld Starter
 
+A tested React Three Fiber RPG vertical slice: movement → dialogue → quest →
+collection → reward → HUD, with AI, localization, an editor, and multiplayer
+presence. Follow the [English starter guide](https://overworldengine.com/en/react-three-fiber-rpg-starter)
+or the [file-by-file documentation](https://overworldengine.com/docs/starter).
+
 最小可玩示例,验证并演示 `@overworld-engine/*` 全家桶的端到端组合方式。无需任何美术资产
 (玩家与 NPC 均为几何体回退)。
 

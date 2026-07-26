@@ -1,5 +1,10 @@
 # @overworld-engine/inventory
 
+Headless TypeScript inventory state with item definitions, stacking, capacity,
+overflow, declarative use effects, events, and persistence. Read the
+[English inventory-system guide](https://overworldengine.com/en/headless-typescript-inventory-system)
+or the [API reference](https://overworldengine.com/docs/packages/inventory).
+
 无头(headless)物品/背包引擎。不含任何 UI、不含任何游戏内容:物品定义通过配置注入,
 使用物品的副作用走 `@overworld-engine/core` 的效果注册表,所有变更通过事件总线广播
 (`item:added` / `item:removed` / `item:used`),供任务、成就等系统消费。

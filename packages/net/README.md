@@ -1,5 +1,10 @@
 # @overworld-engine/net
 
+Transport-neutral TypeScript multiplayer primitives for presence, rooms, input
+channels, prediction, reconciliation, snapshots, and WebSocket delivery. Read the
+[authoritative multiplayer architecture guide](https://overworldengine.com/en/authoritative-multiplayer-typescript)
+or the [API reference](https://overworldengine.com/docs/packages/net).
+
 Transport 无关的多人同步抽象:统一的 `Transport` 接口 + 三个参考实现,
 加上在此之上的**在线状态复制**(presence,把每个远端玩家镜像进 zustand store)
 与**事件中继**(relay,把总线事件广播给所有对端)。这是接口层,不是完整 netcode

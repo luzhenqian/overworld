@@ -1,5 +1,10 @@
 # @overworld-engine/quest
 
+Headless, event-driven TypeScript quest state machine with serializable objectives,
+conditions, rewards, chains, persistence, and deterministic tests. Read the
+[English quest-system guide](https://overworldengine.com/en/headless-typescript-quest-system)
+or the [API reference](https://overworldengine.com/docs/packages/quest).
+
 无头(headless)、事件驱动的任务状态机。任务定义以数据注入,目标进度由事件总线
 自动推进,奖励与前置条件通过 `@overworld-engine/core` 的效果/条件注册表解析 ——
 引擎不 import 任何玩法系统。
