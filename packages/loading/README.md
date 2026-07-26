@@ -4,6 +4,8 @@
 Hook(GLTF 预加载、three.js 加载进度桥接)。纯 store 与 React 部分位于不同
 模块,store 可在无 React / 无浏览器环境下直接使用与测试。
 
+英文工程指南：[React Three Fiber game performance](https://overworldengine.com/en/react-three-fiber-game-performance)。
+
 ## 纯 store:`useLoadingStore`
 
 以"任务(task)"为单位跟踪加载:每个阶段或资源组注册一个任务,可设置权重,

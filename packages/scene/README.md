@@ -4,6 +4,7 @@ React Three Fiber world primitives for player movement, cameras, collision,
 proximity, models, portals, and scene state—without owning RPG rules. Read the
 [R3F RPG architecture guide](https://overworldengine.com/en/react-three-fiber-rpg-framework)
 and [R3F game state management guide](https://overworldengine.com/en/react-three-fiber-game-state-management)
+and [R3F game performance guide](https://overworldengine.com/en/react-three-fiber-game-performance)
 or the [API reference](https://overworldengine.com/docs/packages/scene).
 
 Overworld 框架的 3D 世界层:场景外壳、玩家控制器、跟随相机、圆形碰撞、邻近检测、

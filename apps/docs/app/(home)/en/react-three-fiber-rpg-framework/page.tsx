@@ -152,6 +152,10 @@ const activeQuests = useStore(quests.store, (state) => state.active)`}</code></p
               <Link href="/en/react-three-fiber-game-state-management">
                 React Three Fiber game state management guide
               </Link>.
+              For measurement, instancing, LOD, adaptive quality, and asset loading, use the{' '}
+              <Link href="/en/react-three-fiber-game-performance">
+                React Three Fiber game performance guide
+              </Link>.
             </p>
           </div>
         </section>

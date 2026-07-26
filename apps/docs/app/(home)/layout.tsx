@@ -1,6 +1,15 @@
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
+import { HomeNavigation } from '@/components/home-navigation';
 import { baseOptions } from '@/lib/layout.shared';
 
 export default function Layout({ children }: LayoutProps<'/'>) {
-  return <HomeLayout {...baseOptions()}>{children}</HomeLayout>;
+  const options = baseOptions();
+  return (
+    <HomeLayout
+      {...options}
+      nav={{ ...options.nav, component: <HomeNavigation /> }}
+    >
+      {children}
+    </HomeLayout>
+  );
 }

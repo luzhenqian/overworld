@@ -20,6 +20,7 @@ const routes = [
   '/en/typescript-game-ai-navigation-system',
   '/en/typescript-game-save-system',
   '/en/react-three-fiber-game-state-management',
+  '/en/react-three-fiber-game-performance',
 ];
 
 const failures = [];

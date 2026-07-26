@@ -208,6 +208,10 @@ useFrame((_, delta) => {
               a durable fact—an item was collected or a region was entered—emit that transition
               once and let domain systems update.
             </p>
+            <p>
+              For draw calls, instancing, LOD, adaptive quality, and loading budgets, continue with
+              the <Link href="/en/react-three-fiber-game-performance">R3F game performance guide</Link>.
+            </p>
           </div>
         </section>
 

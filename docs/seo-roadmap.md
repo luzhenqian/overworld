@@ -30,6 +30,7 @@ testing, and cross-platform adapters.
 | System | TypeScript game AI and NPC navigation | `/en/typescript-game-ai-navigation-system` | Published in source |
 | Persistence | TypeScript game save system | `/en/typescript-game-save-system` | Published in source |
 | Architecture | React Three Fiber game state management | `/en/react-three-fiber-game-state-management` | Published in source |
+| Performance | React Three Fiber game performance optimization | `/en/react-three-fiber-game-performance` | Published in source |
 
 Each query family gets one canonical page. Supporting articles link to that page instead of competing
 with it for the same phrase.
