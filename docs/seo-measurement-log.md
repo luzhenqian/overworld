@@ -180,3 +180,47 @@ Lighthouse 13.4.1, mobile simulated throttling, production
 - npm's currently published 3.2.0 metadata still shows the older GitHub README homepage because the
   canonical metadata was committed after that release. Refresh it in the next normal package
   release; do not publish 27 package versions solely to change search metadata.
+
+## Content publication — type-safe game event bus — 2026-07-27
+
+### Published and discovered
+
+| Signal | Value | Evidence |
+| --- | ---: | --- |
+| Canonical production pages | 66 | Production full-site crawler |
+| Unique same-origin internal targets | 66 | Production full-site crawler |
+| New target page | `/en/type-safe-event-bus-games-typescript` | Live canonical check |
+| Ship Dock deployment | v681, commit `0cfd93c`, success | Ship Dock deployment record |
+| Runtime | up = 1, restarts = 0, incidents = 0 | Ship Dock monitoring |
+| Remote SEO monitor | passed | GitHub Actions run `30225066588` |
+
+The new page owns the “type-safe event bus for games in TypeScript” query family. It separates
+events, commands, state, and effects; documents payload contracts, declaration merging, injected
+bus lifecycles, synchronous ordering, cleanup, event recording, profiling, and explicit network
+relay allowlists using APIs that exist in this repository.
+
+IndexNow accepted the new guide, the English homepage, the R3F architecture guide, and the R3F
+state-management guide. Google Search Console initially reported the new URL as unknown and not
+indexed, then confirmed that it was added to the priority crawl queue. This is discovery and
+submission evidence, not indexing evidence.
+
+At the beginning of this publication batch, Search Console had processed 63 discovered sitemap
+URLs while production exposed 65 canonical pages. Its page-indexing and performance reports were
+still processing and had no actionable query data. Production now exposes 66 pages; compare the
+next processed sitemap count against 66 rather than interpreting the current lag as an exclusion.
+
+### Mobile performance
+
+Lighthouse 12.8.2, mobile simulated throttling, production
+`/en/type-safe-event-bus-games-typescript`:
+
+| Category or metric | Result |
+| --- | ---: |
+| Performance | 99 |
+| Accessibility | 100 |
+| Best practices | 100 |
+| SEO | 100 |
+| First Contentful Paint | 0.9 s |
+| Largest Contentful Paint | 2.0 s |
+| Total Blocking Time | 20 ms |
+| Cumulative Layout Shift | 0 |
