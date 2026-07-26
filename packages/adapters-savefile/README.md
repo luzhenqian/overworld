@@ -1,5 +1,7 @@
 # @overworld-engine/adapters-savefile
 
+**Architecture guide:** [TypeScript game save system](https://overworldengine.com/en/typescript-game-save-system)
+
 Tauri adapter for Overworld: a hardened `AtomicFileBackend` (temp write →
 fsync → read-back verify → rotating backups → atomic rename) for desktop
 game saves. This package only speaks opaque bytes — save-file header

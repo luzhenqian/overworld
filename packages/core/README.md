@@ -1,5 +1,7 @@
 # @overworld-engine/core
 
+**English guide:** [TypeScript game save system architecture](https://overworldengine.com/en/typescript-game-save-system)
+
 Overworld 框架的最底层。所有系统包只允许依赖本包;跨系统协作全部经由这里提供的
 机制完成:**类型化事件总线**(系统间通信)、**条件/效果注册表**(数据驱动内容与
 代码解耦)、**统一的持久化约定**(`persistOptions` + 存档槽位 + 云存档适配器)。

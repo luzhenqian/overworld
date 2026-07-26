@@ -27,6 +27,8 @@ testing, and cross-platform adapters.
 | Multiplayer | authoritative multiplayer RPG TypeScript | `/en/authoritative-multiplayer-typescript` | Published in source |
 | Delivery | cross-platform TypeScript game architecture | `/en/cross-platform-typescript-game-architecture` | Published in source |
 | Starter | React Three Fiber RPG starter | `/en/react-three-fiber-rpg-starter` | Published in source |
+| System | TypeScript game AI and NPC navigation | `/en/typescript-game-ai-navigation-system` | Published in source |
+| Persistence | TypeScript game save system | `/en/typescript-game-save-system` | Published in source |
 
 Each query family gets one canonical page. Supporting articles link to that page instead of competing
 with it for the same phrase.
@@ -43,7 +45,8 @@ with it for the same phrase.
 
 ### Weeks 3–6: high-intent content cluster
 
-- Publish dialogue, inventory, authoritative multiplayer, and cross-platform architecture guides.
+- Publish dialogue, inventory, authoritative multiplayer, cross-platform architecture, AI/navigation,
+  and save-system guides. (Done.)
 - Add English package reference pages only when they answer distinct search intent.
 - Add runnable examples and diagrams to every pillar; avoid thin feature-list pages.
 - Link each guide from `/en`, its related package docs, GitHub README, and npm package README.

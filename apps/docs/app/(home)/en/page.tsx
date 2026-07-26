@@ -225,6 +225,14 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
                 <h3>Authoritative multiplayer</h3>
                 <p>Validated inputs, deterministic simulation, prediction, reconciliation, and snapshots.</p>
               </Link>
+              <Link className="ow-en-card" href="/en/typescript-game-ai-navigation-system">
+                <h3>Game AI and NPC navigation</h3>
+                <p>Grid A*, behavior trees, headless agents, schedules, avoidance, and R3F presentation.</p>
+              </Link>
+              <Link className="ow-en-card" href="/en/typescript-game-save-system">
+                <h3>Game save architecture</h3>
+                <p>Versioned migrations, named slots, atomic files, recovery, and cloud authority.</p>
+              </Link>
             </div>
           </div>
         </section>

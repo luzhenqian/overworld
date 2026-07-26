@@ -1,5 +1,7 @@
 # @overworld-engine/ai
 
+**English guide:** [TypeScript game AI and NPC navigation](https://overworldengine.com/en/typescript-game-ai-navigation-system)
+
 网格 A* 寻路 + NPC 转向行为(巡逻/游荡/跟随/前往)。纯函数的网格与寻路
 (含面向大地图的 HPA* 层级化寻路)、无头 agent 引擎、行为树、日程系统与
 动态避障,加上可选的 R3F 驱动组件 —— 视觉模型由游戏注入。

@@ -17,7 +17,9 @@ platform capabilities remain portable and testable.
 [R3F RPG architecture](https://overworldengine.com/en/react-three-fiber-rpg-framework) ·
 [Runnable R3F RPG starter](https://overworldengine.com/en/react-three-fiber-rpg-starter) ·
 [TypeScript RPG framework comparison](https://overworldengine.com/en/typescript-rpg-framework-comparison) ·
-[Cross-platform architecture](https://overworldengine.com/en/cross-platform-typescript-game-architecture)
+[Cross-platform architecture](https://overworldengine.com/en/cross-platform-typescript-game-architecture) ·
+[Game AI and NPC navigation](https://overworldengine.com/en/typescript-game-ai-navigation-system) ·
+[Game save architecture](https://overworldengine.com/en/typescript-game-save-system)
 
 Overworld Engine 是一个面向 TypeScript 的**模块化、跨平台 3D RPG 系统框架**，
 基于 React 18、three.js（@react-three/fiber）与 zustand。同一套领域系统可交付到
