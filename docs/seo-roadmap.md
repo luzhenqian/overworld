@@ -50,8 +50,12 @@ with it for the same phrase.
 
 ### Weeks 7–9: evidence and distribution
 
-- Publish a small R3F starter repository with one complete interaction → quest → reward → HUD flow.
+- Publish a runnable R3F starter with one complete interaction → quest → reward → HUD flow. (Done:
+  repository example plus English landing page.)
 - Add framework comparison pages that use verifiable boundaries rather than marketing claims.
+  (Done.)
+- Link the English category, architecture, starter, comparison, and cross-platform pages from the
+  GitHub repository overview. (Done.)
 - Share technical guides through the R3F/Three.js ecosystem, relevant GitHub topic pages, and package
   release notes. Earn links by providing runnable reference implementations.
 

@@ -9,6 +9,16 @@
 gameplay once, then ship it to the Web, desktop, mobile, WeChat Mini Games,
 Telegram Mini Apps, and Node.js services.
 
+Overworld works alongside React Three Fiber and Three.js: rendering stays in
+your scene while quests, dialogue, inventory, AI, multiplayer, persistence, and
+platform capabilities remain portable and testable.
+
+**English guides:** [Framework overview](https://overworldengine.com/en) ·
+[R3F RPG architecture](https://overworldengine.com/en/react-three-fiber-rpg-framework) ·
+[Runnable R3F RPG starter](https://overworldengine.com/en/react-three-fiber-rpg-starter) ·
+[TypeScript RPG framework comparison](https://overworldengine.com/en/typescript-rpg-framework-comparison) ·
+[Cross-platform architecture](https://overworldengine.com/en/cross-platform-typescript-game-architecture)
+
 Overworld Engine 是一个面向 TypeScript 的**模块化、跨平台 3D RPG 系统框架**，
 基于 React 18、three.js（@react-three/fiber）与 zustand。同一套领域系统可交付到
 Web、桌面、移动端、微信小游戏、Telegram Mini App 与 Node.js 服务端。
