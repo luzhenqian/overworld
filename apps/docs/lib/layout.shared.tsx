@@ -7,6 +7,16 @@ export function baseOptions(): BaseLayoutProps {
       // JSX supported
       title: appName,
     },
+    links: [
+      {
+        text: '在线演示',
+        url: '/demos',
+      },
+      {
+        text: '文档',
+        url: '/docs',
+      },
+    ],
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };
 }

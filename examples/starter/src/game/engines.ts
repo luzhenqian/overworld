@@ -171,7 +171,7 @@ useQualityStore.getState().setPreset(detectQualityPreset())
 
 void import('@overworld-engine/editor').then(({ useEditorStore }) => {
   useEditorStore.getState().setTemplates([
-    { id: 'tpl-guide', label: '向导 NPC', kind: 'npc', modelPath: '/models/guide.glb', name: '新向导' },
+    { id: 'tpl-guide', label: '向导 NPC', kind: 'npc', name: '新向导' },
     { id: 'tpl-house', label: '小屋', kind: 'building', scale: 2, collisionRadius: 3, name: '小屋' },
     { id: 'tpl-rock', label: '岩石装饰', kind: 'decoration', collisionRadius: 1 },
   ])

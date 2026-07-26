@@ -9,15 +9,79 @@ import { achievements, inventory, movementInput, presence, quests } from '../gam
 import { useGoldStore } from '../game/gold'
 import { ACHIEVEMENTS } from '../game/content'
 
-const panelStyle: React.CSSProperties = {
-  background: 'rgba(10, 14, 26, 0.82)',
-  border: '1px solid #2b3652',
-  borderRadius: 10,
-  padding: '10px 14px',
-  color: '#dbe4ff',
-  fontSize: 13,
-  fontFamily: 'system-ui, sans-serif',
-  pointerEvents: 'auto',
+type IconName =
+  | 'achievement'
+  | 'check'
+  | 'chevron'
+  | 'coin'
+  | 'compass'
+  | 'crystal'
+  | 'globe'
+  | 'people'
+  | 'quest'
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  const paths: Record<IconName, React.ReactNode> = {
+    achievement: (
+      <>
+        <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
+        <path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 12v4M8.5 20h7M10 16h4" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L19 6" />,
+    chevron: <path d="m9 18 6-6-6-6" />,
+    coin: (
+      <>
+        <circle cx="12" cy="12" r="8" />
+        <path d="M9.5 9.5c.6-1 1.5-1.5 2.7-1.5 1.6 0 2.8.8 2.8 2 0 3-5.8 1.2-5.8 4 0 1.2 1.2 2 2.8 2 1.3 0 2.3-.5 2.9-1.5M12 6.5v11" />
+      </>
+    ),
+    compass: (
+      <>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
+      </>
+    ),
+    crystal: (
+      <>
+        <path d="m12 2 6 7-6 13L6 9l6-7Z" />
+        <path d="m6 9 6 3 6-3M12 2v10M12 12v10" />
+      </>
+    ),
+    globe: (
+      <>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M3.5 12h17M12 3.5c2.2 2.3 3.3 5.1 3.3 8.5S14.2 18.2 12 20.5C9.8 18.2 8.7 15.4 8.7 12S9.8 5.8 12 3.5Z" />
+      </>
+    ),
+    people: (
+      <>
+        <circle cx="9" cy="9" r="3" />
+        <path d="M3.5 19c.6-3 2.4-4.5 5.5-4.5s4.9 1.5 5.5 4.5M15 6.5a3 3 0 0 1 0 5.8M16.5 15c2.2.4 3.5 1.7 4 4" />
+      </>
+    ),
+    quest: (
+      <>
+        <path d="M7 3.5h10a2 2 0 0 1 2 2V19l-3-2-4 2-4-2-3 2V5.5a2 2 0 0 1 2-2Z" />
+        <path d="M9 8h6M9 12h4" />
+      </>
+    ),
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      className="hud-icon"
+      fill="none"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7">
+        {paths[name]}
+      </g>
+    </svg>
+  )
 }
 
 /** 任务追踪器 —— 订阅任务引擎状态渲染进度;title/description 是 i18n key,渲染时翻译 */
@@ -29,64 +93,110 @@ function QuestTracker() {
   if (entries.length === 0) return null
 
   return (
-    <div style={{ ...panelStyle, width: 240 }}>
-      <div style={{ fontWeight: 700, marginBottom: 6, color: '#facc15' }}>{t('hud.quests')}</div>
-      {entries.map((quest) => {
+    <section className="hud-panel quest-tracker" aria-label={t('hud.quests')}>
+      <div className="hud-panel-glint" />
+      <header className="quest-header">
+        <span className="quest-header-icon">
+          <Icon name="quest" size={16} />
+        </span>
+        <span className="hud-kicker">{t('hud.currentObjective')}</span>
+        <span className="quest-pulse" />
+      </header>
+      {entries.map((quest, questIndex) => {
         const def = definitions[quest.questId]
         if (!def) return null
+        const objectiveProgress = def.objectives.map((obj) => {
+          const progress = quest.objectives[obj.id]
+          return Math.min(progress?.current ?? 0, obj.target) / obj.target
+        })
+        const overall =
+          objectiveProgress.length > 0
+            ? objectiveProgress.reduce((sum, value) => sum + value, 0) / objectiveProgress.length
+            : 0
         return (
-          <div key={quest.questId} style={{ marginBottom: 8 }}>
-            <div style={{ fontWeight: 600 }}>{def.title ? t(def.title) : def.id}</div>
-            {def.objectives.map((obj) => {
-              const progress = quest.objectives[obj.id]
-              const current = Math.floor(progress?.current ?? 0)
-              const done = progress?.completed
-              return (
-                <div key={obj.id} style={{ opacity: done ? 0.55 : 1, marginTop: 2 }}>
-                  {done ? '✅' : '▫️'} {obj.description ? t(obj.description) : obj.id}(
-                  {Math.min(current, obj.target)}/
-                  {obj.target})
-                </div>
-              )
-            })}
-          </div>
+          <article className="quest-entry" key={quest.questId}>
+            {questIndex > 0 && <div className="quest-divider" />}
+            <div className="quest-title-row">
+              <h2>{def.title ? t(def.title) : def.id}</h2>
+              <span>{Math.round(overall * 100)}%</span>
+            </div>
+            <div className="quest-progress" aria-hidden="true">
+              <span style={{ width: `${overall * 100}%` }} />
+            </div>
+            <div className="quest-objectives">
+              {def.objectives.map((obj) => {
+                const progress = quest.objectives[obj.id]
+                const current = Math.floor(progress?.current ?? 0)
+                const done = progress?.completed
+                return (
+                  <div className={`quest-objective${done ? ' is-done' : ''}`} key={obj.id}>
+                    <span className="objective-marker">
+                      {done ? <Icon name="check" size={12} /> : <span />}
+                    </span>
+                    <span className="objective-copy">
+                      {obj.description ? t(obj.description) : obj.id}
+                    </span>
+                    <span className="objective-count">
+                      {Math.min(current, obj.target)}
+                      <i>/</i>
+                      {obj.target}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </article>
         )
       })}
-    </div>
+    </section>
   )
 }
 
 /** 其他标签页在线的玩家数(BroadcastChannel presence) */
 function PeerCount({ sync }: { sync: PresenceSync }) {
   const peers = useStore(sync.store)
-  return <span>👥 {Object.keys(peers).length + 1}</span>
+  return <>{Object.keys(peers).length + 1}</>
 }
 
 function StatusBar() {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const gold = useGoldStore((s) => s.gold)
   const unlocked = useStore(achievements.store, (s) => s.unlocked)
   return (
-    <div style={{ ...panelStyle, display: 'flex', gap: 16, alignItems: 'center' }}>
-      <span>💰 {gold}</span>
-      <span>
-        🏆 {Object.keys(unlocked).length}/{ACHIEVEMENTS.length}
-      </span>
-      {presence && <PeerCount sync={presence} />}
+    <div className="status-cluster">
+      <div className="status-bar">
+        <div className="status-item status-gold" title={t('hud.gold')}>
+          <Icon name="coin" size={17} />
+          <strong>{gold}</strong>
+        </div>
+        <span className="status-separator" />
+        <div className="status-item" title={t('hud.achievements')}>
+          <Icon name="achievement" size={17} />
+          <strong>{Object.keys(unlocked).length}</strong>
+          <small>/ {ACHIEVEMENTS.length}</small>
+        </div>
+        {presence && (
+          <>
+            <span className="status-separator" />
+            <div className="status-item" title={t('hud.online')}>
+              <Icon name="people" size={17} />
+              <strong>
+                <PeerCount sync={presence} />
+              </strong>
+              <span className="online-dot" />
+            </div>
+          </>
+        )}
+      </div>
       <button
+        aria-label={t('hud.switchLanguage')}
+        className="language-toggle"
         id="lang-toggle"
         onClick={() => void i18n.changeLanguage(i18n.language === 'zh' ? 'en' : 'zh')}
-        style={{
-          background: '#1c2740',
-          color: '#cfe0ff',
-          border: '1px solid #35548f',
-          borderRadius: 6,
-          padding: '2px 8px',
-          cursor: 'pointer',
-          fontSize: 12,
-        }}
+        type="button"
       >
-        {i18n.language === 'zh' ? 'EN' : '中文'}
+        <Icon name="globe" size={16} />
+        <span>{i18n.language === 'zh' ? 'EN' : '中文'}</span>
       </button>
     </div>
   )
@@ -95,17 +205,39 @@ function StatusBar() {
 function InventoryBar() {
   const { t } = useTranslation()
   const slots = useStore(inventory.store, (s) => s.slots)
-  if (slots.length === 0) return null
+  const displaySlots = Array.from({ length: 4 }, (_, index) => slots[index])
+
   return (
-    <div style={{ ...panelStyle, display: 'flex', gap: 10 }}>
-      {slots.map((slot, i) => {
-        const def = inventory.getDefinition(slot.itemId)
-        return (
-          <span key={i}>
-            🔹 {def?.name ? t(def.name) : slot.itemId} ×{slot.quantity}
-          </span>
-        )
-      })}
+    <div className="inventory-wrap">
+      <span className="inventory-label">{t('hud.inventory')}</span>
+      <div className="inventory-bar" aria-label={t('hud.inventory')}>
+        {displaySlots.map((slot, index) => {
+          const def = slot ? inventory.getDefinition(slot.itemId) : undefined
+          const name = slot ? (def?.name ? t(def.name) : slot.itemId) : t('hud.emptySlot')
+          return (
+            <div
+              aria-label={name}
+              className={`inventory-slot${slot ? ' has-item' : ''}`}
+              key={slot?.itemId ?? `empty-${index}`}
+              title={name}
+            >
+              <span className="slot-key">{index + 1}</span>
+              {slot && (
+                <>
+                  <span className={`item-glyph item-${slot.itemId}`}>
+                    {slot.itemId === 'crystal' ? (
+                      <Icon name="crystal" size={23} />
+                    ) : (
+                      <span className="pebble-glyph" />
+                    )}
+                  </span>
+                  <strong className="slot-quantity">{slot.quantity}</strong>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -114,9 +246,9 @@ function InventoryBar() {
 function Toasts() {
   const { t } = useTranslation()
   const toasts = useToastStore((s) => s.toasts)
-  const render = (m: unknown): string => {
-    if (m && typeof m === 'object' && 'key' in m) {
-      const { key, params } = m as { key: string; params?: Record<string, unknown> }
+  const render = (message: unknown): string => {
+    if (message && typeof message === 'object' && 'key' in message) {
+      const { key, params } = message as { key: string; params?: Record<string, unknown> }
       const resolved: Record<string, unknown> = { ...params }
       for (const field of ['title', 'name']) {
         const value = resolved[field]
@@ -124,37 +256,21 @@ function Toasts() {
       }
       return t(key, resolved)
     }
-    return String(m)
+    return String(message)
   }
-  const colors: Record<string, string> = {
-    info: '#38bdf8',
-    success: '#4ade80',
-    warning: '#facc15',
-    error: '#f87171',
-  }
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 16,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        alignItems: 'center',
-      }}
-    >
+    <div className="toast-stack" aria-live="polite">
       {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          style={{
-            ...panelStyle,
-            borderColor: colors[toast.variant] ?? '#2b3652',
-            pointerEvents: 'none',
-          }}
-        >
-          {render(toast.message)}
+        <div className={`game-toast toast-${toast.variant}`} key={toast.id}>
+          <span className="toast-mark">
+            {toast.variant === 'success' ? (
+              <Icon name="check" size={14} />
+            ) : (
+              <Icon name="crystal" size={14} />
+            )}
+          </span>
+          <span>{render(toast.message)}</span>
         </div>
       ))}
     </div>
@@ -166,17 +282,41 @@ function InteractHint() {
   const nearbyNpcId = useSceneStore((s) => s.nearbyNpcId)
   if (!nearbyNpcId) return null
   return (
-    <div
-      style={{
-        ...panelStyle,
-        position: 'absolute',
-        bottom: 120,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        pointerEvents: 'none',
-      }}
-    >
-      {t('hud.talkHint')}
+    <div className="interact-hint">
+      <span className="keycap">E</span>
+      <span>
+        <small>{t('hud.interact')}</small>
+        <strong>{t('hud.talk')}</strong>
+      </span>
+      <Icon name="chevron" size={15} />
+    </div>
+  )
+}
+
+function MiniMapFrame() {
+  const { t } = useTranslation()
+  return (
+    <div className="minimap-frame">
+      <div className="minimap-heading">
+        <span>
+          <Icon name="compass" size={14} />
+          {t('hud.location')}
+        </span>
+        <strong>VALLEY · 01</strong>
+      </div>
+      <div className="minimap-viewport">
+        <MiniMap
+          playerPosition={playerPositionRef}
+          playerRotation={playerRotationRef}
+          size={150}
+          style={{ pointerEvents: 'none' }}
+          worldBounds={{ minX: -20, maxX: 20, minZ: -20, maxZ: 20 }}
+        />
+        <span className="minimap-corner corner-a" />
+        <span className="minimap-corner corner-b" />
+        <span className="minimap-corner corner-c" />
+        <span className="minimap-corner corner-d" />
+      </div>
     </div>
   )
 }
@@ -184,51 +324,31 @@ function InteractHint() {
 export function HUD() {
   const { t } = useTranslation()
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-      <div style={{ position: 'absolute', top: 16, left: 16 }}>
+    <div className="game-hud">
+      <div className="screen-vignette" />
+      <div className="hud-top-left">
         <QuestTracker />
       </div>
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          right: 16,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: 10,
-        }}
-      >
+      <div className="hud-top-right">
         <StatusBar />
-        <MiniMap
-          worldBounds={{ minX: -20, maxX: 20, minZ: -20, maxZ: 20 }}
-          size={150}
-          playerPosition={playerPositionRef}
-          playerRotation={playerRotationRef}
-          style={{ pointerEvents: 'none', border: '1px solid #2b3652' }}
-        />
+        <MiniMapFrame />
       </div>
-      <div id="joystick" style={{ pointerEvents: 'auto' }}>
+      <div className="joystick-shell" id="joystick">
         <VirtualJoystick
+          size={112}
+          style={{ position: 'absolute', inset: 0 }}
           target={movementInput}
-          size={110}
-          style={{ position: 'absolute', left: 24, bottom: 96 }}
         />
       </div>
-      <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
+      <div className="hud-bottom-center">
         <InventoryBar />
       </div>
-      <div
-        style={{
-          ...panelStyle,
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          pointerEvents: 'none',
-          opacity: 0.8,
-        }}
-      >
-        {t('hud.controls')}
+      <div className="controls-hint">
+        <span><kbd>WASD</kbd> {t('hud.move')}</span>
+        <i />
+        <span><kbd>SHIFT</kbd> {t('hud.run')}</span>
+        <i />
+        <span><kbd>E</kbd> {t('hud.action')}</span>
       </div>
       <Toasts />
       <InteractHint />

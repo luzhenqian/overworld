@@ -17,72 +17,66 @@ function DialoguePanel() {
   useHotkey('escape', () => dialogue.end(), {
     priority: KEYBOARD_PRIORITY.NPC_DIALOGUE,
   })
-  useHotkey('e', () => {
-    if (dialogue.getState().availableResponses.length === 0) dialogue.advance()
-  }, { priority: KEYBOARD_PRIORITY.NPC_DIALOGUE })
+  useHotkey(
+    'e',
+    () => {
+      if (dialogue.getState().availableResponses.length === 0) dialogue.advance()
+    },
+    { priority: KEYBOARD_PRIORITY.NPC_DIALOGUE }
+  )
 
   if (!currentNode) return null
+  const speaker = currentNode.speaker ? t(currentNode.speaker) : ''
+  const initial = speaker.slice(0, 1).toUpperCase()
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 24,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 520,
-        maxWidth: '90vw',
-        background: 'rgba(10, 14, 26, 0.92)',
-        border: '1px solid #3b4a72',
-        borderRadius: 12,
-        padding: 18,
-        color: '#e8eeff',
-        fontFamily: 'system-ui, sans-serif',
-        pointerEvents: 'auto',
-      }}
-    >
-      {currentNode.speaker && (
-        <div style={{ color: '#facc15', fontWeight: 700, marginBottom: 6 }}>
-          {t(currentNode.speaker)}
+    <div className="dialogue-layer">
+      <section className="dialogue-panel" aria-label={speaker || t('hud.dialogue')}>
+        <div className="dialogue-accent" />
+        <div className="speaker-portrait" aria-hidden="true">
+          <span className="portrait-halo" />
+          <span>{initial}</span>
         </div>
-      )}
-      <div style={{ lineHeight: 1.6, marginBottom: 12 }}>{t(currentNode.text)}</div>
-      {responses.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {responses.map((response) => (
-            <button
-              key={response.id}
-              onClick={() => dialogue.choose(response.id)}
-              style={{
-                textAlign: 'left',
-                background: '#1c2740',
-                color: '#cfe0ff',
-                border: '1px solid #35548f',
-                borderRadius: 8,
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontSize: 14,
-              }}
-            >
-              ▸ {t(response.text)}
+        <div className="dialogue-content">
+          <header className="dialogue-header">
+            <div>
+              <small>{t('hud.conversation')}</small>
+              {speaker && <h2>{speaker}</h2>}
+            </div>
+            <span className="dialogue-close-hint"><kbd>ESC</kbd> {t('hud.close')}</span>
+          </header>
+          <p className="dialogue-copy">{t(currentNode.text)}</p>
+          {responses.length > 0 ? (
+            <div className="dialogue-responses">
+              {responses.map((response, index) => (
+                <button
+                  className="dialogue-response"
+                  key={response.id}
+                  onClick={() => dialogue.choose(response.id)}
+                  type="button"
+                >
+                  <span className="response-index">0{index + 1}</span>
+                  <span>{t(response.text)}</span>
+                  <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 24 24" width="16">
+                    <path
+                      d="m9 18 6-6-6-6"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <button className="dialogue-continue" onClick={() => dialogue.advance()} type="button">
+              <span>{t('dlg.continue')}</span>
+              <kbd>E</kbd>
             </button>
-          ))}
+          )}
         </div>
-      ) : (
-        <button
-          onClick={() => dialogue.advance()}
-          style={{
-            background: '#1c2740',
-            color: '#cfe0ff',
-            border: '1px solid #35548f',
-            borderRadius: 8,
-            padding: '8px 16px',
-            cursor: 'pointer',
-          }}
-        >
-          {t('dlg.continue')}
-        </button>
-      )}
+      </section>
     </div>
   )
 }

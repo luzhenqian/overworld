@@ -9,7 +9,7 @@ import './game/engines'
 
 export default function App() {
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div className="starter-app">
       <Canvas shadows camera={{ position: [0, 9, 14], fov: 50 }}>
         <color attach="background" args={['#0b0e1a']} />
         <ApplyQuality />
@@ -19,8 +19,8 @@ export default function App() {
       </Canvas>
       <HUD />
       <DialogueBox />
-      <EditorPanel />
-      <EditorToggle />
+      <EditorPanel className="starter-editor" />
+      <EditorToggle className="starter-editor-toggle" hotkey="F2" />
     </div>
   )
 }

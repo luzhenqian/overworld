@@ -114,17 +114,15 @@ export default async function HomePage() {
           </p>
 
           <div className="ow-actions">
-            <Link className="ow-action-primary" href="/docs">
-              开始使用 <span aria-hidden="true">→</span>
+            <Link className="ow-action-primary" href="/demos">
+              体验在线演示 <span aria-hidden="true">→</span>
             </Link>
-            <a
+            <Link
               className="ow-action-secondary"
-              href="https://github.com/luzhenqian/overworld"
-              target="_blank"
-              rel="noreferrer"
+              href="/docs"
             >
-              GitHub <span aria-hidden="true">↗</span>
-            </a>
+              阅读文档 <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
           <div className="ow-install" aria-label="安装示例">

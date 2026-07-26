@@ -15,8 +15,8 @@ export const NPCS: NPCConfig[] = [
   {
     id: 'guide',
     name: 'npc.guide.name',
-    // 模型不存在时 BaseNPC 自动回退为主题色胶囊体,示例无需美术资产
-    modelPath: '/models/guide.glb',
+    // 空路径让 BaseNPC 直接使用主题色几何回退,示例无需下载美术资产且不会产生 404
+    modelPath: '',
     position: [6, 0, 6],
     rotation: [0, -Math.PI / 4, 0],
   },
