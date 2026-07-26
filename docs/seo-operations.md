@@ -18,7 +18,25 @@ pnpm docs:seo:live
 
 GitHub Actions runs the same check every day. It verifies representative Chinese and English
 canonical pages, title/description/H1/JSON-LD, robots, sitemap membership, and both permanent
-redirect hosts.
+redirect hosts. It also verifies the public IndexNow ownership key.
+
+## IndexNow
+
+The public ownership key is hosted at
+`https://overworldengine.com/cce19bfab3f3782f314c709a08a6bf94.txt`.
+After a deployment succeeds, notify IndexNow only about canonical URLs that were added, changed,
+or deleted:
+
+```bash
+pnpm docs:seo:indexnow -- \
+  https://overworldengine.com/en \
+  https://overworldengine.com/en/react-three-fiber-rpg-starter
+```
+
+The command refuses cross-origin URLs, query strings, and fragments, verifies the live key before
+submission, de-duplicates URLs, and treats a non-success API response as a failure. IndexNow
+accelerates discovery by Bing and other participating engines; API acceptance does not guarantee
+crawling, indexing, or ranking.
 
 ## Search Console
 

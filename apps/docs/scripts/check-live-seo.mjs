@@ -2,6 +2,7 @@ const siteUrl = new URL(process.env.SITE_URL ?? 'https://overworldengine.com');
 const legacyUrl = new URL(
   process.env.LEGACY_SITE_URL ?? 'https://overworld.web3noah.com',
 );
+const indexNowKey = 'cce19bfab3f3782f314c709a08a6bf94';
 
 const routes = [
   '/',
@@ -152,6 +153,16 @@ try {
   failures.push(`sitemap.xml: request failed (${error.message})`);
 }
 
+try {
+  const keyUrl = new URL(`/${indexNowKey}.txt`, siteUrl);
+  const { response } = await request(keyUrl);
+  const body = (await response.text()).trim();
+  assert(response.status === 200, `IndexNow key: expected 200, received ${response.status}`);
+  assert(body === indexNowKey, 'IndexNow key: hosted file does not match the configured key');
+} catch (error) {
+  failures.push(`IndexNow key: request failed (${error.message})`);
+}
+
 const redirectProbe = '/en/headless-typescript-quest-system?monitor=redirect';
 const expectedRedirect = new URL(redirectProbe, siteUrl).toString();
 
@@ -186,6 +197,6 @@ if (failures.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `Live SEO check passed: ${routes.length} canonical pages, robots, sitemap, and permanent redirects.`,
+    `Live SEO check passed: ${routes.length} canonical pages, robots, sitemap, IndexNow ownership, and permanent redirects.`,
   );
 }

@@ -3,6 +3,7 @@ import { source } from '@/lib/source';
 import { absoluteUrl } from '@/lib/site';
 
 const buildLastModified = new Date();
+const englishLastModified = new Date('2026-07-27T00:00:00.000Z');
 
 function getPriority(url: string) {
   if (url === '/docs') return 0.9;
@@ -31,7 +32,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: absoluteUrl('/en'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'weekly',
       priority: 0.9,
       alternates: {
@@ -43,49 +44,49 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: absoluteUrl('/en/react-three-fiber-rpg-framework'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/headless-typescript-quest-system'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/typescript-dialogue-system'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/headless-typescript-inventory-system'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/authoritative-multiplayer-typescript'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/cross-platform-typescript-game-architecture'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/react-three-fiber-rpg-starter'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: absoluteUrl('/en/typescript-rpg-framework-comparison'),
-      lastModified: buildLastModified,
+      lastModified: englishLastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
