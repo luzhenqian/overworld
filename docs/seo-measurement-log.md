@@ -224,3 +224,42 @@ Lighthouse 12.8.2, mobile simulated throttling, production
 | Largest Contentful Paint | 2.0 s |
 | Total Blocking Time | 20 ms |
 | Cumulative Layout Shift | 0 |
+
+## Content publication — TypeScript RPG content validation — 2026-07-27
+
+### Published and discovered
+
+| Signal | Value | Evidence |
+| --- | ---: | --- |
+| Canonical production pages | 67 | Production full-site crawler |
+| Unique same-origin internal targets | 67 | Production full-site crawler |
+| New target page | `/en/typescript-rpg-content-validation` | Live canonical check |
+| Ship Dock deployment | v683, commit `3e261ee`, success | Ship Dock deployment record |
+| Runtime | up = 1, restarts = 0, incidents = 0 | Ship Dock monitoring |
+| Remote SEO monitor | passed | GitHub Actions run `30225587341` |
+
+The new page owns the “TypeScript RPG content validation” query family. It distinguishes runtime
+structure from domain semantics, then connects draft 2020-12 JSON Schema, graph and cross-reference
+validation, registered event/condition/effect checks, CI assertions, validate-before-apply content
+packs, version tracking, hot updates, and save migrations using public APIs in this repository.
+
+IndexNow accepted the new guide, the English homepage, the quest-system guide, and the dialogue
+guide. Google Search Console initially reported the new URL as unknown and not indexed, then
+confirmed that it was added to the priority crawl queue. This proves discovery submission, not
+indexing or ranking.
+
+### Mobile performance
+
+Lighthouse 12.8.2, mobile simulated throttling, production
+`/en/typescript-rpg-content-validation`:
+
+| Category or metric | Result |
+| --- | ---: |
+| Performance | 99 |
+| Accessibility | 100 |
+| Best practices | 100 |
+| SEO | 100 |
+| First Contentful Paint | 0.9 s |
+| Largest Contentful Paint | 2.0 s |
+| Total Blocking Time | 20 ms |
+| Cumulative Layout Shift | 0 |
