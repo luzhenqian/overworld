@@ -44,26 +44,45 @@ function getTag(html, tagName, attributeName, attributeValue) {
 
 async function request(url, init = {}) {
   const startedAt = performance.now();
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      'user-agent': 'Overworld-SEO-Monitor/1.0',
-      ...init.headers,
-    },
-    signal: AbortSignal.timeout(15_000),
-  });
+  let lastError;
 
-  return {
-    response,
-    durationMs: Math.round(performance.now() - startedAt),
-  };
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: {
+          'user-agent': 'Overworld-SEO-Monitor/1.0',
+          ...init.headers,
+        },
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (response.status < 500 || attempt === 3) {
+        return {
+          response,
+          attempts: attempt,
+          durationMs: Math.round(performance.now() - startedAt),
+        };
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3) throw error;
+    }
+
+    // Deployments reload the process after replacing the standalone build. A
+    // brief 5xx during that window should be retried; a persistent outage still
+    // fails after three attempts.
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1_500));
+  }
+
+  throw lastError ?? new Error('request failed');
 }
 
 for (const route of routes) {
   const expectedUrl = absoluteUrl(route);
 
   try {
-    const { response, durationMs } = await request(expectedUrl);
+    const { response, attempts, durationMs } = await request(expectedUrl);
     const html = await response.text();
     const canonical = getAttribute(getTag(html, 'link', 'rel', 'canonical'), 'href');
     const title = html.match(/<title>([^<]+)<\/title>/i)?.[1];
@@ -79,6 +98,7 @@ for (const route of routes) {
     report.push({
       route,
       status: response.status,
+      attempts,
       durationMs,
       canonical,
     });
