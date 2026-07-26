@@ -27,9 +27,13 @@ Property type: Domain (`overworldengine.com`).
 Verification uses an apex TXT record managed through Ship Dock's Namecheap provider. Keep the TXT
 record after verification; Search Console periodically checks ownership again.
 
-After verification:
+Verified on 2026-07-27. `https://overworldengine.com/sitemap.xml` was submitted the same day. Search
+Console initially reported that it was still processing the new property; indexing and performance
+reports can take about a day to populate.
 
-1. Submit `sitemap.xml`.
+Ongoing Search Console work:
+
+1. Confirm the submitted sitemap has completed its first successful read.
 2. Inspect `/`, `/en`, `/en/react-three-fiber-rpg-framework`, and
    `/en/headless-typescript-quest-system`.
 3. Record submitted versus indexed pages weekly.
