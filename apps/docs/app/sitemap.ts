@@ -120,6 +120,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: absoluteUrl('/en/type-safe-event-bus-games-typescript'),
+      lastModified: englishLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 
   const docsPages: MetadataRoute.Sitemap = source.getPages().map((page) => ({

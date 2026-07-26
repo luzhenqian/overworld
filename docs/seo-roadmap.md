@@ -32,6 +32,7 @@ testing, and cross-platform adapters.
 | Architecture | React Three Fiber game state management | `/en/react-three-fiber-game-state-management` | Published in source |
 | Performance | React Three Fiber game performance optimization | `/en/react-three-fiber-game-performance` | Published in source |
 | Interaction | React Three Fiber NPC interaction system | `/en/react-three-fiber-npc-interaction` | Published in source |
+| Architecture | type-safe event bus for games in TypeScript | `/en/type-safe-event-bus-games-typescript` | Published in source |
 
 Each query family gets one canonical page. Supporting articles link to that page instead of competing
 with it for the same phrase.

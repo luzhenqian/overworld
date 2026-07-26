@@ -209,6 +209,14 @@ useFrame((_, delta) => {
               once and let domain systems update.
             </p>
             <p>
+              The{' '}
+              <Link href="/en/type-safe-event-bus-games-typescript">
+                type-safe TypeScript game event bus guide
+              </Link>{' '}
+              covers payload contracts, synchronous ordering, cleanup, testing, and which events may
+              cross a multiplayer boundary.
+            </p>
+            <p>
               For draw calls, instancing, LOD, adaptive quality, and loading budgets, continue with
               the <Link href="/en/react-three-fiber-game-performance">R3F game performance guide</Link>.
             </p>

@@ -245,6 +245,10 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
                 <h3>R3F NPC interaction</h3>
                 <p>Proximity targets, keyboard and touch actions, dialogue, quests, input locks, and tests.</p>
               </Link>
+              <Link className="ow-en-card" href="/en/type-safe-event-bus-games-typescript">
+                <h3>Type-safe game event bus</h3>
+                <p>Payload contracts, commands versus facts, lifecycles, delivery order, tests, and safe relays.</p>
+              </Link>
             </div>
           </div>
         </section>
