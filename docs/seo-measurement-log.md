@@ -55,3 +55,35 @@ After Search Console finishes processing:
 4. Record queries and pages in positions 8–30 for title, introduction, and content-gap work.
 5. Compare Search Console discovered URLs against the production sitemap count.
 
+## Technical audit — 2026-07-27
+
+### Mobile performance
+
+Lighthouse 13.4.1, mobile simulated throttling, production
+`/en/react-three-fiber-game-state-management`:
+
+| Category or metric | Result |
+| --- | ---: |
+| Performance | 98 |
+| Accessibility | 100 |
+| Best practices | 100 |
+| SEO | 100 |
+| First Contentful Paint | 1.2 s |
+| Largest Contentful Paint | 2.3 s |
+| Total Blocking Time | 20 ms |
+| Cumulative Layout Shift | 0 |
+
+The remaining Lighthouse opportunity was approximately 112 KiB of unused JavaScript. With a 98
+performance score, 20 ms blocking time, and zero layout shift, it is not currently a higher priority
+than indexing and content discovery.
+
+### Crawl and structured-data signals
+
+- Production sitemap inspection confirmed that documentation `lastmod` values come from real Git
+  history and remain grouped by actual content-update time; deployments do not rewrite every page
+  as newly modified.
+- All 11 English guide pages now expose complete `TechArticle` identity fields:
+  `mainEntityOfPage`, canonical image, `datePublished`, `dateModified`, canonical publisher and logo,
+  and parent `WebSite`.
+- Build-time SEO checks and the remote production smoke check both enforce those fields, in addition
+  to the existing canonical, metadata, JSON-LD, language, sitemap, and redirect assertions.

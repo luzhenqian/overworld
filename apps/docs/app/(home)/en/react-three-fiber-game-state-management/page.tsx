@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JsonLd } from '@/components/json-ld';
 import { absoluteUrl, siteConfig } from '@/lib/site';
+import { articleStructuredDataFields } from '@/lib/structured-data';
 import '../english-seo.css';
 
 const path = '/en/react-three-fiber-game-state-management';
@@ -53,6 +54,7 @@ const structuredData = {
     {
       '@type': 'TechArticle',
       '@id': `${absoluteUrl(path)}#article`,
+      ...articleStructuredDataFields(path),
       headline: title,
       description,
       url: absoluteUrl(path),

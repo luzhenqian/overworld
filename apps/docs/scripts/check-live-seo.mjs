@@ -123,6 +123,47 @@ for (const route of routes) {
     if (route === '/en' || route.startsWith('/en/')) {
       assert(/\blang=(?:"en"|'en')/i.test(html), `${route}: missing English language boundary`);
     }
+    if (route.startsWith('/en/')) {
+      const jsonLdDocuments = [
+        ...html.matchAll(
+          /<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi,
+        ),
+      ].flatMap((match) => {
+        try {
+          return [JSON.parse(match[1])];
+        } catch {
+          return [];
+        }
+      });
+      const nodes = jsonLdDocuments.flatMap((document) =>
+        Array.isArray(document['@graph']) ? document['@graph'] : [document],
+      );
+      const article = nodes.find((node) => node?.['@type'] === 'TechArticle');
+      const imageUrl =
+        typeof article?.image === 'string' ? article.image : article?.image?.url;
+
+      assert(Boolean(article), `${route}: missing TechArticle structured data`);
+      assert(
+        article?.mainEntityOfPage?.['@id'] === expectedUrl,
+        `${route}: TechArticle mainEntityOfPage does not match canonical`,
+      );
+      assert(
+        imageUrl === absoluteUrl('/og/home'),
+        `${route}: TechArticle image is not canonical`,
+      );
+      assert(
+        Number.isFinite(Date.parse(article?.datePublished ?? '')),
+        `${route}: TechArticle has no valid datePublished`,
+      );
+      assert(
+        Number.isFinite(Date.parse(article?.dateModified ?? '')),
+        `${route}: TechArticle has no valid dateModified`,
+      );
+      assert(
+        article?.publisher?.url === siteUrl.origin,
+        `${route}: TechArticle publisher is not canonical`,
+      );
+    }
   } catch (error) {
     failures.push(`${route}: request failed (${error.message})`);
   }

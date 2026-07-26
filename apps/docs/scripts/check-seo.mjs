@@ -69,6 +69,7 @@ for (const filename of htmlFiles) {
   const jsonLdBlocks = [
     ...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi),
   ];
+  const jsonLdDocuments = [];
 
   assert(html.includes('<html lang="zh-CN"'), `${route}: root html lang must be zh-CN`, failures);
   if (route === '/en' || route.startsWith('/en/')) {
@@ -96,10 +97,66 @@ for (const filename of htmlFiles) {
 
   for (const block of jsonLdBlocks) {
     try {
-      JSON.parse(block[1]);
+      jsonLdDocuments.push(JSON.parse(block[1]));
     } catch (error) {
       failures.push(`${route}: invalid JSON-LD (${error.message})`);
     }
+  }
+
+  if (route.startsWith('/en/')) {
+    const nodes = jsonLdDocuments.flatMap((document) =>
+      Array.isArray(document['@graph']) ? document['@graph'] : [document],
+    );
+    const article = nodes.find((node) => node?.['@type'] === 'TechArticle');
+    const breadcrumb = nodes.find((node) => node?.['@type'] === 'BreadcrumbList');
+    const imageUrl =
+      typeof article?.image === 'string' ? article.image : article?.image?.url;
+    const publishedAt = Date.parse(article?.datePublished ?? '');
+    const modifiedAt = Date.parse(article?.dateModified ?? '');
+
+    assert(Boolean(article), `${route}: missing TechArticle structured data`, failures);
+    assert(
+      article?.url === expectedCanonical,
+      `${route}: TechArticle URL does not match canonical`,
+      failures,
+    );
+    assert(
+      article?.mainEntityOfPage?.['@id'] === expectedCanonical,
+      `${route}: TechArticle mainEntityOfPage does not match canonical`,
+      failures,
+    );
+    assert(
+      imageUrl === `${siteUrl}/og/home`,
+      `${route}: TechArticle image must use the canonical OG image`,
+      failures,
+    );
+    assert(
+      Number.isFinite(publishedAt),
+      `${route}: TechArticle needs a valid datePublished`,
+      failures,
+    );
+    assert(
+      Number.isFinite(modifiedAt) && modifiedAt >= publishedAt,
+      `${route}: TechArticle needs dateModified on or after datePublished`,
+      failures,
+    );
+    assert(
+      article?.publisher?.name === 'Overworld Engine' &&
+        article?.publisher?.url === siteUrl,
+      `${route}: TechArticle needs the canonical publisher`,
+      failures,
+    );
+    assert(
+      article?.publisher?.logo?.url === `${siteUrl}/icon.svg`,
+      `${route}: TechArticle publisher needs the canonical logo`,
+      failures,
+    );
+    assert(
+      article?.isPartOf?.['@id'] === `${siteUrl}/#website`,
+      `${route}: TechArticle needs the parent WebSite identity`,
+      failures,
+    );
+    assert(Boolean(breadcrumb), `${route}: missing BreadcrumbList structured data`, failures);
   }
 
   if (title) {
