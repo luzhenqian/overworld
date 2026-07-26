@@ -241,6 +241,10 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
                 <h3>R3F game performance</h3>
                 <p>Profiling, frame loops, instancing, LOD, adaptive quality, and staged asset loading.</p>
               </Link>
+              <Link className="ow-en-card" href="/en/react-three-fiber-npc-interaction">
+                <h3>R3F NPC interaction</h3>
+                <p>Proximity targets, keyboard and touch actions, dialogue, quests, input locks, and tests.</p>
+              </Link>
             </div>
           </div>
         </section>

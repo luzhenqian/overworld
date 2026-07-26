@@ -264,6 +264,9 @@ function Guard() {
             <div className="ow-en-next">
               <h2>Put AI inside a complete renderer-independent RPG architecture</h2>
               <p>Connect headless NPC state to quests, dialogue, networking, and an R3F scene.</p>
+              <Link className="ow-en-link" href="/en/react-three-fiber-npc-interaction">
+                Connect moving NPCs to proximity and interaction →
+              </Link>
               <Link className="ow-en-link" href="/en/react-three-fiber-rpg-framework">
                 Read the React Three Fiber RPG architecture guide →
               </Link>

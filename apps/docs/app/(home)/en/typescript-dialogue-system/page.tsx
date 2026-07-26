@@ -246,6 +246,9 @@ function DialoguePanel() {
                 A quest objective can listen for <code>dialogue:ended</code> and advance without a
                 direct dialogue dependency.
               </p>
+              <Link className="ow-en-link" href="/en/react-three-fiber-npc-interaction">
+                Build the React Three Fiber NPC interaction pipeline →
+              </Link>
               <Link className="ow-en-link" href="/en/headless-typescript-quest-system">
                 Read the headless quest system guide →
               </Link>

@@ -3,6 +3,7 @@
 Headless TypeScript dialogue trees with conditional choices, declarative effects,
 localization-friendly content, persistence, and renderer-independent state. Read the
 [English dialogue-system guide](https://overworldengine.com/en/typescript-dialogue-system)
+and [R3F NPC interaction guide](https://overworldengine.com/en/react-three-fiber-npc-interaction)
 or the [API reference](https://overworldengine.com/docs/packages/dialogue).
 
 无头(headless)对话树引擎。只负责对话状态机:开始对话、按条件过滤选项、执行效果、
