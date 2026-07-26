@@ -16,6 +16,10 @@ export function baseOptions(): BaseLayoutProps {
         text: '文档',
         url: '/docs',
       },
+      {
+        text: 'English',
+        url: '/en',
+      },
     ],
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };

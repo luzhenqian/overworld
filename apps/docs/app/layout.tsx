@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   alternates: {
     canonical: '/',
+    languages: {
+      'zh-CN': '/',
+      en: '/en',
+      'x-default': '/en',
+    },
   },
   keywords: [
     'Overworld Engine',

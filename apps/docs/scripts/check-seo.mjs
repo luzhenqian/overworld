@@ -43,7 +43,14 @@ function assert(condition, message, failures) {
 
 const htmlFiles = collectHtmlFiles(outputDir).filter((filename) => {
   const route = routeFromFilename(filename);
-  return route === '/' || route === '/demos' || route === '/docs' || route.startsWith('/docs/');
+  return (
+    route === '/' ||
+    route === '/demos' ||
+    route === '/docs' ||
+    route.startsWith('/docs/') ||
+    route === '/en' ||
+    route.startsWith('/en/')
+  );
 });
 
 const failures = [];
@@ -63,7 +70,10 @@ for (const filename of htmlFiles) {
     ...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi),
   ];
 
-  assert(html.includes('<html lang="zh-CN"'), `${route}: html lang must be zh-CN`, failures);
+  assert(html.includes('<html lang="zh-CN"'), `${route}: root html lang must be zh-CN`, failures);
+  if (route === '/en' || route.startsWith('/en/')) {
+    assert(html.includes('lang="en"'), `${route}: English content needs a lang="en" boundary`, failures);
+  }
   assert(Boolean(title), `${route}: missing title`, failures);
   assert(!title?.includes('Overworld | Overworld'), `${route}: duplicated brand in title`, failures);
   assert(Boolean(description), `${route}: missing meta description`, failures);

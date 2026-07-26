@@ -1,0 +1,232 @@
+.ow-en {
+  --en-accent: #117052;
+  color: var(--color-fd-foreground);
+  background:
+    radial-gradient(circle at 75% 4%, color-mix(in srgb, var(--en-accent) 10%, transparent), transparent 28rem),
+    var(--color-fd-background);
+}
+
+.ow-en-shell {
+  width: min(1080px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(64px, 9vw, 112px) 0 96px;
+}
+
+.ow-en-hero {
+  max-width: 880px;
+  padding-bottom: clamp(64px, 9vw, 104px);
+}
+
+.ow-en-eyebrow {
+  color: var(--en-accent);
+  font: 650 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.ow-en h1 {
+  max-width: 920px;
+  margin: 22px 0 0;
+  font-size: clamp(44px, 6.5vw, 76px);
+  font-weight: 650;
+  letter-spacing: -.052em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.ow-en-deck {
+  max-width: 760px;
+  margin: 28px 0 0;
+  color: var(--color-fd-muted-foreground);
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.65;
+}
+
+.ow-en-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+.ow-en-actions a,
+.ow-en-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--color-fd-border);
+  font-size: 14px;
+  font-weight: 650;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.ow-en-actions a:first-child {
+  border-color: var(--en-accent);
+  color: #fff;
+  background: var(--en-accent);
+}
+
+.ow-en-actions a:hover,
+.ow-en-link:hover {
+  border-color: var(--en-accent);
+  color: var(--en-accent);
+}
+
+.ow-en-actions a:first-child:hover {
+  color: #fff;
+  filter: brightness(1.08);
+}
+
+.ow-en-section {
+  display: grid;
+  grid-template-columns: minmax(180px, .34fr) minmax(0, 1fr);
+  gap: clamp(30px, 6vw, 86px);
+  padding: 64px 0;
+  border-top: 1px solid var(--color-fd-border);
+}
+
+.ow-en-section > * {
+  min-width: 0;
+}
+
+.ow-en-section-label {
+  color: var(--color-fd-muted-foreground);
+  font: 600 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ow-en-copy h2 {
+  margin: 0 0 22px;
+  font-size: clamp(28px, 4vw, 43px);
+  font-weight: 630;
+  letter-spacing: -.035em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.ow-en-copy h3 {
+  margin: 36px 0 10px;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.ow-en-copy p,
+.ow-en-copy li {
+  color: var(--color-fd-muted-foreground);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.ow-en-copy p {
+  margin: 0 0 18px;
+}
+
+.ow-en-copy strong {
+  color: var(--color-fd-foreground);
+}
+
+.ow-en-copy ul,
+.ow-en-copy ol {
+  margin: 18px 0 28px;
+  padding-left: 22px;
+}
+
+.ow-en-copy li + li {
+  margin-top: 9px;
+}
+
+.ow-en-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 28px;
+  background: var(--color-fd-border);
+  border: 1px solid var(--color-fd-border);
+}
+
+.ow-en-card {
+  padding: 26px;
+  background: var(--color-fd-background);
+}
+
+.ow-en-card h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.ow-en-card p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.ow-en-code {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 28px 0;
+  padding: 24px;
+  border: 1px solid #29332f;
+  color: #dce8e2;
+  background: #101613;
+  font: 13px/1.75 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.ow-en-code code {
+  white-space: pre;
+}
+
+.ow-en-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 34px;
+  color: var(--color-fd-muted-foreground);
+  font-size: 13px;
+}
+
+.ow-en-breadcrumb a:hover {
+  color: var(--en-accent);
+}
+
+.ow-en-faq > div {
+  padding: 24px 0;
+  border-top: 1px solid var(--color-fd-border);
+}
+
+.ow-en-faq h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.ow-en-faq p {
+  margin: 0;
+}
+
+.ow-en-next {
+  margin-top: 54px;
+  padding: 34px;
+  border: 1px solid var(--color-fd-border);
+  background: color-mix(in srgb, var(--en-accent) 5%, var(--color-fd-background));
+}
+
+.ow-en-next h2 {
+  margin-bottom: 14px;
+  font-size: 28px;
+}
+
+@media (max-width: 760px) {
+  .ow-en-shell {
+    width: min(100% - 28px, 1080px);
+  }
+
+  .ow-en-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 48px 0;
+  }
+
+  .ow-en-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -29,6 +29,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
+    {
+      url: absoluteUrl('/en'),
+      lastModified: buildLastModified,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      alternates: {
+        languages: {
+          'zh-CN': absoluteUrl('/'),
+          en: absoluteUrl('/en'),
+        },
+      },
+    },
+    {
+      url: absoluteUrl('/en/react-three-fiber-rpg-framework'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl('/en/headless-typescript-quest-system'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 
   const docsPages: MetadataRoute.Sitemap = source.getPages().map((page) => ({
