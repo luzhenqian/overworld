@@ -130,3 +130,53 @@ Lighthouse 13.4.1, mobile simulated throttling, production
 The publication also replaced the home-layout navigation generated with invalid direct children
 inside a list. The new semantic navigation removed the only accessibility failure observed during
 the first local Lighthouse run.
+
+## Content publication — R3F NPC interaction — 2026-07-27
+
+### Published and discovered
+
+| Signal | Value | Evidence |
+| --- | ---: | --- |
+| Canonical production pages | 65 | Production full-site crawler |
+| Unique same-origin internal targets | 65 | Production full-site crawler |
+| New target page | `/en/react-three-fiber-npc-interaction` | Live canonical check |
+| Ship Dock deployment | v679, commit `8e5cc3e`, success | Ship Dock deployment record |
+| Runtime | up = 1, restarts = 0, incidents = 0 | Ship Dock monitoring |
+| Remote SEO monitor | passed | GitHub Actions run `30224381405` |
+
+The new page owns the “React Three Fiber NPC interaction system” query family. It connects
+scene-level proximity, keyboard/touch/gamepad intent, typed events, dialogue and quest reactions,
+shared input locks, accessible feedback, multiplayer revalidation, and renderer-free tests using
+public APIs and starter wiring in this repository.
+
+IndexNow accepted the new guide, the English homepage, the dialogue guide, and the AI/navigation
+guide. Google Search Console initially reported the new URL as unknown and not indexed; the request
+was then accepted into Google's priority crawl queue. As with previous requests, this proves
+submission, not indexing.
+
+### Mobile performance
+
+Lighthouse 13.4.1, mobile simulated throttling, production
+`/en/react-three-fiber-npc-interaction`:
+
+| Category or metric | Result |
+| --- | ---: |
+| Performance | 100 |
+| Accessibility | 100 |
+| Best practices | 100 |
+| SEO | 100 |
+| First Contentful Paint | 0.9 s |
+| Largest Contentful Paint | 1.2 s |
+| Total Blocking Time | 20 ms |
+| Cumulative Layout Shift | 0 |
+
+### Ecosystem discovery audit
+
+- The GitHub repository exposes the canonical homepage, a focused category description, MIT
+  identity, and 15 relevant topics spanning TypeScript, React Three Fiber, Three.js, RPG systems,
+  multiplayer, and cross-platform delivery; no metadata change was needed.
+- Package manifests in the repository now point each package at its canonical package-reference
+  page and include `overworld-engine` and `typescript` discovery keywords.
+- npm's currently published 3.2.0 metadata still shows the older GitHub README homepage because the
+  canonical metadata was committed after that release. Refresh it in the next normal package
+  release; do not publish 27 package versions solely to change search metadata.
