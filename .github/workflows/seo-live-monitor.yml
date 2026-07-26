@@ -1,0 +1,25 @@
+name: SEO live monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 1 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-live-monitor
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify production SEO surface
+        run: node apps/docs/scripts/check-live-seo.mjs
