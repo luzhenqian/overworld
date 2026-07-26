@@ -21,11 +21,12 @@ testing, and cross-platform adapters.
 | Architecture | Three.js RPG framework | `/en/react-three-fiber-rpg-framework` | Published in source |
 | System | headless TypeScript quest system | `/en/headless-typescript-quest-system` | Published in source |
 | Brand / Chinese | TypeScript 3D RPG 框架 | `/` | Published |
-| Evaluation | modular game engine vs monolithic engine | planned comparison page | Planned |
+| Evaluation | TypeScript RPG framework comparison | `/en/typescript-rpg-framework-comparison` | Published in source |
 | System | TypeScript dialogue system | `/en/typescript-dialogue-system` | Published in source |
 | System | TypeScript inventory system | `/en/headless-typescript-inventory-system` | Published in source |
 | Multiplayer | authoritative multiplayer RPG TypeScript | `/en/authoritative-multiplayer-typescript` | Published in source |
-| Delivery | cross-platform TypeScript game architecture | planned English guide | Planned |
+| Delivery | cross-platform TypeScript game architecture | `/en/cross-platform-typescript-game-architecture` | Published in source |
+| Starter | React Three Fiber RPG starter | `/en/react-three-fiber-rpg-starter` | Published in source |
 
 Each query family gets one canonical page. Supporting articles link to that page instead of competing
 with it for the same phrase.

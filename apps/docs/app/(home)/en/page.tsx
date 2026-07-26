@@ -231,6 +231,31 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
 
         <section className="ow-en-section">
           <div className="ow-en-section-label">05 / FAQ</div>
+          <div className="ow-en-copy">
+            <h2>Choose an architecture, then ship a complete slice.</h2>
+            <div className="ow-en-grid">
+              <Link className="ow-en-card" href="/en/react-three-fiber-rpg-starter">
+                <h3>R3F RPG starter</h3>
+                <p>Run movement, dialogue, quests, inventory, rewards, HUD, AI, and tests.</p>
+              </Link>
+              <Link className="ow-en-card" href="/en/cross-platform-typescript-game-architecture">
+                <h3>Cross-platform architecture</h3>
+                <p>Share domain rules across Web, desktop, mobile, mini apps, and Node.</p>
+              </Link>
+              <Link className="ow-en-card" href="/en/typescript-rpg-framework-comparison">
+                <h3>Framework comparison</h3>
+                <p>Compare renderers, RPG systems, integrated frameworks, engines, and backends.</p>
+              </Link>
+              <Link className="ow-en-card" href="/docs/package-selection">
+                <h3>Package selection</h3>
+                <p>Install only the Overworld packages needed by the first gameplay slice.</p>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="ow-en-section">
+          <div className="ow-en-section-label">06 / FAQ</div>
           <div className="ow-en-copy ow-en-faq">
             <h2>Questions before adopting Overworld</h2>
             {faq.map((item) => (

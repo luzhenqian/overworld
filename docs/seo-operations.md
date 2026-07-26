@@ -35,7 +35,8 @@ Ongoing Search Console work:
 
 1. Confirm the submitted sitemap has completed its first successful read.
 2. Inspect `/`, `/en`, `/en/react-three-fiber-rpg-framework`, and
-   `/en/headless-typescript-quest-system`.
+   `/en/headless-typescript-quest-system`. Use URL Inspection selectively for new
+   pillar pages; the sitemap remains the primary discovery mechanism.
 3. Record submitted versus indexed pages weekly.
 4. Export query/page data monthly and update the keyword-to-page map from actual impressions.
 

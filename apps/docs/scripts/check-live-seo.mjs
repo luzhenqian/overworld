@@ -13,6 +13,9 @@ const routes = [
   '/en/typescript-dialogue-system',
   '/en/headless-typescript-inventory-system',
   '/en/authoritative-multiplayer-typescript',
+  '/en/cross-platform-typescript-game-architecture',
+  '/en/react-three-fiber-rpg-starter',
+  '/en/typescript-rpg-framework-comparison',
 ];
 
 const failures = [];

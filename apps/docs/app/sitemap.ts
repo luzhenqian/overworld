@@ -71,6 +71,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: absoluteUrl('/en/cross-platform-typescript-game-architecture'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl('/en/react-three-fiber-rpg-starter'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl('/en/typescript-rpg-framework-comparison'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 
   const docsPages: MetadataRoute.Sitemap = source.getPages().map((page) => ({
