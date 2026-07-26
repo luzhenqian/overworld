@@ -87,3 +87,46 @@ than indexing and content discovery.
   and parent `WebSite`.
 - Build-time SEO checks and the remote production smoke check both enforce those fields, in addition
   to the existing canonical, metadata, JSON-LD, language, sitemap, and redirect assertions.
+
+## Content publication — R3F game performance — 2026-07-27
+
+### Published and discovered
+
+| Signal | Value | Evidence |
+| --- | ---: | --- |
+| Canonical production pages | 64 | Production full-site crawler |
+| Unique same-origin internal targets | 64 | Production full-site crawler |
+| New target page | `/en/react-three-fiber-game-performance` | Live canonical check |
+| Ship Dock deployment | v677, commit `4aa966f`, success | Ship Dock deployment record |
+| Runtime | up = 1, restarts = 0, incidents = 0 | Ship Dock monitoring |
+| Remote SEO monitor | passed | GitHub Actions run `30223850682` |
+
+The new page owns the “React Three Fiber game performance optimization” query family. It documents
+measured bottleneck classification, frame-loop boundaries, instanced decorations, LOD and quality
+caps, asset manifests, zone loading, render policy, and regression budgets using public APIs that
+exist in this repository.
+
+IndexNow accepted the new guide, the English homepage, the R3F architecture guide, and the R3F
+state-management guide. Google Search Console initially reported the new URL as unknown and not
+indexed; the URL was then added successfully to Google's priority crawl queue. This is discovery
+and submission evidence, not indexing evidence.
+
+### Mobile performance
+
+Lighthouse 13.4.1, mobile simulated throttling, production
+`/en/react-three-fiber-game-performance`:
+
+| Category or metric | Result |
+| --- | ---: |
+| Performance | 98 |
+| Accessibility | 100 |
+| Best practices | 100 |
+| SEO | 100 |
+| First Contentful Paint | 1.2 s |
+| Largest Contentful Paint | 2.3 s |
+| Total Blocking Time | 30 ms |
+| Cumulative Layout Shift | 0 |
+
+The publication also replaced the home-layout navigation generated with invalid direct children
+inside a list. The new semantic navigation removed the only accessibility failure observed during
+the first local Lighthouse run.
