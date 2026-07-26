@@ -23,3 +23,5 @@ jobs:
           node-version: 22
       - name: Verify production SEO surface
         run: node apps/docs/scripts/check-live-seo.mjs
+      - name: Crawl every canonical page and internal link
+        run: node apps/docs/scripts/check-live-site.mjs

@@ -29,6 +29,7 @@
     "docs:check": "pnpm --filter docs check:content && pnpm --filter docs types:check",
     "docs:build": "pnpm --filter docs build",
     "docs:seo:indexnow": "node apps/docs/scripts/submit-indexnow.mjs",
+    "docs:seo:site": "node apps/docs/scripts/check-live-site.mjs",
     "docs:seo:live": "pnpm --filter docs check:live",
     "docs:seo": "pnpm --filter docs check:seo",
     "docs:start": "pnpm --filter docs start",

@@ -14,11 +14,15 @@ Run the production smoke test locally:
 
 ```bash
 pnpm docs:seo:live
+pnpm docs:seo:site
 ```
 
 GitHub Actions runs the same check every day. It verifies representative Chinese and English
 canonical pages, title/description/H1/JSON-LD, robots, sitemap membership, and both permanent
-redirect hosts. It also verifies the public IndexNow ownership key.
+redirect hosts. It also verifies the public IndexNow ownership key. The full-site crawl then fetches
+every canonical URL in the sitemap and every unique same-origin link it discovers, rejecting 4xx/5xx,
+redirecting internal links, missing or mismatched canonicals, accidental `noindex`, insecure links,
+and links through the `www` or legacy redirect hosts.
 
 ## IndexNow
 
