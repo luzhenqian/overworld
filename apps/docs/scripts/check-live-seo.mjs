@@ -23,6 +23,7 @@ const routes = [
   '/en/react-three-fiber-game-performance',
   '/en/react-three-fiber-npc-interaction',
   '/en/type-safe-event-bus-games-typescript',
+  '/en/typescript-rpg-content-validation',
 ];
 
 const failures = [];

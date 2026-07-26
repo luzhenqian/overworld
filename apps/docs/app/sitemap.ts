@@ -126,6 +126,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: absoluteUrl('/en/typescript-rpg-content-validation'),
+      lastModified: englishLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 
   const docsPages: MetadataRoute.Sitemap = source.getPages().map((page) => ({

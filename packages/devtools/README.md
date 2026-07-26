@@ -1,5 +1,7 @@
 # @overworld-engine/devtools
 
+**English guide:** [Validate data-driven RPG content in TypeScript](https://overworldengine.com/en/typescript-rpg-content-validation)
+
 开发期工具:**内容静态校验**(对话 / 任务 / 物品 / 成就)、**事件总线日志**与
 **事件总线剖析**。
 所有校验器都是纯函数,只返回问题列表、从不抛出;`assertValidContent` 供

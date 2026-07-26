@@ -1,5 +1,7 @@
 # @overworld-engine/content
 
+**English guide:** [Validate data-driven RPG content in TypeScript](https://overworldengine.com/en/typescript-rpg-content-validation)
+
 Content packs for Overworld: **validate-then-apply** versioned bundles of
 dialogues, quests, items and achievements into live engines — plus a small
 tracker for version discipline. Builds directly on the hot-reload convention in

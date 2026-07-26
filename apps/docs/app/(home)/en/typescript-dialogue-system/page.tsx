@@ -240,6 +240,14 @@ function DialoguePanel() {
               Verify hidden choices stay hidden, effects run once, terminal nodes complete the tree,
               and the emitted end event contains the final node and NPC identifiers.
             </p>
+            <p>
+              Use the{' '}
+              <Link href="/en/typescript-rpg-content-validation">
+                TypeScript RPG content-validation guide
+              </Link>{' '}
+              to catch duplicate nodes, missing start nodes, broken links, unreachable branches, and
+              cross-file quest references before the tree reaches this runtime.
+            </p>
             <div className="ow-en-next">
               <h2>Connect dialogue to quest progression</h2>
               <p>

@@ -249,6 +249,10 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
                 <h3>Type-safe game event bus</h3>
                 <p>Payload contracts, commands versus facts, lifecycles, delivery order, tests, and safe relays.</p>
               </Link>
+              <Link className="ow-en-card" href="/en/typescript-rpg-content-validation">
+                <h3>RPG content validation</h3>
+                <p>JSON Schema, graph integrity, registered behavior, CI gates, versioned packs, and safe hot reloads.</p>
+              </Link>
             </div>
           </div>
         </section>

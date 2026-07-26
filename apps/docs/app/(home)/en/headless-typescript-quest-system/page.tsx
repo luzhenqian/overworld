@@ -204,6 +204,13 @@ gameEvents.emit('player:moved', { distance: 12, position })`}</code></pre>
               <li>Verify restored quests re-subscribe and continue from saved progress.</li>
               <li>Verify disposal removes subscriptions for tests, hot reload, and room teardown.</li>
             </ol>
+            <p>
+              Before these runtime tests, validate objective targets, duplicate IDs, prerequisites,
+              trigger events, registered conditions and effects, and cross-file references with the{' '}
+              <Link href="/en/typescript-rpg-content-validation">
+                TypeScript RPG content-validation guide
+              </Link>.
+            </p>
             <div className="ow-en-next">
               <h2>Use it with an R3F game</h2>
               <p>
