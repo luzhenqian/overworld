@@ -201,7 +201,36 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
         </section>
 
         <section className="ow-en-section">
-          <div className="ow-en-section-label">04 / FAQ</div>
+          <div className="ow-en-section-label">04 / System guides</div>
+          <div className="ow-en-copy">
+            <h2>Build one renderer-independent system at a time.</h2>
+            <p>
+              Each guide follows a real vertical slice from serializable content or validated input
+              through runtime state, events, UI, persistence, and server boundaries.
+            </p>
+            <div className="ow-en-grid">
+              <Link className="ow-en-card" href="/en/headless-typescript-quest-system">
+                <h3>Headless quest system</h3>
+                <p>Event-driven objectives, conditions, rewards, chains, persistence, and testing.</p>
+              </Link>
+              <Link className="ow-en-card" href="/en/typescript-dialogue-system">
+                <h3>TypeScript dialogue system</h3>
+                <p>Serializable trees, conditional choices, declarative effects, localization, and React UI.</p>
+              </Link>
+              <Link className="ow-en-card" href="/en/headless-typescript-inventory-system">
+                <h3>Headless inventory system</h3>
+                <p>Item definitions, stacking, capacity, overflow, effects, events, and save state.</p>
+              </Link>
+              <Link className="ow-en-card" href="/en/authoritative-multiplayer-typescript">
+                <h3>Authoritative multiplayer</h3>
+                <p>Validated inputs, deterministic simulation, prediction, reconciliation, and snapshots.</p>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="ow-en-section">
+          <div className="ow-en-section-label">05 / FAQ</div>
           <div className="ow-en-copy ow-en-faq">
             <h2>Questions before adopting Overworld</h2>
             {faq.map((item) => (

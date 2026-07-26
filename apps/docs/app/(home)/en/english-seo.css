@@ -151,6 +151,16 @@
   background: var(--color-fd-background);
 }
 
+.ow-en-card[href] {
+  display: block;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.ow-en-card[href]:hover {
+  color: var(--en-accent);
+  background: color-mix(in srgb, var(--en-accent) 6%, var(--color-fd-background));
+}
+
 .ow-en-card h3 {
   margin: 0 0 10px;
   font-size: 17px;

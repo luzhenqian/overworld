@@ -53,6 +53,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: absoluteUrl('/en/typescript-dialogue-system'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl('/en/headless-typescript-inventory-system'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl('/en/authoritative-multiplayer-typescript'),
+      lastModified: buildLastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 
   const docsPages: MetadataRoute.Sitemap = source.getPages().map((page) => ({

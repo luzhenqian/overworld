@@ -10,6 +10,9 @@ const routes = [
   '/en',
   '/en/react-three-fiber-rpg-framework',
   '/en/headless-typescript-quest-system',
+  '/en/typescript-dialogue-system',
+  '/en/headless-typescript-inventory-system',
+  '/en/authoritative-multiplayer-typescript',
 ];
 
 const failures = [];
