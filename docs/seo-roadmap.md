@@ -82,5 +82,8 @@ Track outcomes by locale and intent, not raw page count:
 - referring domains from relevant development sites;
 - Core Web Vitals and crawl errors.
 
+Record each authoritative observation in [`seo-measurement-log.md`](./seo-measurement-log.md).
+Keep published, discovered, crawled, and indexed counts separate.
+
 The first Search Console snapshot becomes the baseline. Until enough data exists, publishing cadence
 and index coverage are leading indicators—not proof of ranking growth.
