@@ -304,6 +304,9 @@ function leaveScene() {
               unmount. A focus system is only reliable when its exceptional paths are as explicit as
               its happy path.
             </p>
+            <Link className="ow-en-link" href="/en/react-game-hud-ui-library">
+              See keyboard layers, window z-order, and gamepad focus in the HUD guide →
+            </Link>
           </div>
         </section>
 

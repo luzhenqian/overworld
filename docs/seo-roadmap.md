@@ -34,6 +34,7 @@ testing, and cross-platform adapters.
 | Interaction | React Three Fiber NPC interaction system | `/en/react-three-fiber-npc-interaction` | Published in source |
 | Architecture | type-safe event bus for games in TypeScript | `/en/type-safe-event-bus-games-typescript` | Published in source |
 | Content pipeline | TypeScript RPG content validation | `/en/typescript-rpg-content-validation` | Published in source |
+| Interface | React game HUD / headless game UI library | `/en/react-game-hud-ui-library` | Published in source |
 
 Each query family gets one canonical page. Supporting articles link to that page instead of competing
 with it for the same phrase.

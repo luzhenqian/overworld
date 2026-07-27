@@ -171,6 +171,9 @@ quests.getState().startQuest('welcome')`}</code></pre>
               add an item rather than replacing its slot array directly, because the engine owns
               stacking, capacity, effects, persistence, and emitted events.
             </p>
+            <Link className="ow-en-link" href="/en/react-game-hud-ui-library">
+              See how HUD components bind to these stores without importing them →
+            </Link>
           </div>
         </section>
 

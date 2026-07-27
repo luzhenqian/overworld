@@ -253,6 +253,10 @@ gameEvents.emit('player:moved', { position, distance: 1.4 })
                 <h3>RPG content validation</h3>
                 <p>JSON Schema, graph integrity, registered behavior, CI gates, versioned packs, and safe hot reloads.</p>
               </Link>
+              <Link className="ow-en-card" href="/en/react-game-hud-ui-library">
+                <h3>React game HUD UI</h3>
+                <p>Pointer-transparent overlays, pure HUD math, window z-order, input layers, gamepad focus, and themes.</p>
+              </Link>
             </div>
           </div>
         </section>

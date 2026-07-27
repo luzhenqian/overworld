@@ -1,5 +1,7 @@
 # @overworld-engine/input
 
+**English guide:** [Build a game HUD in React with headless TypeScript UI](https://overworldengine.com/en/react-game-hud-ui-library)
+
 键盘输入优先级层级系统 + 移动端虚拟摇杆。高优先级的 UI 层(模态框、对话框、侧边面板等)可以
 阻止低优先级的按键处理(如游戏移动控制),避免"打开菜单时角色还在跑"的经典问题。
 

@@ -24,6 +24,7 @@ const routes = [
   '/en/react-three-fiber-npc-interaction',
   '/en/type-safe-event-bus-games-typescript',
   '/en/typescript-rpg-content-validation',
+  '/en/react-game-hud-ui-library',
 ];
 
 const failures = [];
