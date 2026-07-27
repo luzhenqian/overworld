@@ -6,7 +6,7 @@ import { articleStructuredDataFields } from '@/lib/structured-data';
 import '../english-seo.css';
 
 const path = '/en/react-game-hud-ui-library';
-const title = 'Build a Game HUD in React with Headless TypeScript UI';
+const title = 'React Game HUD with Headless TypeScript UI';
 const description =
   'Build a React game HUD with headless TypeScript UI: pointer-transparent overlays, pure HUD math, engine-bound components, window z-order, gamepad focus, and CSS themes.';
 

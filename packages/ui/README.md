@@ -1,6 +1,6 @@
 # @overworld-engine/ui
 
-**English guide:** [Build a game HUD in React with headless TypeScript UI](https://overworldengine.com/en/react-game-hud-ui-library)
+**English guide:** [React game HUD with headless TypeScript UI](https://overworldengine.com/en/react-game-hud-ui-library)
 
 Headless-first game UI: state/logic-only helpers plus a thin, CSS-themeable
 styled layer on top. See the [repo root README](../../README.md) for the
