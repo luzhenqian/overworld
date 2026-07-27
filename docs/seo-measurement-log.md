@@ -263,3 +263,62 @@ Lighthouse 12.8.2, mobile simulated throttling, production
 | Largest Contentful Paint | 2.0 s |
 | Total Blocking Time | 20 ms |
 | Cumulative Layout Shift | 0 |
+
+## Content publication — React game HUD UI — 2026-07-27
+
+### Published and discovered
+
+| Signal | Value | Evidence |
+| --- | ---: | --- |
+| Canonical production pages | 68 | Production full-site crawler |
+| Unique same-origin internal targets | 68 | Production full-site crawler |
+| New target page | `/en/react-game-hud-ui-library` | Live canonical check |
+| Ship Dock deployment | v688, commit `81eadda`, success | Ship Dock deployment record |
+| Runtime | up = 1, restarts = 0, incidents = 0 | Ship Dock monitoring |
+| Remote SEO monitor | passed | GitHub Actions run `30227031265` |
+
+The new page owns the “React game HUD / headless game UI library” query family. It separates engine
+state, interface chrome state, per-frame values, and skin; then documents the pointer-transparent HUD
+overlay, pure HUD math, structurally typed engine binding, the window z-order registry, keyboard
+priority layers and the shared input lock, spatial and gamepad focus, CSS theme tokens with
+`asChild`, and world-anchored widgets — using public APIs in this repository.
+
+IndexNow accepted the new guide, the English homepage, the NPC interaction guide, and the
+state-management guide, then accepted the guide again after its title was shortened.
+
+### Search Console
+
+| Signal | Value |
+| --- | --- |
+| Sitemap last read | 2026-07-27, success |
+| Discovered sitemap URLs | 63 |
+| Canonical pages in production | 68 |
+| `/en/react-game-hud-ui-library` | Not on Google; no referring sitemap detected yet |
+| Manual indexing request | Rejected — daily quota exceeded |
+
+Search Console's performance and page-indexing reports are still processing and have no actionable
+query data. The manual request quota is exhausted for the day, so the sitemap and IndexNow remain
+this page's discovery path; nothing here is indexing evidence. Compare the next processed sitemap
+count against 68 rather than reading the current 63 as an exclusion.
+
+### Publication gate
+
+CI rejected the first commit: the generated-output SEO check caps a rendered title at 65 characters
+including the ` | Overworld Engine` suffix, and the original title was 72. The fix shipped as a
+follow-up deployment. Run `pnpm docs:seo` alongside `pnpm docs:check` before pushing a new page —
+`docs:check` alone does not cover the generated-output rules.
+
+### Mobile performance
+
+Lighthouse 13.4.1, mobile simulated throttling, production `/en/react-game-hud-ui-library`:
+
+| Category or metric | Result |
+| --- | ---: |
+| Performance | 100 |
+| Accessibility | 100 |
+| Best practices | 100 |
+| SEO | 100 |
+| First Contentful Paint | 0.9 s |
+| Largest Contentful Paint | 1.4 s |
+| Total Blocking Time | 50 ms |
+| Cumulative Layout Shift | 0 |
